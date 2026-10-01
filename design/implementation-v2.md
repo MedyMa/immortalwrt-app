@@ -13,6 +13,6 @@
 - [x] Add widget/lifecycle tests for background pause, resume refresh and section switching; implement shell state machine.
 - [x] Split `main.dart` into `screens/`, `widgets/`, `services/`, `models/` while preserving the rendered v2 UI and existing tests.
 - [x] Pin Android compile SDK 37 and Xcode 27 CI image, print tool versions and document signing limits.
-- [ ] Run format, analyze, full Flutter tests, inspect Git diff, commit/push, verify both GitHub Actions jobs and artifacts.
+- [x] Run format, analyze, full Flutter tests, inspect Git diff, commit/push, verify both GitHub Actions jobs and artifacts. Both jobs succeeded in [CI run 36807475862](https://github.com/MedyMa/immortalwrt-app/actions/runs/36807475862).
 
 No router write RPCs, background collection, MiWiFi data or VPN are introduced.
