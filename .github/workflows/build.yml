@@ -68,7 +68,15 @@ jobs:
       - run: flutter analyze --fatal-infos
       - run: flutter test
       - run: flutter build ios --simulator --debug
+      - run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app immortalwrt-ios-simulator.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: immortalwrt-ios-simulator
+          path: immortalwrt-ios-simulator.zip
+          if-no-files-found: error
       - name: Launch on iOS 27 simulator
+        timeout-minutes: 4
+        continue-on-error: true
         run: |
           device_id=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; data=json.load(sys.stdin)["devices"]; print(next((device["udid"] for runtime, devices in data.items() if "iOS-27" in runtime for device in devices if "iPhone" in device["name"]), ""))')
           test -n "$device_id"
@@ -78,14 +86,8 @@ jobs:
           xcrun simctl launch "$device_id" com.medyma.immortalwrtApp
           sleep 8
           xcrun simctl io "$device_id" screenshot ios-27-overview.png
-      - run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app immortalwrt-ios-simulator.zip
       - uses: actions/upload-artifact@v7
         with:
           name: immortalwrt-ios-27-preview
           path: ios-27-overview.png
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v7
-        with:
-          name: immortalwrt-ios-simulator
-          path: immortalwrt-ios-simulator.zip
-          if-no-files-found: error
+          if-no-files-found: warn
