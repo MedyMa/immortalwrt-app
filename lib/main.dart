@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'models/router_models.dart';
@@ -9,6 +13,7 @@ import 'services/router_api.dart';
 import 'services/router_session.dart';
 
 part 'widgets/shared.dart';
+part 'widgets/platform_navigation.dart';
 part 'screens/overview.dart';
 part 'screens/devices.dart';
 part 'screens/wifi.dart';
@@ -100,11 +105,39 @@ String? _bandLabel(String? band) {
   return band;
 }
 
-class ImmortalWrtApp extends StatelessWidget {
+class ImmortalWrtApp extends StatefulWidget {
   const ImmortalWrtApp({super.key});
 
   @override
+  State<ImmortalWrtApp> createState() => _ImmortalWrtAppState();
+}
+
+class _ImmortalWrtAppState extends State<ImmortalWrtApp> {
+  static const _appearance = MethodChannel('com.medyma.immortalwrt/appearance');
+  Color? _systemSeed;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      _loadSystemAccent();
+    }
+  }
+
+  Future<void> _loadSystemAccent() async {
+    try {
+      final value = await _appearance.invokeMethod<int>('accentColor');
+      if (mounted && value != null) setState(() => _systemSeed = Color(value));
+    } on MissingPluginException {
+      // A host without the Android channel keeps the application seed.
+    } on PlatformException {
+      // A device without a dynamic accent keeps the application seed.
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final seed = _systemSeed ?? _blue;
     return MaterialApp(
       title: 'ImmortalWrt',
       debugShowCheckedModeBanner: false,
@@ -112,7 +145,7 @@ class ImmortalWrtApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme:
-            ColorScheme.fromSeed(seedColor: _blue, surface: Colors.white),
+            ColorScheme.fromSeed(seedColor: seed, surface: Colors.white),
         scaffoldBackgroundColor: _page,
         appBarTheme: const AppBarTheme(
             backgroundColor: _page,
@@ -128,7 +161,7 @@ class ImmortalWrtApp extends StatelessWidget {
         useMaterial3: true,
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-            seedColor: _blue, brightness: Brightness.dark, surface: _cardDark),
+            seedColor: seed, brightness: Brightness.dark, surface: _cardDark),
         scaffoldBackgroundColor: _pageDark,
         appBarTheme: const AppBarTheme(
             backgroundColor: _pageDark,
@@ -394,6 +427,8 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     const names = ['总览', '设备', 'Wi-Fi', '流量'];
     final snapshot = _snapshot;
+    final isIos = Theme.of(context).platform == TargetPlatform.iOS;
+    final wide = !isIos && MediaQuery.sizeOf(context).width >= 700;
     return Scaffold(
       backgroundColor: _pageOf(context),
       appBar: AppBar(
@@ -412,58 +447,96 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
         ],
       ),
       body: SafeArea(
-        child: snapshot == null
-            ? _EmptyConnection(
-                loading: _loading, error: _error, onConnect: _showConnection)
-            : RefreshIndicator(
-                onRefresh: _refresh,
-                color: _blue,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-                  children: [
-                    if (_error != null)
-                      _Notice(
-                          '连接中断 · 显示上次成功读取的数据\n$_error', Icons.wifi_off_rounded,
-                          tone: _red),
-                    if (_checking && _error == null)
-                      const _Notice(
-                          '正在核对数据 · 下方是上次成功读取的状态', Icons.sync_rounded),
-                    if (_tab == 0)
-                      _Overview(
-                          snapshot: snapshot,
-                          endpoint: _url,
-                          error: _error,
-                          onOpen: _selectTab),
-                    if (_tab == 1) _Devices(snapshot: snapshot),
-                    if (_tab == 2) _Wifi(snapshot: snapshot),
-                    if (_tab == 3) _Traffic(snapshot: snapshot),
+        child: Row(children: [
+          if (wide)
+            NavigationRail(
+              selectedIndex: _tab,
+              onDestinationSelected: _selectTab,
+              labelType: NavigationRailLabelType.all,
+              backgroundColor: _cardOf(context),
+              indicatorColor:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+              destinations: const [
+                NavigationRailDestination(
+                    icon: Icon(Icons.dashboard_outlined),
+                    selectedIcon: Icon(Icons.dashboard_rounded),
+                    label: Text('总览')),
+                NavigationRailDestination(
+                    icon: Icon(Icons.devices_outlined),
+                    selectedIcon: Icon(Icons.devices_rounded),
+                    label: Text('设备')),
+                NavigationRailDestination(
+                    icon: Icon(Icons.wifi_outlined),
+                    selectedIcon: Icon(Icons.wifi_rounded),
+                    label: Text('Wi-Fi')),
+                NavigationRailDestination(
+                    icon: Icon(Icons.show_chart_rounded), label: Text('流量')),
+              ],
+            ),
+          Expanded(
+            child: snapshot == null
+                ? _EmptyConnection(
+                    loading: _loading,
+                    error: _error,
+                    onConnect: _showConnection)
+                : RefreshIndicator(
+                    onRefresh: _refresh,
+                    color: _blue,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                      children: [
+                        if (_error != null)
+                          _Notice('连接中断 · 显示上次成功读取的数据\n$_error',
+                              Icons.wifi_off_rounded,
+                              tone: _red),
+                        if (_checking && _error == null)
+                          const _Notice(
+                              '正在核对数据 · 下方是上次成功读取的状态', Icons.sync_rounded),
+                        if (_tab == 0)
+                          _Overview(
+                              snapshot: snapshot,
+                              endpoint: _url,
+                              error: _error,
+                              onOpen: _selectTab),
+                        if (_tab == 1) _Devices(snapshot: snapshot),
+                        if (_tab == 2) _Wifi(snapshot: snapshot),
+                        if (_tab == 3) _Traffic(snapshot: snapshot),
+                      ],
+                    ),
+                  ),
+          ),
+        ]),
+      ),
+      bottomNavigationBar: wide
+          ? null
+          : isIos
+              ? _IosTabBar(selectedIndex: _tab, onSelected: _selectTab)
+              : NavigationBar(
+                  backgroundColor: _cardOf(context),
+                  indicatorColor: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.12),
+                  surfaceTintColor: Colors.transparent,
+                  selectedIndex: _tab,
+                  onDestinationSelected: _selectTab,
+                  destinations: const [
+                    NavigationDestination(
+                        icon: Icon(Icons.dashboard_outlined),
+                        selectedIcon: Icon(Icons.dashboard_rounded),
+                        label: '总览'),
+                    NavigationDestination(
+                        icon: Icon(Icons.devices_outlined),
+                        selectedIcon: Icon(Icons.devices_rounded),
+                        label: '设备'),
+                    NavigationDestination(
+                        icon: Icon(Icons.wifi_outlined),
+                        selectedIcon: Icon(Icons.wifi_rounded),
+                        label: 'Wi-Fi'),
+                    NavigationDestination(
+                        icon: Icon(Icons.show_chart_rounded), label: '流量'),
                   ],
                 ),
-              ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: _cardOf(context),
-        indicatorColor: _blue.withValues(alpha: 0.12),
-        surfaceTintColor: Colors.transparent,
-        selectedIndex: _tab,
-        onDestinationSelected: _selectTab,
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard_rounded),
-              label: '总览'),
-          NavigationDestination(
-              icon: Icon(Icons.devices_outlined),
-              selectedIcon: Icon(Icons.devices_rounded),
-              label: '设备'),
-          NavigationDestination(
-              icon: Icon(Icons.wifi_outlined),
-              selectedIcon: Icon(Icons.wifi_rounded),
-              label: 'Wi-Fi'),
-          NavigationDestination(
-              icon: Icon(Icons.show_chart_rounded), label: '流量'),
-        ],
-      ),
     );
   }
 }

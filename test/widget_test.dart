@@ -1,4 +1,7 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:immortalwrt_app/main.dart';
@@ -81,11 +84,76 @@ void main() {
     await tester.pumpWidget(const ImmortalWrtApp());
     await tester.pump();
     expect(find.text('连接路由器'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(Scaffold), findsOneWidget);
     expect(find.text('总览'), findsWidgets);
     expect(find.text('设备'), findsOneWidget);
     expect(find.text('Wi-Fi'), findsOneWidget);
     expect(find.text('流量'), findsOneWidget);
+    expect(find.text('仅读取状态 · 凭据保存在本机'), findsOneWidget);
+  });
+
+  testWidgets('device and BE14 status keep concise scope labels',
+      (tester) async {
+    final api = _FakeRouterApi();
+    await tester.pumpWidget(MaterialApp(
+        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api)));
+    await tester.pump();
+    await tester.tap(find.text('设备').last);
+    await tester.pump();
+    expect(find.text('设备记录不代表当前在线'), findsOneWidget);
+    await tester.tap(find.text('Wi-Fi').last);
+    await tester.pump();
+    expect(find.text('BE14 驱动可能不返回全部射频'), findsOneWidget);
+  });
+
+  testWidgets('iOS presents a platform tab bar', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      await tester.pumpWidget(MaterialApp(
+          home: RouterHome(
+              storage: _MemoryStorage(), apiFactory: (_) => _FakeRouterApi())));
+      await tester.pump();
+      expect(find.byType(CupertinoTabBar), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('wide Android uses a navigation rail', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.android),
+        home: RouterHome(
+            storage: _MemoryStorage(), apiFactory: (_) => _FakeRouterApi())));
+    await tester.pump();
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets('Android uses the system accent when available', (tester) async {
+    const channel = MethodChannel('com.medyma.immortalwrt/appearance');
+    var calls = 0;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (call) async {
+      calls++;
+      return 0xFFBF5AF2;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, null));
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      await tester.pumpWidget(const ImmortalWrtApp());
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+      final theme = Theme.of(tester.element(find.byType(RouterHome)));
+      expect(theme.colorScheme.primary,
+          ColorScheme.fromSeed(seedColor: const Color(0xFFBF5AF2)).primary);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('background pauses polling and resume refreshes visible page',

@@ -627,6 +627,9 @@ class _EmptyConnection extends StatelessWidget {
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: _inkOf(context))),
+            const SizedBox(height: 8),
+            Text('仅读取状态 · 凭据保存在本机',
+                textAlign: TextAlign.center, style: _bodyStyle(context)),
             if (failure != null) ...[
               const SizedBox(height: 16),
               _Notice(failure, Icons.error_outline_rounded, tone: _red),

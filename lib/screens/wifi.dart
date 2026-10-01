@@ -35,6 +35,8 @@ class _Wifi extends StatelessWidget {
               Text(_wifiAvailability(snapshot, radios.length, upCount),
                   style: TextStyle(
                       fontSize: 12.5, height: 1.45, color: _inkOf(context))),
+              const SizedBox(height: 4),
+              Text('BE14 驱动可能不返回全部射频', style: _bodyStyle(context)),
             ],
           ),
         ),

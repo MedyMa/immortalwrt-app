@@ -113,6 +113,8 @@ class _DevicesState extends State<_Devices> {
               const SizedBox(height: 8),
               Text('DHCP $leaseCount · 流量记录 $trafficCount',
                   style: _bodyStyle(context)),
+              const SizedBox(height: 4),
+              Text('设备记录不代表当前在线', style: _bodyStyle(context)),
             ],
           ),
         ),

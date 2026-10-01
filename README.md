@@ -4,9 +4,13 @@ An independent iOS and Android status app for the MT7988 router. It uses the exi
 
 The app shows router uptime, Traffic App rates and session totals, DHCP leases and traffic clients, and the BE14 radio status exposed by OpenWrt's `network.wireless status`. It does not display MiWiFi, modify router settings, or connect a VPN.
 
-![Four-screen preview](design/mobile-v2.png)
+The four screens follow the [platform-adaptive v3 design](design/platform-adaptive-v3.md). iOS uses a native UIKit tab bar, which adopts the system's Liquid Glass appearance on supported OS versions. Android uses Material 3 navigation, Android 12+ system accent color, and a navigation rail on wider screens. The content remains the same read-only router data on both platforms.
 
-The four screens use the [v2 layout](design/mobile-v2-design.md). Preview numbers are examples, not router measurements.
+| iOS preview | Android preview |
+| --- | --- |
+| [Overview](design/previews/ios-overview.png) · [Devices](design/previews/ios-devices.png) · [Wi-Fi](design/previews/ios-wifi.png) · [Traffic](design/previews/ios-traffic.png) | [Overview](design/previews/android-overview.png) · [Devices](design/previews/android-devices.png) · [Wi-Fi](design/previews/android-wifi.png) · [Traffic](design/previews/android-traffic.png) |
+
+The previews render the shipped Flutter widgets with example data. The iOS previews use a Cupertino tab bar fallback because they were rendered on Windows; the actual UIKit Liquid Glass appearance must be checked in the iOS simulator.
 
 ## Connect
 
