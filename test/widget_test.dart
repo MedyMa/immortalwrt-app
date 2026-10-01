@@ -74,7 +74,14 @@ class _FlakyApi extends _FakeRouterApi {
     if (reads == 2) {
       throw const RouterApiException('连接超时，请检查路由器或远程入口');
     }
-    return RouterSnapshot(fetchedAt: DateTime.now());
+    return RouterSnapshot(
+      fetchedAt: DateTime.now(),
+      live: const LiveRate(
+          ready: true,
+          downBytesPerSecond: 1024,
+          upBytesPerSecond: 512,
+          at: null),
+    );
   }
 }
 
@@ -122,15 +129,19 @@ void main() {
     expect(find.text('BE14 驱动可能不返回全部射频'), findsOneWidget);
   });
 
-  testWidgets('healthy network uses a concise text status in the hero',
+  testWidgets('healthy overview shows device to router to internet topology',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
         home: RouterHome(
             storage: _MemoryStorage(), apiFactory: (_) => _HealthyApi())));
     await tester.pumpAndSettle();
-    expect(find.text('网络运行正常'), findsOneWidget);
-    expect(find.byIcon(Icons.public_rounded), findsNothing);
-    expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+    expect(find.text('网络运行正常'), findsNothing);
+    expect(find.text('MT7988'), findsOneWidget);
+    expect(find.text('互联网'), findsOneWidget);
+    expect(find.text('UCG Fiber'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('topology-devices')));
+    await tester.pump();
+    expect(find.text('设备记录'), findsOneWidget);
   });
 
   testWidgets('iOS presents a platform tab bar', (tester) async {
@@ -222,12 +233,16 @@ void main() {
     await tester.pumpWidget(MaterialApp(
         home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api)));
     await tester.pump();
+    expect(find.text('互联网'), findsOneWidget);
     await tester.pump(const Duration(seconds: 16));
     await tester.pump();
     expect(find.textContaining('连接中断 · 显示上次成功读取的数据'), findsOneWidget);
+    expect(find.text('连接已中断'), findsOneWidget);
+    expect(find.text('互联网'), findsNothing);
     await tester.pump(const Duration(seconds: 16));
     await tester.pump();
     expect(find.textContaining('连接中断 · 显示上次成功读取的数据'), findsNothing);
+    expect(find.text('互联网'), findsOneWidget);
     expect(api.reads, 3);
   });
 }

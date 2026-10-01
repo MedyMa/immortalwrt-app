@@ -32,26 +32,31 @@ class _Overview extends StatelessWidget {
     final String stateLabel;
     final String headline;
     final String detail;
+    final bool showTopology;
     if (offline) {
       stateColor = _red;
       stateLabel = '连接中断';
       headline = '连接已中断';
       detail = '显示上次成功读取的数据';
+      showTopology = false;
     } else if (stale) {
       stateColor = _amber;
       stateLabel = '数据延迟';
       headline = '数据更新延迟';
       detail = 'Traffic 采集已超过 60 秒未更新';
+      showTopology = false;
     } else if (summary == null && snapshot.live == null) {
       stateColor = _green;
       stateLabel = '已连接';
       headline = '路由器已连接';
       detail = '未获取到 Traffic 采集数据';
+      showTopology = false;
     } else {
       stateColor = _green;
       stateLabel = '已连接';
-      headline = '网络运行正常';
+      headline = '';
       detail = '';
+      showTopology = true;
     }
 
     final down = summary?.headlineDown;
@@ -69,6 +74,8 @@ class _Overview extends StatelessWidget {
           stateColor: stateColor,
           headline: headline,
           detail: detail,
+          showTopology: showTopology,
+          onOpenDevices: () => onOpen(1),
           live: snapshot.live,
         ),
         const SizedBox(height: 20),
@@ -187,6 +194,8 @@ class _Hero extends StatelessWidget {
     required this.stateColor,
     required this.headline,
     required this.detail,
+    required this.showTopology,
+    required this.onOpenDevices,
     required this.live,
   });
 
@@ -195,6 +204,8 @@ class _Hero extends StatelessWidget {
   final Color stateColor;
   final String headline;
   final String detail;
+  final bool showTopology;
+  final VoidCallback onOpenDevices;
   final LiveRate? live;
 
   @override
@@ -222,12 +233,15 @@ class _Hero extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(headline,
-              style: TextStyle(
-                  fontSize: 26,
-                  height: 1.15,
-                  fontWeight: FontWeight.w800,
-                  color: _inkOf(context))),
+          if (showTopology)
+            _NetworkTopology(onOpenDevices: onOpenDevices)
+          else
+            Text(headline,
+                style: TextStyle(
+                    fontSize: 26,
+                    height: 1.15,
+                    fontWeight: FontWeight.w800,
+                    color: _inkOf(context))),
           if (detail.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(detail,
@@ -258,6 +272,164 @@ class _Hero extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NetworkTopology extends StatelessWidget {
+  const _NetworkTopology({required this.onOpenDevices});
+
+  final VoidCallback onOpenDevices;
+
+  @override
+  Widget build(BuildContext context) {
+    final neutral = _mutedOf(context);
+    final vertical = MediaQuery.textScalerOf(context).scale(1) >= 1.5;
+    final nodes = [
+      _TopologyNode(
+          label: '设备',
+          icon: Icons.devices_rounded,
+          color: neutral,
+          onTap: onOpenDevices,
+          key: const ValueKey('topology-devices')),
+      const _TopologyNode(label: 'MT7988', color: _green, router: true),
+      _TopologyNode(label: '互联网', icon: Icons.public_rounded, color: neutral),
+    ];
+    return Semantics(
+      label: '设备、MT7988、互联网拓扑示意；已连接 MT7988，上游状态未检测',
+      child: vertical
+          ? Column(
+              children: [
+                nodes[0],
+                _TopologyLink(color: neutral, vertical: true),
+                nodes[1],
+                _TopologyLink(color: neutral, vertical: true),
+                nodes[2],
+              ],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: nodes[0]),
+                Expanded(child: _TopologyLink(color: neutral)),
+                Expanded(child: nodes[1]),
+                Expanded(child: _TopologyLink(color: neutral)),
+                Expanded(child: nodes[2]),
+              ],
+            ),
+    );
+  }
+}
+
+class _TopologyNode extends StatelessWidget {
+  const _TopologyNode({
+    super.key,
+    required this.label,
+    required this.color,
+    this.icon,
+    this.router = false,
+    this.onTap,
+  });
+
+  final String label;
+  final Color color;
+  final IconData? icon;
+  final bool router;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+          child: router
+              ? _RouterTopologyGlyph(color: color)
+              : Icon(icon, size: 27, color: color),
+        ),
+        const SizedBox(height: 8),
+        Text(label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: _inkOf(context))),
+      ],
+    );
+    if (onTap == null) return child;
+    return InkWell(
+        onTap: onTap, borderRadius: BorderRadius.circular(12), child: child);
+  }
+}
+
+class _TopologyLink extends StatelessWidget {
+  const _TopologyLink({required this.color, this.vertical = false});
+
+  final Color color;
+  final bool vertical;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: vertical
+            ? Container(
+                width: 2,
+                height: 18,
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                color: color.withValues(alpha: 0.45))
+            : Padding(
+                padding: const EdgeInsets.only(top: 18),
+                child: Row(children: [
+                  Expanded(
+                      child: Container(
+                          height: 2, color: color.withValues(alpha: 0.45))),
+                  Icon(Icons.chevron_right_rounded,
+                      size: 13, color: color.withValues(alpha: 0.65)),
+                ]),
+              ),
+      );
+}
+
+class _RouterTopologyGlyph extends StatelessWidget {
+  const _RouterTopologyGlyph({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 30,
+        height: 27,
+        child: Stack(children: [
+          Positioned(
+              left: 6,
+              top: 1,
+              child: Container(width: 2, height: 8, color: color)),
+          Positioned(
+              right: 6,
+              top: 1,
+              child: Container(width: 2, height: 8, color: color)),
+          Positioned(
+            bottom: 0,
+            child: Container(
+              width: 30,
+              height: 19,
+              padding: const EdgeInsets.only(left: 6),
+              decoration: BoxDecoration(
+                border: Border.all(color: color, width: 2),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Row(children: [
+                CircleAvatar(radius: 1.5, backgroundColor: color),
+                const SizedBox(width: 4),
+                CircleAvatar(radius: 1.5, backgroundColor: color),
+              ]),
+            ),
+          ),
+        ]),
+      );
 }
 
 String _uptime(int? seconds) {

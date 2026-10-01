@@ -4,6 +4,8 @@ An independent iOS and Android status app for the MT7988 router. It uses the exi
 
 The app shows router uptime, Traffic App rates and session totals, DHCP leases and traffic clients, and the BE14 radio status exposed by OpenWrt's `network.wireless status`. It does not display MiWiFi, modify router settings, or connect a VPN.
 
+The overview uses a three-node device → MT7988 → Internet diagram. It is a topology sketch: the app verifies its MT7988 connection, but does not measure the upstream Internet link or claim that device records are currently online.
+
 The four screens follow the [platform-adaptive v3 design](design/platform-adaptive-v3.md). iOS uses a native UIKit tab bar, which adopts the system's Liquid Glass appearance on supported OS versions. Android uses Material 3 navigation, Android 12+ system accent color, and a navigation rail on wider screens. The content remains the same read-only router data on both platforms.
 
 | iOS preview | Android preview |
