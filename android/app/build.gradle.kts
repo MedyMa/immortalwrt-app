@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.medyma.immortalwrt_app"
-    compileSdk = flutter.compileSdkVersion
+    // Android 17 SDK (API 37). Runtime behavior opt-in stays separate.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -15,7 +16,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.medyma.immortalwrt_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.

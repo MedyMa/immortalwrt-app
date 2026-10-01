@@ -156,6 +156,15 @@ class TrafficSeries {
   final int interval;
   final List<TrafficPoint> points;
 
+  /// Highest per-second rate in the series, across both directions; 0 when the
+  /// series is empty. Used for the 峰值 figure on the traffic screen.
+  double get peakBytesPerSecond => points.fold<double>(0, (max, point) {
+        final pointMax = point.downBytesPerSecond > point.upBytesPerSecond
+            ? point.downBytesPerSecond
+            : point.upBytesPerSecond;
+        return pointMax > max ? pointMax : max;
+      });
+
   factory TrafficSeries.fromJson(Object? value) {
     final json = _map(value);
     final interval = _number(json['interval']);
@@ -180,27 +189,41 @@ class WifiRadio {
       {required this.name,
       required this.up,
       required this.ssids,
-      required this.clientCount});
+      required this.clientCount,
+      this.band,
+      this.channel});
   final String name;
   final bool up;
   final List<String> ssids;
   final int? clientCount;
 
+  /// Band as reported by the router (for example `5g`); null when the payload
+  /// does not carry one, so the UI can say 未提供 instead of guessing.
+  final String? band;
+
+  /// Configured channel, or null when absent or set to `auto`.
+  final int? channel;
+
   static List<WifiRadio> parseAll(Object? value) {
     final source = _map(value);
     return source.entries.where((entry) => entry.value is Map).map((entry) {
       final radio = _map(entry.value);
+      final settings = _map(radio['config']);
       final ssids = <String>[];
       for (final raw in _list(radio['interfaces'])) {
-        final config = _map(_map(raw)['config']);
-        final ssid = '${config['ssid'] ?? ''}';
+        final ifaceConfig = _map(_map(raw)['config']);
+        final ssid = '${ifaceConfig['ssid'] ?? ''}';
         if (ssid.isNotEmpty) ssids.add(ssid);
       }
+      final band = '${settings['band'] ?? radio['band'] ?? ''}';
+      final channel = _number(settings['channel'] ?? radio['channel']);
       return WifiRadio(
         name: entry.key,
         up: radio['up'] == true,
         ssids: ssids,
         clientCount: null,
+        band: band.isEmpty ? null : band,
+        channel: channel > 0 ? channel : null,
       );
     }).toList();
   }
@@ -216,6 +239,10 @@ class RouterSnapshot {
     this.dhcpDevices = const [],
     this.uptimeSeconds,
     this.trafficError,
+    this.liveError,
+    this.seriesError,
+    this.devicesError,
+    this.systemError,
     this.wifiError,
   });
   final DateTime fetchedAt;
@@ -226,6 +253,10 @@ class RouterSnapshot {
   final List<DhcpDevice> dhcpDevices;
   final int? uptimeSeconds;
   final String? trafficError;
+  final String? liveError;
+  final String? seriesError;
+  final String? devicesError;
+  final String? systemError;
   final String? wifiError;
 }
 

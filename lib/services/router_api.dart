@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -9,6 +11,36 @@ class RouterApiException implements Exception {
   final String message;
   @override
   String toString() => message;
+}
+
+class RouterPermissionException extends RouterApiException {
+  const RouterPermissionException(String method)
+      : super('没有读取 $method 的权限（ubus 代码 6）');
+}
+
+class RouterSessionExpiredException extends RouterApiException {
+  const RouterSessionExpiredException() : super('登录会话已失效');
+}
+
+class RouterAccessDeniedException extends RouterApiException {
+  const RouterAccessDeniedException() : super('账号无此页面的读取权限，请检查 ubus ACL');
+}
+
+enum RouterSection { all, overview, devices, wifi, traffic }
+
+class _ReadSpec {
+  const _ReadSpec(this.key, this.object, this.method, [this.args = const {}]);
+  final String key;
+  final String object;
+  final String method;
+  final Map<String, dynamic> args;
+}
+
+class _ReadResult {
+  const _ReadResult(this.key, this.data, this.error);
+  final String key;
+  final Map<String, dynamic>? data;
+  final RouterApiException? error;
 }
 
 class RouterApi {
@@ -60,8 +92,16 @@ class RouterApi {
             }),
           )
           .timeout(const Duration(seconds: 8));
-    } catch (_) {
-      throw const RouterApiException('无法连接路由器，请检查 Wi-Fi 和地址');
+    } on TimeoutException {
+      throw const RouterApiException('连接超时，请检查路由器或远程入口');
+    } on HandshakeException {
+      throw const RouterApiException('TLS 证书验证失败，请检查远程地址和证书');
+    } on SocketException catch (error) {
+      final dns = error.message.contains('host lookup') ||
+          error.message.toLowerCase().contains('dns');
+      throw RouterApiException(dns ? 'DNS 解析失败，请检查域名和网络' : '无法连接路由器，请检查地址和网络');
+    } on http.ClientException {
+      throw const RouterApiException('网络请求失败，请检查远程入口');
     }
     if (response.statusCode != 200) {
       throw RouterApiException('路由器返回 HTTP ${response.statusCode}');
@@ -73,6 +113,10 @@ class RouterApi {
       }
       final result = payload['result'] as List;
       if (result.isEmpty || result[0] != 0) {
+        if (result.isNotEmpty && result[0] == 6) {
+          if (login) throw const RouterApiException('登录失败，请检查用户名和密码');
+          throw RouterPermissionException('$object.$method');
+        }
         throw RouterApiException(
             'ubus 拒绝 $object.$method（代码 ${result.isEmpty ? '?' : result[0]}）');
       }
@@ -94,45 +138,84 @@ class RouterApi {
     _session = session;
   }
 
-  Future<RouterSnapshot> fetch() async {
-    // A missing plugin or radio must not hide the other sections.
-    Future<(Map<String, dynamic>?, String?)> safe(
-        String object, String method, Map<String, dynamic> args) async {
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async {
+    const summary = _ReadSpec('summary', 'luci.traffic', 'getSummary');
+    const live = _ReadSpec('live', 'luci.traffic', 'getLive');
+    const series =
+        _ReadSpec('series', 'luci.traffic', 'getSeries', {'range': '1h'});
+    const wifi = _ReadSpec('wifi', 'network.wireless', 'status');
+    const system = _ReadSpec('system', 'system', 'info');
+    const devices = _ReadSpec('devices', 'luci-rpc', 'getDHCPLeases');
+    final specs = switch (section) {
+      RouterSection.overview => [summary, live, series, wifi, system],
+      RouterSection.devices => [summary, devices],
+      RouterSection.wifi => [wifi],
+      RouterSection.traffic => [summary, series],
+      RouterSection.all => [summary, live, series, wifi, system, devices],
+    };
+    Future<_ReadResult> safe(_ReadSpec spec) async {
       try {
-        return (await _call(object, method, args), null);
-      } catch (error) {
-        return (null, '$error');
+        return _ReadResult(
+            spec.key, await _call(spec.object, spec.method, spec.args), null);
+      } on RouterApiException catch (error) {
+        return _ReadResult(spec.key, null, error);
       }
     }
 
-    final results = await Future.wait([
-      safe('luci.traffic', 'getSummary', {}),
-      safe('luci.traffic', 'getLive', {}),
-      safe('luci.traffic', 'getSeries', {'range': '1h'}),
-      safe('network.wireless', 'status', {}),
-      safe('system', 'info', {}),
-      safe('luci-rpc', 'getDHCPLeases', {}),
-    ]);
-    final summary = results[0].$1;
-    final live = results[1].$1;
-    final series = results[2].$1;
-    final wifi = results[3].$1;
-    final system = results[4].$1;
-    if (summary == null && live == null && wifi == null && system == null) {
-      throw RouterApiException(results[0].$2 ?? '无法读取路由器状态');
+    final results = await Future.wait(specs.map(safe));
+    final byKey = {for (final item in results) item.key: item};
+    final successes = results.where((item) => item.data != null).length;
+    if (successes == 0) {
+      if (results.every((item) => item.error is RouterPermissionException)) {
+        throw const RouterSessionExpiredException();
+      }
+      throw results.first.error ?? const RouterApiException('无法读取路由器状态');
     }
+    Map<String, dynamic>? data(String key) => byKey[key]?.data;
+    String? error(String key) => byKey.containsKey(key)
+        ? byKey[key]?.error?.message
+        : switch (key) {
+            'summary' => previous?.trafficError,
+            'live' => previous?.liveError,
+            'series' => previous?.seriesError,
+            'wifi' => previous?.wifiError,
+            'devices' => previous?.devicesError,
+            'system' => previous?.systemError,
+            _ => null,
+          };
+    final summaryData = data('summary');
+    final liveData = data('live');
+    final seriesData = data('series');
+    final wifiData = data('wifi');
+    final systemData = data('system');
+    final devicesData = data('devices');
     return RouterSnapshot(
       fetchedAt: DateTime.now(),
-      summary: summary == null ? null : TrafficSummary.fromJson(summary),
-      live: live == null ? null : LiveRate.fromJson(live),
-      series: series == null ? null : TrafficSeries.fromJson(series),
-      radios: wifi == null ? const [] : WifiRadio.parseAll(wifi),
-      dhcpDevices:
-          results[5].$1 == null ? const [] : DhcpDevice.parseAll(results[5].$1),
-      uptimeSeconds:
-          system?['uptime'] is num ? (system!['uptime'] as num).toInt() : null,
-      trafficError: results[0].$2 ?? results[1].$2,
-      wifiError: results[3].$2,
+      summary: summaryData == null
+          ? previous?.summary
+          : TrafficSummary.fromJson(summaryData),
+      live: liveData == null ? previous?.live : LiveRate.fromJson(liveData),
+      series: seriesData == null
+          ? previous?.series
+          : TrafficSeries.fromJson(seriesData),
+      radios: wifiData == null
+          ? previous?.radios ?? const []
+          : WifiRadio.parseAll(wifiData),
+      dhcpDevices: devicesData == null
+          ? previous?.dhcpDevices ?? const []
+          : DhcpDevice.parseAll(devicesData),
+      uptimeSeconds: systemData?['uptime'] is num
+          ? (systemData!['uptime'] as num).toInt()
+          : previous?.uptimeSeconds,
+      trafficError: error('summary'),
+      liveError: error('live'),
+      seriesError: error('series'),
+      devicesError: error('devices'),
+      systemError: error('system'),
+      wifiError: error('wifi'),
     );
   }
 

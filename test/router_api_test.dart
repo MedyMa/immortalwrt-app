@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -112,5 +113,168 @@ void main() {
     expect(() => RouterApi.validateUrl('http://192.168.2.1'), returnsNormally);
     expect(() => RouterApi.validateUrl('https://router.example.com'),
         returnsNormally);
+  });
+
+  test('section fetch requests only data needed by visible page', () async {
+    final methods = <String>[];
+    final api = RouterApi(Uri.parse('https://router.example.com'),
+        client: MockClient((request) async {
+      final params = (jsonDecode(request.body) as Map)['params'] as List;
+      methods.add('${params[1]}.${params[2]}');
+      if (params[2] == 'login') {
+        return http.Response(
+            jsonEncode({
+              'result': [
+                0,
+                {'ubus_rpc_session': 's'}
+              ]
+            }),
+            200);
+      }
+      return http.Response(
+          jsonEncode({
+            'result': [0, {}]
+          }),
+          200);
+    }));
+    await api.login('u', 'p');
+    await api.fetch(section: RouterSection.wifi);
+    expect(methods, ['session.login', 'network.wireless.status']);
+    methods.clear();
+    await api.fetch(section: RouterSection.devices);
+    expect(methods,
+        containsAll(['luci.traffic.getSummary', 'luci-rpc.getDHCPLeases']));
+    expect(methods, hasLength(2));
+  });
+
+  test('expired session is distinguishable from missing method', () async {
+    final api = RouterApi(Uri.parse('https://router.example.com'),
+        client: MockClient((request) async {
+      final params = (jsonDecode(request.body) as Map)['params'] as List;
+      if (params[2] == 'login') {
+        return http.Response(
+            jsonEncode({
+              'result': [
+                0,
+                {'ubus_rpc_session': 's'}
+              ]
+            }),
+            200);
+      }
+      return http.Response(
+          jsonEncode({
+            'result': [6]
+          }),
+          200);
+    }));
+    await api.login('u', 'p');
+    expect(() => api.fetch(section: RouterSection.wifi),
+        throwsA(isA<RouterSessionExpiredException>()));
+  });
+
+  test('series failure is shown independently of summary', () async {
+    final api = RouterApi(Uri.parse('https://router.example.com'),
+        client: MockClient((request) async {
+      final params = (jsonDecode(request.body) as Map)['params'] as List;
+      if (params[2] == 'login') {
+        return http.Response(
+            jsonEncode({
+              'result': [
+                0,
+                {'ubus_rpc_session': 's'}
+              ]
+            }),
+            200);
+      }
+      if (params[2] == 'getSeries') {
+        return http.Response(
+            jsonEncode({
+              'result': [4]
+            }),
+            200);
+      }
+      return http.Response(
+          jsonEncode({
+            'result': [0, {}]
+          }),
+          200);
+    }));
+    await api.login('u', 'p');
+    final snapshot = await api.fetch(section: RouterSection.traffic);
+    expect(snapshot.seriesError, contains('getSeries'));
+    expect(snapshot.trafficError, isNull);
+  });
+
+  test('DNS failure has its own message', () async {
+    final api = RouterApi(Uri.parse('https://router.example.com'),
+        client: MockClient(
+            (request) async => throw const SocketException('DNS failed')));
+    expect(() => api.login('u', 'p'),
+        throwsA(predicate((error) => '$error'.contains('DNS'))));
+  });
+
+  test('TLS handshake and HTTP rejection have distinct messages', () async {
+    final tls = RouterApi(Uri.parse('https://router.example.com'),
+        client: MockClient((request) async =>
+            throw const HandshakeException('bad certificate')));
+    await expectLater(tls.login('u', 'p'),
+        throwsA(predicate((error) => '$error'.contains('TLS 证书'))));
+
+    final rejected = RouterApi(Uri.parse('https://router.example.com'),
+        client: MockClient((request) async => http.Response('Forbidden', 403)));
+    await expectLater(rejected.login('u', 'p'),
+        throwsA(predicate((error) => '$error'.contains('HTTP 403'))));
+  });
+
+  test('failed current section keeps previously successful data', () async {
+    var deny = false;
+    final api = RouterApi(Uri.parse('https://router.example.com'),
+        client: MockClient((request) async {
+      final params = (jsonDecode(request.body) as Map)['params'] as List;
+      if (params[2] == 'login') {
+        return http.Response(
+            jsonEncode({
+              'result': [
+                0,
+                {'ubus_rpc_session': 's'}
+              ]
+            }),
+            200);
+      }
+      if (params[2] == 'getSeries' && deny) {
+        return http.Response(
+            jsonEncode({
+              'result': [4]
+            }),
+            200);
+      }
+      if (params[2] == 'getSeries') {
+        return http.Response(
+            jsonEncode({
+              'result': [
+                0,
+                {
+                  'interval': 10,
+                  'points': [
+                    [1720000000, 1000, 200]
+                  ]
+                }
+              ]
+            }),
+            200);
+      }
+      return http.Response(
+          jsonEncode({
+            'result': [0, {}]
+          }),
+          200);
+    }));
+    await api.login('u', 'p');
+    final first = await api.fetch(section: RouterSection.traffic);
+    deny = true;
+    final second =
+        await api.fetch(section: RouterSection.traffic, previous: first);
+    expect(second.series?.points.length, 1);
+    expect(second.seriesError, isNotNull);
   });
 }

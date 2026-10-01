@@ -28,6 +28,11 @@ jobs:
           flutter-version: '3.47.5'
           channel: stable
           cache: true
+      - name: Install Android 17 SDK
+        run: |
+          sdkmanager --install "platforms;android-37"
+          test -f "$ANDROID_HOME/platforms/android-37/android.jar"
+          flutter doctor -v
       - run: flutter pub get
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --fatal-infos
@@ -41,7 +46,7 @@ jobs:
 
   ios:
     name: Build iOS simulator
-    runs-on: macos-latest
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
@@ -49,7 +54,16 @@ jobs:
           flutter-version: '3.47.5'
           channel: stable
           cache: true
+      - name: Verify Xcode 27 and iOS 27 SDK
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-version
+          xcodebuild -version | grep 'Xcode 27'
+          xcrun --sdk iphonesimulator --show-sdk-version | grep '^27\.'
       - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed lib test
+      - run: flutter analyze --fatal-infos
+      - run: flutter test
       - run: flutter build ios --simulator --debug
       - run: ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app immortalwrt-ios-simulator.zip
       - uses: actions/upload-artifact@v7
