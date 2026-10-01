@@ -122,20 +122,15 @@ void main() {
     expect(find.text('BE14 驱动可能不返回全部射频'), findsOneWidget);
   });
 
-  testWidgets('healthy network uses a connection icon in the hero',
+  testWidgets('healthy network uses a concise text status in the hero',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
         home: RouterHome(
             storage: _MemoryStorage(), apiFactory: (_) => _HealthyApi())));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.public_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
-    expect(find.text('网络运行正常'), findsNothing);
-    final semantics = tester.ensureSemantics();
-    await tester.pump();
-    expect(tester.getSemantics(find.byIcon(Icons.public_rounded)).label,
-        contains('网络连接正常'));
-    semantics.dispose();
+    expect(find.text('网络运行正常'), findsOneWidget);
+    expect(find.byIcon(Icons.public_rounded), findsNothing);
+    expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
   });
 
   testWidgets('iOS presents a platform tab bar', (tester) async {
