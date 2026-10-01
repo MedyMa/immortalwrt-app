@@ -33,30 +33,35 @@ class _Overview extends StatelessWidget {
     final String stateLabel;
     final String headline;
     final String detail;
+    final IconData? headlineIcon;
     if (offline) {
       stateColor = _red;
       stateForeground = _redOnNavy;
       stateLabel = '连接中断';
       headline = '连接已中断';
       detail = '显示上次成功读取的数据';
+      headlineIcon = null;
     } else if (stale) {
       stateColor = _amber;
       stateForeground = _amberOnNavy;
       stateLabel = '数据延迟';
       headline = '数据更新延迟';
       detail = 'Traffic 采集已超过 60 秒未更新';
+      headlineIcon = null;
     } else if (summary == null && snapshot.live == null) {
       stateColor = _green;
       stateForeground = _greenOnNavy;
       stateLabel = '已连接';
       headline = '路由器已连接';
       detail = '未获取到 Traffic 采集数据';
+      headlineIcon = null;
     } else {
       stateColor = _green;
       stateForeground = _greenOnNavy;
       stateLabel = '已连接';
       headline = '网络运行正常';
       detail = '';
+      headlineIcon = Icons.cloud_done_rounded;
     }
 
     final down = summary?.headlineDown;
@@ -74,6 +79,7 @@ class _Overview extends StatelessWidget {
           stateColor: stateColor,
           stateForeground: stateForeground,
           headline: headline,
+          headlineIcon: headlineIcon,
           detail: detail,
           live: snapshot.live,
         ),
@@ -193,6 +199,7 @@ class _Hero extends StatelessWidget {
     required this.stateColor,
     required this.stateForeground,
     required this.headline,
+    required this.headlineIcon,
     required this.detail,
     required this.live,
   });
@@ -202,6 +209,7 @@ class _Hero extends StatelessWidget {
   final Color stateColor;
   final Color stateForeground;
   final String headline;
+  final IconData? headlineIcon;
   final String detail;
   final LiveRate? live;
 
@@ -243,12 +251,16 @@ class _Hero extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(headline,
-              style: const TextStyle(
-                  fontSize: 26,
-                  height: 1.15,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white)),
+          if (headlineIcon != null)
+            Icon(headlineIcon,
+                size: 40, color: _greenOnNavy, semanticLabel: '网络连接正常')
+          else
+            Text(headline,
+                style: const TextStyle(
+                    fontSize: 26,
+                    height: 1.15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white)),
           if (detail.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(detail,

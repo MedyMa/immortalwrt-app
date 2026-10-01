@@ -78,6 +78,22 @@ class _FlakyApi extends _FakeRouterApi {
   }
 }
 
+class _HealthyApi extends _FakeRouterApi {
+  @override
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async =>
+      RouterSnapshot(
+        fetchedAt: DateTime.now(),
+        live: const LiveRate(
+            ready: true,
+            downBytesPerSecond: 1024,
+            upBytesPerSecond: 512,
+            at: null),
+      );
+}
+
 void main() {
   testWidgets('offline shell presents connection and all four sections',
       (tester) async {
@@ -104,6 +120,21 @@ void main() {
     await tester.tap(find.text('Wi-Fi').last);
     await tester.pump();
     expect(find.text('BE14 驱动可能不返回全部射频'), findsOneWidget);
+  });
+
+  testWidgets('healthy network uses a connection icon in the hero',
+      (tester) async {
+    await tester.pumpWidget(MaterialApp(
+        home: RouterHome(
+            storage: _MemoryStorage(), apiFactory: (_) => _HealthyApi())));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.cloud_done_rounded), findsOneWidget);
+    expect(find.text('网络运行正常'), findsNothing);
+    final semantics = tester.ensureSemantics();
+    await tester.pump();
+    expect(tester.getSemantics(find.byIcon(Icons.cloud_done_rounded)).label,
+        contains('网络连接正常'));
+    semantics.dispose();
   });
 
   testWidgets('iOS presents a platform tab bar', (tester) async {
