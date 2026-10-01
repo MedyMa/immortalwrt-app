@@ -48,7 +48,7 @@ private class SystemTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate 
     super.init()
 
     let titles = ["总览", "设备", "Wi-Fi", "流量"]
-    let symbols = ["square.grid.2x2", "desktopcomputer", "wifi", "chart.xyaxis.line"]
+    let symbols = ["house", "desktopcomputer", "wifi", "chart.bar"]
     tabBar.items = (0..<titles.count).map { index in
       UITabBarItem(title: titles[index],
                    image: UIImage(systemName: symbols[index]), tag: index)

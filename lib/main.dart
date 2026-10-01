@@ -30,16 +30,6 @@ const _blue = Color(0xFF2563EB);
 const _violet = Color(0xFF8B5CF6);
 const _green = Color(0xFF21A67A);
 
-/// Lightened accents for the navy hero card, where the base hues would fall
-/// below a readable contrast against the dark background.
-const _blueOnNavy = Color(0xFF93B4FB);
-const _violetOnNavy = Color(0xFFC4AFFB);
-const _greenOnNavy = Color(0xFF7BE3BC);
-const _amberOnNavy = Color(0xFFFCD34D);
-const _redOnNavy = Color(0xFFFCA5A5);
-
-const _navy = Color(0xFF12305A);
-const _navyLight = Color(0xFF18386B);
 const _page = Color(0xFFF4F5F7);
 const _ink = Color(0xFF111827);
 const _slate = Color(0xFF64748B);
@@ -458,19 +448,21 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                   Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
               destinations: const [
                 NavigationRailDestination(
-                    icon: Icon(Icons.dashboard_outlined),
-                    selectedIcon: Icon(Icons.dashboard_rounded),
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home_rounded),
                     label: Text('总览')),
                 NavigationRailDestination(
                     icon: Icon(Icons.devices_outlined),
                     selectedIcon: Icon(Icons.devices_rounded),
                     label: Text('设备')),
                 NavigationRailDestination(
-                    icon: Icon(Icons.wifi_outlined),
-                    selectedIcon: Icon(Icons.wifi_rounded),
+                    icon: Icon(Icons.router_outlined),
+                    selectedIcon: Icon(Icons.router_rounded),
                     label: Text('Wi-Fi')),
                 NavigationRailDestination(
-                    icon: Icon(Icons.show_chart_rounded), label: Text('流量')),
+                    icon: Icon(Icons.bar_chart_outlined),
+                    selectedIcon: Icon(Icons.bar_chart_rounded),
+                    label: Text('流量')),
               ],
             ),
           Expanded(
@@ -522,19 +514,21 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                   onDestinationSelected: _selectTab,
                   destinations: const [
                     NavigationDestination(
-                        icon: Icon(Icons.dashboard_outlined),
-                        selectedIcon: Icon(Icons.dashboard_rounded),
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home_rounded),
                         label: '总览'),
                     NavigationDestination(
                         icon: Icon(Icons.devices_outlined),
                         selectedIcon: Icon(Icons.devices_rounded),
                         label: '设备'),
                     NavigationDestination(
-                        icon: Icon(Icons.wifi_outlined),
-                        selectedIcon: Icon(Icons.wifi_rounded),
+                        icon: Icon(Icons.router_outlined),
+                        selectedIcon: Icon(Icons.router_rounded),
                         label: 'Wi-Fi'),
                     NavigationDestination(
-                        icon: Icon(Icons.show_chart_rounded), label: '流量'),
+                        icon: Icon(Icons.bar_chart_outlined),
+                        selectedIcon: Icon(Icons.bar_chart_rounded),
+                        label: '流量'),
                   ],
                 ),
     );

@@ -175,12 +175,11 @@ class _Lead extends StatelessWidget {
 
 /// Status pill: tinted rounded background with a saturated label.
 class _Pill extends StatelessWidget {
-  const _Pill(this.label, this.color, {this.tint = 0.13, this.foreground});
+  const _Pill(this.label, this.color, {this.tint = 0.13});
 
   final String label;
   final Color color;
   final double tint;
-  final Color? foreground;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -191,9 +190,7 @@ class _Pill extends StatelessWidget {
         ),
         child: Text(label,
             style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: foreground ?? color)),
+                fontSize: 12, fontWeight: FontWeight.w700, color: color)),
       );
 }
 
@@ -290,7 +287,6 @@ class _Metric extends StatelessWidget {
     required this.icon,
     required this.color,
     this.caption,
-    this.onDark = false,
   });
 
   final String label;
@@ -298,7 +294,6 @@ class _Metric extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String? caption;
-  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
@@ -317,9 +312,7 @@ class _Metric extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: onDark
-                          ? const Color(0xFFBFD3EE)
-                          : _mutedOf(context))),
+                      color: _mutedOf(context))),
             ),
           ],
         ),
@@ -327,17 +320,13 @@ class _Metric extends StatelessWidget {
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          child: Text(value,
-              style:
-                  _figureStyle(context, color: onDark ? Colors.white : color)),
+          child: Text(value, style: _figureStyle(context, color: color)),
         ),
         if (text != null) ...[
           const SizedBox(height: 4),
           Text(text,
               style: TextStyle(
-                  fontSize: 11.5,
-                  height: 1.35,
-                  color: onDark ? const Color(0xFF9FB6D6) : _mutedOf(context))),
+                  fontSize: 11.5, height: 1.35, color: _mutedOf(context))),
         ],
       ],
     );

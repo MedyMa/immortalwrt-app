@@ -59,8 +59,7 @@ class _IosTabBarState extends State<_IosTabBar> {
       activeColor: _blue,
       backgroundColor: _cardOf(context),
       items: const [
-        BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.square_grid_2x2), label: '总览'),
+        BottomNavigationBarItem(icon: Icon(CupertinoIcons.house), label: '总览'),
         BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.device_phone_portrait), label: '设备'),
         BottomNavigationBarItem(

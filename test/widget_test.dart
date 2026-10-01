@@ -128,11 +128,12 @@ void main() {
         home: RouterHome(
             storage: _MemoryStorage(), apiFactory: (_) => _HealthyApi())));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.cloud_done_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.public_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
     expect(find.text('网络运行正常'), findsNothing);
     final semantics = tester.ensureSemantics();
     await tester.pump();
-    expect(tester.getSemantics(find.byIcon(Icons.cloud_done_rounded)).label,
+    expect(tester.getSemantics(find.byIcon(Icons.public_rounded)).label,
         contains('网络连接正常'));
     semantics.dispose();
   });

@@ -29,39 +29,34 @@ class _Overview extends StatelessWidget {
         '${snapshot.fetchedAt.hour.toString().padLeft(2, '0')}:${snapshot.fetchedAt.minute.toString().padLeft(2, '0')}';
 
     final Color stateColor;
-    final Color stateForeground;
     final String stateLabel;
     final String headline;
     final String detail;
     final IconData? headlineIcon;
     if (offline) {
       stateColor = _red;
-      stateForeground = _redOnNavy;
       stateLabel = '连接中断';
       headline = '连接已中断';
       detail = '显示上次成功读取的数据';
       headlineIcon = null;
     } else if (stale) {
       stateColor = _amber;
-      stateForeground = _amberOnNavy;
       stateLabel = '数据延迟';
       headline = '数据更新延迟';
       detail = 'Traffic 采集已超过 60 秒未更新';
       headlineIcon = null;
     } else if (summary == null && snapshot.live == null) {
       stateColor = _green;
-      stateForeground = _greenOnNavy;
       stateLabel = '已连接';
       headline = '路由器已连接';
       detail = '未获取到 Traffic 采集数据';
       headlineIcon = null;
     } else {
       stateColor = _green;
-      stateForeground = _greenOnNavy;
       stateLabel = '已连接';
       headline = '网络运行正常';
       detail = '';
-      headlineIcon = Icons.cloud_done_rounded;
+      headlineIcon = Icons.public_rounded;
     }
 
     final down = summary?.headlineDown;
@@ -77,7 +72,6 @@ class _Overview extends StatelessWidget {
           identity: remote ? 'MT7988 · 远程连接' : 'MT7988 · 本地连接',
           stateLabel: stateLabel,
           stateColor: stateColor,
-          stateForeground: stateForeground,
           headline: headline,
           headlineIcon: headlineIcon,
           detail: detail,
@@ -191,13 +185,12 @@ class _Overview extends StatelessWidget {
   }
 }
 
-/// Deep navy status hero: identity + state pill, status headline, live rates.
+/// Status card: identity, connection state, and live rates.
 class _Hero extends StatelessWidget {
   const _Hero({
     required this.identity,
     required this.stateLabel,
     required this.stateColor,
-    required this.stateForeground,
     required this.headline,
     required this.headlineIcon,
     required this.detail,
@@ -207,7 +200,6 @@ class _Hero extends StatelessWidget {
   final String identity;
   final String stateLabel;
   final Color stateColor;
-  final Color stateForeground;
   final String headline;
   final IconData? headlineIcon;
   final String detail;
@@ -219,19 +211,7 @@ class _Hero extends StatelessWidget {
     final ready = rate != null && rate.ready;
     final downText = ready ? formatRate(rate.downBytesPerSecond) : '—';
     final upText = ready ? formatRate(rate.upBytesPerSecond) : '—';
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [_navyLight, _navy]),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-              color: Color(0x1F12305A), blurRadius: 22, offset: Offset(0, 10)),
-        ],
-      ),
+    return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -241,31 +221,44 @@ class _Hero extends StatelessWidget {
                 child: Text(identity,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFFBFD3EE))),
+                        color: _mutedOf(context))),
               ),
-              _Pill(stateLabel, stateColor,
-                  tint: 0.24, foreground: stateForeground),
+              _Pill(stateLabel, stateColor),
             ],
           ),
           const SizedBox(height: 16),
           if (headlineIcon != null)
-            Icon(headlineIcon,
-                size: 40, color: _greenOnNavy, semanticLabel: '网络连接正常')
+            SizedBox(
+              width: 46,
+              height: 46,
+              child: Stack(
+                children: [
+                  Icon(headlineIcon,
+                      size: 40, color: stateColor, semanticLabel: '网络连接正常'),
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Icon(Icons.check_circle_rounded,
+                        size: 17, color: stateColor),
+                  ),
+                ],
+              ),
+            )
           else
             Text(headline,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 26,
                     height: 1.15,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white)),
+                    color: _inkOf(context))),
           if (detail.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(detail,
-                style: const TextStyle(
-                    fontSize: 12.5, height: 1.35, color: Color(0xFF9FB6D6))),
+                style: TextStyle(
+                    fontSize: 12.5, height: 1.35, color: _mutedOf(context))),
           ],
           const SizedBox(height: 20),
           Row(
@@ -275,16 +268,15 @@ class _Hero extends StatelessWidget {
                     label: '实时下载',
                     value: downText,
                     icon: Icons.south_rounded,
-                    color: _blueOnNavy,
-                    onDark: true),
+                    color: _blue),
               ),
+              const SizedBox(width: 12),
               Expanded(
                 child: _Metric(
                     label: '实时上传',
                     value: upText,
                     icon: Icons.north_rounded,
-                    color: _violetOnNavy,
-                    onDark: true),
+                    color: _violet),
               ),
             ],
           ),
