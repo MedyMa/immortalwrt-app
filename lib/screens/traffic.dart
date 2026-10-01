@@ -27,7 +27,6 @@ class _Traffic extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Lead('最近 1 小时 · 每个采样点按实际区间换算为速率'),
         _Card(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

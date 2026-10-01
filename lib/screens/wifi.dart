@@ -45,12 +45,6 @@ class _Wifi extends StatelessWidget {
         if (radios.isEmpty)
           _Card(child: Text('未报告任何射频。', style: _bodyStyle(context))),
         for (final radio in radios) _RadioCard(radio: radio),
-        const SizedBox(height: 10),
-        const _SectionHeader(title: '数据说明'),
-        _Card(
-          child: Text('厂商 BE14 驱动可能未通过标准 ubus 暴露状态；若此处缺少某个射频，请以路由器本身的无线状态为准。',
-              style: _bodyStyle(context)),
-        ),
       ],
     );
   }

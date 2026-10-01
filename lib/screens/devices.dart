@@ -91,7 +91,6 @@ class _DevicesState extends State<_Devices> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Lead('DHCP 租约与 Traffic App 流量记录；租约不表示设备此刻在线。'),
         _Card(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,13 +152,6 @@ class _DevicesState extends State<_Devices> {
           _Notice('DHCP 租约暂不可用：${widget.snapshot.devicesError}',
               Icons.info_outline_rounded),
         ],
-        const SizedBox(height: 10),
-        const _SectionHeader(title: '关于在线状态'),
-        _Card(
-          child: Text(
-              '本页合并 DHCP 租约与 Traffic App 流量记录，两者都只能说明设备曾经出现过，不能证明它此刻在线。',
-              style: _bodyStyle(context)),
-        ),
       ],
     );
   }
