@@ -30,7 +30,10 @@ jobs:
           cache: true
       - name: Install Android 17 SDK
         run: |
-          sdkmanager --install "platforms;android-37"
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-37.0"
+          if [ ! -e "$ANDROID_SDK_ROOT/platforms/android-37" ]; then
+            ln -s android-37.0 "$ANDROID_SDK_ROOT/platforms/android-37"
+          fi
           test -f "$ANDROID_HOME/platforms/android-37/android.jar"
           flutter doctor -v
       - run: flutter pub get
