@@ -16,23 +16,21 @@ class _Wifi extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Lead('MT7988 板载 BE14'),
         _Card(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Expanded(child: Text('无线服务', style: _titleStyle(context))),
+                  Expanded(child: Text('BE14 无线', style: _titleStyle(context))),
                   if (radios.isEmpty)
                     _Pill('不可用', _mutedOf(context), tint: 0.16)
+                  else if (upCount == 0)
+                    _Pill('已停用', _mutedOf(context), tint: 0.16)
                   else
                     const _Pill('运行中', _green),
                 ],
               ),
-              const SizedBox(height: 10),
-              Text('仅显示 ImmortalWrt 所报告的射频数据，不包含 MiWiFi。',
-                  style: _bodyStyle(context)),
               const SizedBox(height: 8),
               Text(_wifiAvailability(snapshot, radios.length, upCount),
                   style: TextStyle(

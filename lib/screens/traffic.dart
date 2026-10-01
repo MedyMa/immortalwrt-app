@@ -31,8 +31,14 @@ class _Traffic extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _SectionHeader(
-                  title: 'WAN 总流量', trail: '本次采集会话', padding: EdgeInsets.zero),
+              _SectionHeader(
+                  title: summary == null
+                      ? '流量总计'
+                      : summary.hasWanTotals
+                          ? 'WAN 总流量'
+                          : '归属流量',
+                  trail: '本次采集会话',
+                  padding: EdgeInsets.zero),
               Text(total == null ? '—' : formatBytes(total),
                   style: _figureStyle(context, size: 32)),
               const SizedBox(height: 6),
@@ -104,13 +110,7 @@ class _Traffic extends StatelessWidget {
               '流量曲线暂不可用：${snapshot.seriesError}', Icons.info_outline_rounded),
         ],
         const SizedBox(height: 20),
-        const _SectionHeader(title: '应用与站点', trail: '已识别部分'),
-        if (attributedText != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Text('应用可归属：$attributedText。下方仅列出已识别应用。',
-                style: _bodyStyle(context)),
-          ),
+        _SectionHeader(title: '应用与站点', trail: attributedText),
         if (shownApps.isEmpty)
           _Card(child: Text('暂无可识别的应用流量。', style: _bodyStyle(context)))
         else
@@ -153,9 +153,6 @@ class _AppTile extends StatelessWidget {
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: _inkOf(context))),
-                  const SizedBox(height: 3),
-                  Text('应用归属流量',
-                      style: TextStyle(fontSize: 12, color: _mutedOf(context))),
                 ],
               ),
             ),

@@ -23,12 +23,11 @@ class _DeviceRow {
   final bool hasTraffic;
 }
 
-/// Devices merged by IP, plus how many DHCP leases also had a traffic record.
+/// Devices merged by IP.
 class _DeviceIndex {
-  const _DeviceIndex({required this.rows, required this.merged});
+  const _DeviceIndex({required this.rows});
 
   final List<_DeviceRow> rows;
-  final int merged;
 
   List<_DeviceRow> get withTraffic =>
       rows.where((row) => row.hasTraffic).toList(growable: false);
@@ -39,10 +38,8 @@ class _DeviceIndex {
         client.ip: client,
     };
     final rows = <_DeviceRow>[];
-    var merged = 0;
     for (final lease in snapshot.dhcpDevices) {
       final client = clients.remove(lease.ip);
-      if (client != null) merged++;
       rows.add(_DeviceRow(
         name: lease.name,
         ip: lease.ip,
@@ -62,7 +59,7 @@ class _DeviceIndex {
         hasTraffic: true,
       ));
     }
-    return _DeviceIndex(rows: rows, merged: merged);
+    return _DeviceIndex(rows: rows);
   }
 }
 
@@ -85,8 +82,6 @@ class _DevicesState extends State<_Devices> {
     final rows = _filter == 0 ? index.rows : index.withTraffic;
     final leaseCount = widget.snapshot.dhcpDevices.length;
     final trafficCount = widget.snapshot.summary?.clients.length ?? 0;
-    final mergeNote =
-        index.merged > 0 ? ' · 已合并 ${index.merged} 个重复 IP' : ' · 无重复 IP';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -97,10 +92,7 @@ class _DevicesState extends State<_Devices> {
             children: [
               Row(
                 children: [
-                  Expanded(child: Text('已发现设备', style: _titleStyle(context))),
-                  Text('不代表此刻在线',
-                      style:
-                          TextStyle(fontSize: 11.5, color: _mutedOf(context))),
+                  Expanded(child: Text('设备记录', style: _titleStyle(context))),
                 ],
               ),
               const SizedBox(height: 10),
@@ -119,7 +111,7 @@ class _DevicesState extends State<_Devices> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text('DHCP $leaseCount · 流量记录 $trafficCount$mergeNote',
+              Text('DHCP $leaseCount · 流量记录 $trafficCount',
                   style: _bodyStyle(context)),
             ],
           ),

@@ -56,7 +56,7 @@ class _Overview extends StatelessWidget {
       stateForeground = _greenOnNavy;
       stateLabel = '已连接';
       headline = '网络运行正常';
-      detail = '实时速率每 15 秒自动刷新';
+      detail = '';
     }
 
     final down = summary?.headlineDown;
@@ -83,7 +83,11 @@ class _Overview extends StatelessWidget {
           children: [
             Expanded(
               child: _MetricCard(
-                label: 'WAN 下载',
+                label: summary == null
+                    ? '下载'
+                    : summary.hasWanTotals
+                        ? 'WAN 下载'
+                        : '归属下载',
                 icon: Icons.south_rounded,
                 color: _blue,
                 value: down == null ? '—' : formatBytes(down),
@@ -93,7 +97,11 @@ class _Overview extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _MetricCard(
-                label: 'WAN 上传',
+                label: summary == null
+                    ? '上传'
+                    : summary.hasWanTotals
+                        ? 'WAN 上传'
+                        : '归属上传',
                 icon: Icons.north_rounded,
                 color: _violet,
                 value: up == null ? '—' : formatBytes(up),
@@ -241,10 +249,12 @@ class _Hero extends StatelessWidget {
                   height: 1.15,
                   fontWeight: FontWeight.w800,
                   color: Colors.white)),
-          const SizedBox(height: 6),
-          Text(detail,
-              style: const TextStyle(
-                  fontSize: 12.5, height: 1.35, color: Color(0xFF9FB6D6))),
+          if (detail.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(detail,
+                style: const TextStyle(
+                    fontSize: 12.5, height: 1.35, color: Color(0xFF9FB6D6))),
+          ],
           const SizedBox(height: 20),
           Row(
             children: [
@@ -266,11 +276,6 @@ class _Hero extends StatelessWidget {
               ),
             ],
           ),
-          if (!ready) ...[
-            const SizedBox(height: 14),
-            const Text('未获取到实时速率',
-                style: TextStyle(fontSize: 11.5, color: Color(0xFF8AA3C7))),
-          ],
         ],
       ),
     );

@@ -52,14 +52,12 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
                         .textTheme
                         .headlineSmall
                         ?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                const Text('家外通过 HTTPS 入口连接；在家也可改用 192.168.2.1。无需在手机上连接 VPN。'),
                 const SizedBox(height: 20),
                 TextField(
                     controller: _url,
                     keyboardType: TextInputType.url,
                     decoration: const InputDecoration(
-                        labelText: '远程 HTTPS 或本地地址',
+                        labelText: '远程 HTTPS / 本地 HTTP（明文）',
                         hintText: 'https://bananapi.x.ddnsto.com',
                         border: OutlineInputBorder())),
                 const SizedBox(height: 12),
@@ -73,9 +71,6 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
                     obscureText: true,
                     decoration: const InputDecoration(
                         labelText: '密码', border: OutlineInputBorder())),
-                const SizedBox(height: 10),
-                const Text('远程入口需要转发 /ubus。使用本地 HTTP 时密码以明文传输；建议使用仅读取状态的账号。',
-                    style: TextStyle(fontSize: 12)),
                 const SizedBox(height: 20),
                 FilledButton(
                     onPressed: () => Navigator.pop(context, (
@@ -626,22 +621,12 @@ class _EmptyConnection extends StatelessWidget {
               child: const Icon(Icons.router_rounded, size: 38, color: _blue),
             ),
             const SizedBox(height: 22),
-            Text('你的 MT7988，一目了然',
+            Text('连接 MT7988',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: _inkOf(context))),
-            const SizedBox(height: 10),
-            Text('连接家中的 ImmortalWrt，查看设备、BE14 Wi-Fi 与流量状态。',
-                textAlign: TextAlign.center, style: _bodyStyle(context)),
-            const SizedBox(height: 18),
-            _Card(
-              child: Text('本应用只读取路由器状态，不写入任何配置；凭据仅保存在本机安全存储中。',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 12, height: 1.45, color: _mutedOf(context))),
-            ),
             if (failure != null) ...[
               const SizedBox(height: 16),
               _Notice(failure, Icons.error_outline_rounded, tone: _red),
