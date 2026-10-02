@@ -209,6 +209,10 @@ void main() {
     expect(find.text('TX 失败率'), findsWidgets);
     expect(find.text('12%'), findsOneWidget);
     expect(find.text('BSSID 02:11:22:33:44:55'), findsOneWidget);
+    await tester.tap(find.text('2.4 GHz'));
+    await tester.pump();
+    expect(find.textContaining('3 · 40 MHz'), findsOneWidget);
+    expect(find.text('暂无质量历史'), findsOneWidget);
   });
 
   testWidgets('healthy overview shows device to router to internet topology', (
