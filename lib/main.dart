@@ -234,7 +234,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     _timer?.cancel();
     if (_foreground && _api != null && !_requiresLogin) {
       _timer = Timer.periodic(
-        Duration(seconds: _tab == 0 ? 2 : 15),
+        Duration(seconds: _tab == 0 ? 1 : 15),
         (_) => _refresh(
           liveOnly:
               _tab == 0 &&

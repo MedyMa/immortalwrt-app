@@ -48,6 +48,6 @@ CI compiles against **Android 17 SDK (API 37)** with Android Gradle Plugin 9.1.1
 
 ## Refresh and backend compatibility
 
-Overview reads live rate every 2 seconds, with system status about every 15 seconds. Requests do not overlap. The Traffic page sums the latest 24 hourly buckets and loads the 24-hour minute series; session totals on Overview stay separate. Missing WAN buckets are labelled attributed totals instead of complete WAN totals.
+Overview reads live rate every 1 second, with system status about every 15 seconds. Requests do not overlap. The Traffic page sums the latest 24 hourly buckets and loads the 24-hour minute series; session totals on Overview stay separate. Missing WAN buckets are labelled attributed totals instead of complete WAN totals.
 
 BE14 and CPU require luci-app-traffic 1.1.6 or newer on the router. If local ubus reports Method not found for getWirelessStatus, update the router package, restart rpcd and reconnect the phone app. An unavailable wireless method no longer labels an otherwise valid connection as disconnected. The LuCI traffic page keeps its 24-hour default.
