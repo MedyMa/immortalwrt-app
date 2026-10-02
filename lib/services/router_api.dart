@@ -161,14 +161,24 @@ class RouterApi {
       'range': '1h',
     });
     const wifi = _ReadSpec('wifi', 'luci.traffic', 'getWirelessStatus');
+    const wifiHistory = _ReadSpec(
+      'wifiHistory',
+      'luci.traffic',
+      'getWirelessHistory',
+    );
     const system = _ReadSpec('system', 'system', 'info');
     const metrics = _ReadSpec('metrics', 'luci.traffic', 'getSystemMetrics');
     const sfp = _ReadSpec('sfp', 'luci.sfp-status', 'getStatuses');
     const devices = _ReadSpec('devices', 'luci-rpc', 'getDHCPLeases');
+    final readHistory =
+        section == RouterSection.wifi &&
+        (previous?.wifiHistoryFetchedAt == null ||
+            DateTime.now().difference(previous!.wifiHistoryFetchedAt!) >=
+                const Duration(minutes: 1));
     final specs = switch (section) {
       RouterSection.overview => [summary, live, wifi, system, metrics, sfp],
       RouterSection.devices => [summary, devices],
-      RouterSection.wifi => [wifi],
+      RouterSection.wifi => [wifi, if (readHistory) wifiHistory],
       RouterSection.traffic => [summary, series],
       RouterSection.all => [
         summary,
@@ -221,6 +231,7 @@ class RouterApi {
             'live' => previous?.liveError,
             'series' => previous?.seriesError,
             'wifi' => previous?.wifiError,
+            'wifiHistory' => previous?.wifiHistoryError,
             'devices' => previous?.devicesError,
             'system' => previous?.systemError,
             'metrics' => previous?.metricsError,
@@ -231,6 +242,7 @@ class RouterApi {
     final liveData = data('live');
     final seriesData = data('series');
     final wifiData = data('wifi');
+    final wifiHistoryData = data('wifiHistory');
     final systemData = data('system');
     final metricsData = data('metrics');
     final sfpData = data('sfp');
@@ -264,6 +276,13 @@ class RouterApi {
       radios: wifiData == null
           ? previous?.radios ?? const []
           : WifiRadio.parseAll(wifiData),
+      wifiHistory: wifiHistoryData == null
+          ? previous?.wifiHistory
+          : WifiHistory.fromJson(wifiHistoryData),
+      wifiHistoryFetchedAt: byKey.containsKey('wifiHistory')
+          ? DateTime.now()
+          : previous?.wifiHistoryFetchedAt,
+      wifiHistoryError: error('wifiHistory'),
       dhcpDevices: devicesData == null
           ? previous?.dhcpDevices ?? const []
           : DhcpDevice.parseAll(devicesData),

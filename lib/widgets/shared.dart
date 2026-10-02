@@ -194,17 +194,16 @@ class _Lead extends StatelessWidget {
 
 /// Status pill: tinted rounded background with a saturated label.
 class _Pill extends StatelessWidget {
-  const _Pill(this.label, this.color, {this.tint = 0.13});
+  const _Pill(this.label, this.color);
 
   final String label;
   final Color color;
-  final double tint;
 
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
     decoration: BoxDecoration(
-      color: color.withValues(alpha: tint),
+      color: color.withValues(alpha: 0.13),
       borderRadius: BorderRadius.circular(999),
     ),
     child: Text(
@@ -517,41 +516,6 @@ class _TrafficChart extends StatelessWidget {
           : Center(child: Text('暂无趋势数据', style: _bodyStyle(context))),
     );
   }
-}
-
-/// Rounded label/value line used inside the Wi-Fi radio cards.
-class _DetailLine extends StatelessWidget {
-  const _DetailLine({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 76,
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 12.5, color: _mutedOf(context)),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              color: _inkOf(context),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 // ---------------------------------------------------------------------------

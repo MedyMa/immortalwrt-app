@@ -202,6 +202,9 @@ class WifiRadio {
     required this.clientCount,
     this.band,
     this.channel,
+    this.htmode,
+    this.ifname,
+    this.bssid,
   });
   final String name;
   final bool up;
@@ -214,6 +217,13 @@ class WifiRadio {
 
   /// Configured channel, or null when absent or set to `auto`.
   final int? channel;
+  final String? htmode;
+  final String? ifname;
+  final String? bssid;
+  int? get widthMHz {
+    final match = RegExp(r'(20|40|80|160|320)$').firstMatch(htmode ?? '');
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
 
   static List<WifiRadio> parseAll(Object? value) {
     final source = _map(value);
@@ -231,6 +241,9 @@ class WifiRadio {
               clientCount: null,
               band: band.isEmpty ? null : band,
               channel: channel > 0 ? channel : null,
+              htmode: '${radio['htmode'] ?? ''}',
+              ifname: '${radio['ifname'] ?? ''}',
+              bssid: '${radio['bssid'] ?? ''}',
             );
           })
           .where((radio) => radio.name.isNotEmpty)
@@ -254,8 +267,69 @@ class WifiRadio {
         clientCount: null,
         band: band.isEmpty ? null : band,
         channel: channel > 0 ? channel : null,
+        htmode: '${settings['htmode'] ?? ''}',
       );
     }).toList();
+  }
+}
+
+class WifiPoint {
+  const WifiPoint({
+    required this.at,
+    required this.radio,
+    required this.downBytesPerSecond,
+    required this.upBytesPerSecond,
+    this.txFailurePercent,
+    this.rxCrcPercent,
+  });
+  final DateTime at;
+  final String radio;
+  final double downBytesPerSecond;
+  final double upBytesPerSecond;
+  final double? txFailurePercent;
+  final double? rxCrcPercent;
+}
+
+class WifiHistory {
+  const WifiHistory({required this.interval, required this.points});
+  final int interval;
+  final List<WifiPoint> points;
+
+  static double? _percent(Object? raw) {
+    if (raw is! num || raw < 0 || raw > 100) return null;
+    return raw.toDouble();
+  }
+
+  factory WifiHistory.fromJson(Object? value) {
+    final json = _map(value);
+    final interval = _number(json['interval']);
+    final points = <WifiPoint>[];
+    for (final raw in _list(json['points'])) {
+      if (raw is! List || raw.length != 6) continue;
+      final epoch = _number(raw[0]);
+      final radio = '${raw[1]}';
+      final down = raw[2];
+      final up = raw[3];
+      if (epoch <= 0 ||
+          radio.isEmpty ||
+          down is! num ||
+          up is! num ||
+          down < 0 ||
+          up < 0) {
+        continue;
+      }
+      points.add(
+        WifiPoint(
+          at: DateTime.fromMillisecondsSinceEpoch(epoch * 1000),
+          radio: radio,
+          downBytesPerSecond: down.toDouble(),
+          upBytesPerSecond: up.toDouble(),
+          txFailurePercent: _percent(raw[4]),
+          rxCrcPercent: _percent(raw[5]),
+        ),
+      );
+    }
+    return WifiHistory(interval: interval > 0 ? interval : 60, points: points);
   }
 }
 
@@ -338,6 +412,9 @@ class RouterSnapshot {
     this.live,
     this.series,
     this.radios = const [],
+    this.wifiHistory,
+    this.wifiHistoryFetchedAt,
+    this.wifiHistoryError,
     this.dhcpDevices = const [],
     this.uptimeSeconds,
     this.memory,
@@ -358,6 +435,9 @@ class RouterSnapshot {
   final LiveRate? live;
   final TrafficSeries? series;
   final List<WifiRadio> radios;
+  final WifiHistory? wifiHistory;
+  final DateTime? wifiHistoryFetchedAt;
+  final String? wifiHistoryError;
   final List<DhcpDevice> dhcpDevices;
   final int? uptimeSeconds;
   final RouterMemory? memory;

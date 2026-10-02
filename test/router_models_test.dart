@@ -92,6 +92,36 @@ void main() {
     expect(radios.every((radio) => radio.up), isTrue);
   });
 
+  test('BE14 sanitized radio and sampled history retain actual fields', () {
+    final radio = WifiRadio.parseAll({
+      'radios': [
+        {
+          'name': 'MT7990_1_2',
+          'up': true,
+          'band': '5g',
+          'channel': '40',
+          'htmode': 'EHT160',
+          'ifname': 'rai0',
+          'bssid': '02:11:22:33:44:55',
+        },
+      ],
+    }).single;
+    expect(radio.widthMHz, 160);
+    expect(radio.ifname, 'rai0');
+    expect(radio.bssid, '02:11:22:33:44:55');
+    final history = WifiHistory.fromJson({
+      'interval': 60,
+      'points': [
+        [1720000000, 'MT7990_1_2', 1000, 500, 6.0, 16.0],
+        [1720000060, 'MT7990_1_2', 2000, 800, null, null],
+        [0, 'bad', 0, 0, 0, 0],
+      ],
+    });
+    expect(history.points.length, 2);
+    expect(history.points.first.txFailurePercent, 6);
+    expect(history.points.last.rxCrcPercent, isNull);
+  });
+
   test('system memory and SFP statuses preserve unavailable values', () {
     final memory = RouterMemory.fromSystemInfo({
       'memory': {'total': 1024, 'available': 256},

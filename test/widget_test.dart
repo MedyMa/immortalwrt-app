@@ -104,6 +104,58 @@ class _HealthyApi extends _FakeRouterApi {
   );
 }
 
+class _WifiApi extends _FakeRouterApi {
+  @override
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async => RouterSnapshot(
+    fetchedAt: DateTime.now(),
+    radios: const [
+      WifiRadio(
+        name: 'MT7990_1_1',
+        up: true,
+        ssids: [],
+        clientCount: null,
+        band: '2g',
+        channel: 3,
+        htmode: 'EHT40',
+      ),
+      WifiRadio(
+        name: 'MT7990_1_2',
+        up: true,
+        ssids: [],
+        clientCount: null,
+        band: '5g',
+        channel: 40,
+        htmode: 'EHT160',
+        bssid: '02:11:22:33:44:55',
+      ),
+    ],
+    wifiHistory: WifiHistory(
+      interval: 60,
+      points: [
+        WifiPoint(
+          at: DateTime.now().subtract(const Duration(minutes: 1)),
+          radio: 'MT7990_1_2',
+          downBytesPerSecond: 1024,
+          upBytesPerSecond: 512,
+          txFailurePercent: 6,
+          rxCrcPercent: 16,
+        ),
+        WifiPoint(
+          at: DateTime.now(),
+          radio: 'MT7990_1_2',
+          downBytesPerSecond: 2048,
+          upBytesPerSecond: 700,
+          txFailurePercent: 5,
+          rxCrcPercent: 12,
+        ),
+      ],
+    ),
+  );
+}
+
 void main() {
   testWidgets('offline shell presents connection and all four sections', (
     tester,
@@ -134,7 +186,29 @@ void main() {
     expect(find.text('设备记录不代表当前在线'), findsOneWidget);
     await tester.tap(find.text('Wi-Fi').last);
     await tester.pump();
-    expect(find.text('BE14 驱动可能不返回全部射频'), findsOneWidget);
+    expect(find.text('BE14 无线'), findsOneWidget);
+    expect(find.text('2.4 GHz'), findsNothing);
+  });
+
+  testWidgets('Wi-Fi channel view selects 5 GHz and shows measured history', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(
+          storage: _MemoryStorage(),
+          apiFactory: (_) => _WifiApi(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.text('Wi-Fi').last);
+    await tester.pump();
+    expect(find.text('5 GHz'), findsWidgets);
+    expect(find.textContaining('40 · 160 MHz'), findsOneWidget);
+    expect(find.text('TX 失败率'), findsWidgets);
+    expect(find.text('12%'), findsOneWidget);
+    expect(find.text('BSSID 02:11:22:33:44:55'), findsOneWidget);
   });
 
   testWidgets('healthy overview shows device to router to internet topology', (

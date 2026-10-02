@@ -160,7 +160,11 @@ void main() {
     );
     await api.login('u', 'p');
     await api.fetch(section: RouterSection.wifi);
-    expect(methods, ['session.login', 'luci.traffic.getWirelessStatus']);
+    expect(methods, [
+      'session.login',
+      'luci.traffic.getWirelessStatus',
+      'luci.traffic.getWirelessHistory',
+    ]);
     methods.clear();
     await api.fetch(section: RouterSection.devices);
     expect(
@@ -439,8 +443,52 @@ void main() {
       );
       await api.login('u', 'p');
       final snapshot = await api.fetch(section: RouterSection.wifi);
-      expect(methods, ['session.login', 'luci.traffic.getWirelessStatus']);
+      expect(methods, [
+        'session.login',
+        'luci.traffic.getWirelessStatus',
+        'luci.traffic.getWirelessHistory',
+      ]);
       expect(snapshot.radios.single.band, '6g');
+    },
+  );
+
+  test(
+    'Wi-Fi history is read at most once per minute and retained between polls',
+    () async {
+      final methods = <String>[];
+      final api = RouterApi(
+        Uri.parse('https://router.example.com'),
+        client: MockClient((request) async {
+          final method =
+              ((jsonDecode(request.body) as Map)['params'] as List)[2]
+                  as String;
+          methods.add(method);
+          final data = switch (method) {
+            'login' => {'ubus_rpc_session': 's'},
+            'getWirelessHistory' => {
+              'interval': 60,
+              'points': [
+                [1720000000, 'MT7990_1_2', 100, 200, 6, 16],
+              ],
+            },
+            _ => <String, dynamic>{},
+          };
+          return http.Response(
+            jsonEncode({
+              'result': [0, data],
+            }),
+            200,
+          );
+        }),
+      );
+      await api.login('u', 'p');
+      final first = await api.fetch(section: RouterSection.wifi);
+      final second = await api.fetch(
+        section: RouterSection.wifi,
+        previous: first,
+      );
+      expect(methods.where((item) => item == 'getWirelessHistory').length, 1);
+      expect(second.wifiHistory?.points.single.txFailurePercent, 6);
     },
   );
 

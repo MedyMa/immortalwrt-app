@@ -43,7 +43,7 @@ void main() {
     final snapshot = await session.fetch(RouterSection.wifi);
     expect(snapshot.radios, isEmpty);
     expect(logins, 2);
-    expect(reads, 2);
+    expect(reads, 4);
   });
 
   test('still denied after one re-login reports ACL failure', () async {
