@@ -53,14 +53,18 @@ class _ReadResult {
 }
 
 class RouterApi {
-  RouterApi(this.baseUrl, {http.Client? client})
-    : _client = client ?? http.Client() {
+  RouterApi(this.baseUrl, {http.Client? client, DateTime Function()? clock})
+    : _client = client ?? http.Client(),
+      _clock = clock ?? DateTime.now {
     validateUrl(baseUrl.toString());
   }
 
   final Uri baseUrl;
   final http.Client _client;
+  final DateTime Function() _clock;
   String? _session;
+  DateTime? _lastSessionActivity;
+  Duration? _sessionIdleTimeout;
   int _nextId = 1;
 
   static Uri validateUrl(String raw) {
@@ -153,6 +157,7 @@ class RouterApi {
           'ubus 拒绝 $object.$method（代码 ${result.isEmpty ? '?' : result[0]}）',
         );
       }
+      if (!login) _lastSessionActivity = _clock();
       if (result.length < 2 || result[1] is! Map) return {};
       return (result[1] as Map).map((key, value) => MapEntry('$key', value));
     } on FormatException {
@@ -170,12 +175,23 @@ class RouterApi {
       throw const RouterApiException('登录失败，请检查用户名和密码');
     }
     _session = session;
+    final timeout = result['timeout'];
+    final seconds = timeout is int && timeout >= 0 ? timeout : 300;
+    _sessionIdleTimeout = seconds == 0 ? null : Duration(seconds: seconds);
+    _lastSessionActivity = _clock();
   }
 
   Future<RouterSnapshot> fetch({
     RouterSection section = RouterSection.all,
     RouterSnapshot? previous,
   }) async {
+    final lastActivity = _lastSessionActivity;
+    final idleTimeout = _sessionIdleTimeout;
+    if (lastActivity != null &&
+        idleTimeout != null &&
+        _clock().difference(lastActivity) >= idleTimeout) {
+      throw const RouterSessionExpiredException();
+    }
     const summary = _ReadSpec('summary', 'luci.traffic', 'getSummary');
     const live = _ReadSpec('live', 'luci.traffic', 'getLive');
     const series = _ReadSpec('series', 'luci.traffic', 'getSeries', {

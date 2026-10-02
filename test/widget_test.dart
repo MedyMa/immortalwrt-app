@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -183,6 +187,55 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets('long background pause renews session and resumes live polling', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 10, 2);
+    var logins = 0;
+    var reads = 0;
+    final api = RouterApi(
+      Uri.parse('https://router.example.com'),
+      clock: () => now,
+      client: MockClient((request) async {
+        final p = (jsonDecode(request.body) as Map)['params'] as List;
+        if (p[2] == 'login') {
+          logins++;
+          return http.Response(
+            jsonEncode({
+              'result': [
+                0,
+                {'ubus_rpc_session': 's$logins', 'timeout': 300},
+              ],
+            }),
+            200,
+          );
+        }
+        reads++;
+        return http.Response('{"result":[0,{}]}', 200);
+      }),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+      ),
+    );
+    await tester.pump();
+    expect(logins, 1);
+    final initialReads = reads;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    now = now.add(const Duration(minutes: 22));
+    await tester.pump(const Duration(minutes: 22));
+    expect(reads, initialReads);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(logins, 2);
+    expect(reads, greaterThan(initialReads));
+    expect(find.textContaining('连接中断'), findsNothing);
+    final resumedReads = reads;
+    await tester.pump(const Duration(seconds: 1));
+    expect(reads, greaterThan(resumedReads));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('partial transient live failure still retries after one second', (
     tester,
   ) async {
