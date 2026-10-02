@@ -80,7 +80,7 @@ void main() {
               200,
             );
           }
-          if (method == 'getLive') {
+          if (method == 'info') {
             return http.Response('{"result":[0,{}]}', 200);
           }
           return http.Response(
@@ -94,9 +94,9 @@ void main() {
         section: RouterSection.wifi,
         previous: RouterSnapshot(fetchedAt: DateTime.now()),
       );
-      expect(snapshot.wifiError, contains('更新路由器'));
+      expect(snapshot.wifiError, contains('权限'));
       expect(calls.where((m) => m == 'login').length, 1);
-      expect(calls, contains('getLive'));
+      expect(calls, contains('info'));
       api.close();
     },
   );

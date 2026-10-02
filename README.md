@@ -18,11 +18,11 @@ The Wi-Fi history card also has scrolled [Android](design/previews/android-wifi-
 
 ## Connect
 
-1. Install `luci-app-traffic` **1.1.6 or newer** and `luci-app-sfp-status` on the router. Traffic RPC methods expose CPU counters, sanitized BE14 radio status, and sampled wireless history. Its collector must be running for history and traffic data.
+1. Install `rpcd-mod-router-status` for CPU, BE14 and wireless history. Install `luci-app-traffic` for flow statistics and `luci-app-sfp-status` for SFP details. These packages operate independently; the wireless sampler does not need traffic to be installed or running.
 2. Open the app's connection screen. Its default HTTPS address is `https://bananapi.x.ddnsto.com`; the remote tunnel was checked to forward unauthenticated `/ubus` requests on 2026-10-01, but login and authorized methods still require a device-side test.
 3. Enter the LuCI/ubus username and password. At home, `http://192.168.2.1` is an optional local fallback. The username is not prefilled so a dedicated read-only account can be used.
 
-The app sends `session.login`, followed only by `luci.traffic.getSummary`, `getLive`, `getHourly`, `getSeries`, `getSystemMetrics`, `getWirelessStatus`, `getWirelessHistory`, `luci.sfp-status.getStatuses`, `system.info`, and `luci-rpc.getDHCPLeases`. It never calls a router write method. `getWirelessStatus` filters the netifd payload on the router so configured Wi-Fi passwords are never returned to the phone. Prefer a dedicated read-only ubus account, because a full administrator credential still grants administrator rights to anyone who obtains it. Credentials are stored in Android Keystore / iOS Keychain through `flutter_secure_storage`; logout deletes them. The ubus session stays in memory.
+The app sends `session.login`, followed only by `luci.traffic.getSummary`, `getLive`, `getHourly`, `getSeries`, `router.status.getSystemMetrics`, `router.status.getWirelessStatus`, `router.status.getWirelessHistory`, `luci.sfp-status.getStatuses`, `system.info`, and `luci-rpc.getDHCPLeases`. It never calls a router write method. `router.status.getWirelessStatus` filters the netifd payload on the router so configured Wi-Fi passwords are never returned to the phone. Prefer a dedicated read-only ubus account, because a full administrator credential still grants administrator rights to anyone who obtains it. Credentials are stored in Android Keystore / iOS Keychain through `flutter_secure_storage`; logout deletes them. The ubus session stays in memory.
 
 The local `http://192.168.2.1` connection is **not encrypted**. Only this exact IP is permitted over HTTP in the app and platform network policy. The DDnsto HTTPS route provides remote connectivity without a phone VPN; it depends on that third-party tunnel being online. Use a dedicated read-only router account if available.
 
@@ -50,4 +50,6 @@ CI compiles against **Android 17 SDK (API 37)** with Android Gradle Plugin 9.1.1
 
 Overview reads live rate every 1 second, with system status about every 15 seconds. Requests do not overlap. The Traffic page sums the latest 24 hourly buckets and loads the 24-hour minute series; session totals on Overview stay separate. Missing WAN buckets are labelled attributed totals instead of complete WAN totals.
 
-BE14 and CPU require luci-app-traffic 1.1.6 or newer on the router. If local ubus reports Method not found for getWirelessStatus, update the router package, restart rpcd and reconnect the phone app. An unavailable wireless method no longer labels an otherwise valid connection as disconnected. The LuCI traffic page keeps its 24-hour default.
+BE14, CPU and wireless history require the independent rpcd-mod-router-status package. Traffic statistics alone use luci-app-traffic; neither Wi-Fi reads nor wireless sampling depend on it. Install the status package first, update the mobile app, then upgrade traffic to 1.1.7 to remove the misplaced monitoring methods. Reconnect after rpcd restarts. Dedicated read-only accounts require the router-status read ACL. The LuCI traffic page keeps its 24-hour default.
+
+Router installation and device checks: https://github.com/MedyMa/luci-app/tree/main/Luci-app/rpcd-mod-router-status

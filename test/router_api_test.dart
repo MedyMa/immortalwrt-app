@@ -58,7 +58,7 @@ void main() {
         'luci.traffic.getSummary',
         'luci.traffic.getLive',
         'luci.traffic.getSeries',
-        'luci.traffic.getWirelessStatus',
+        'router.status.getWirelessStatus',
         'system.info',
       ]),
     );
@@ -162,8 +162,8 @@ void main() {
     await api.fetch(section: RouterSection.wifi);
     expect(methods, [
       'session.login',
-      'luci.traffic.getWirelessStatus',
-      'luci.traffic.getWirelessHistory',
+      'router.status.getWirelessStatus',
+      'router.status.getWirelessHistory',
     ]);
     methods.clear();
     await api.fetch(section: RouterSection.devices);
@@ -445,8 +445,8 @@ void main() {
       final snapshot = await api.fetch(section: RouterSection.wifi);
       expect(methods, [
         'session.login',
-        'luci.traffic.getWirelessStatus',
-        'luci.traffic.getWirelessHistory',
+        'router.status.getWirelessStatus',
+        'router.status.getWirelessHistory',
       ]);
       expect(snapshot.radios.single.band, '6g');
     },
@@ -522,7 +522,7 @@ void main() {
       section: RouterSection.wifi,
       previous: previous,
     );
-    expect(snapshot.wifiError, contains('getWirelessStatus'));
+    expect(snapshot.wifiError, contains('rpcd-mod-router-status'));
   });
 
   test('CPU sampling survives a visit to another page', () async {

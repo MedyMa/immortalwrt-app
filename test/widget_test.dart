@@ -64,6 +64,20 @@ class _ExpiringApi extends _FakeRouterApi {
   }
 }
 
+class _NoTrafficApi extends _FakeRouterApi {
+  @override
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async {
+    sections.add(section);
+    return RouterSnapshot(
+      fetchedAt: DateTime.now(),
+      liveError: 'luci.traffic.getLive 不可用',
+    );
+  }
+}
+
 class _FlakyApi extends _FakeRouterApi {
   int reads = 0;
 
@@ -157,6 +171,25 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets(
+    'missing traffic does not flood live reads or block Wi-Fi navigation',
+    (tester) async {
+      final api = _NoTrafficApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump();
+      expect(api.sections, [RouterSection.overview]);
+      expect(find.textContaining('连接中断 ·'), findsNothing);
+      await tester.tap(find.text('Wi-Fi').last);
+      await tester.pump();
+      expect(api.sections.last, RouterSection.wifi);
+    },
+  );
   testWidgets('overview reads only live rate after one second', (tester) async {
     final api = _FakeRouterApi();
     await tester.pumpWidget(

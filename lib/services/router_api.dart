@@ -18,6 +18,15 @@ class RouterPermissionException extends RouterApiException {
     : super('没有读取 $method 的权限（ubus 代码 6）');
 }
 
+class RouterMethodUnavailableException extends RouterApiException {
+  const RouterMethodUnavailableException(String object, String method)
+    : super(
+        object == 'router.status'
+            ? '请安装或更新路由器独立状态组件 rpcd-mod-router-status'
+            : '$object.$method 不可用',
+      );
+}
+
 class RouterSessionExpiredException extends RouterApiException {
   const RouterSessionExpiredException() : super('登录会话已失效');
 }
@@ -120,6 +129,11 @@ class RouterApi {
           if (login) throw const RouterApiException('登录失败，请检查用户名和密码');
           throw RouterPermissionException('$object.$method');
         }
+        if (!login &&
+            (detail.toLowerCase().contains('not found') ||
+                detail.toLowerCase().contains('no such'))) {
+          throw RouterMethodUnavailableException(object, method);
+        }
         throw RouterApiException(
           detail.isEmpty
               ? '$object.$method 响应格式不正确'
@@ -131,6 +145,9 @@ class RouterApi {
         if (result.isNotEmpty && result[0] == 6) {
           if (login) throw const RouterApiException('登录失败，请检查用户名和密码');
           throw RouterPermissionException('$object.$method');
+        }
+        if (!login && result.isNotEmpty && (result[0] == 3 || result[0] == 4)) {
+          throw RouterMethodUnavailableException(object, method);
         }
         throw RouterApiException(
           'ubus 拒绝 $object.$method（代码 ${result.isEmpty ? '?' : result[0]}）',
@@ -167,14 +184,14 @@ class RouterApi {
     const window = _ReadSpec('window', 'luci.traffic', 'getHourly', {
       'hours': 24,
     });
-    const wifi = _ReadSpec('wifi', 'luci.traffic', 'getWirelessStatus');
+    const wifi = _ReadSpec('wifi', 'router.status', 'getWirelessStatus');
     const wifiHistory = _ReadSpec(
       'wifiHistory',
-      'luci.traffic',
+      'router.status',
       'getWirelessHistory',
     );
     const system = _ReadSpec('system', 'system', 'info');
-    const metrics = _ReadSpec('metrics', 'luci.traffic', 'getSystemMetrics');
+    const metrics = _ReadSpec('metrics', 'router.status', 'getSystemMetrics');
     const sfp = _ReadSpec('sfp', 'luci.sfp-status', 'getStatuses');
     const devices = _ReadSpec('devices', 'luci-rpc', 'getDHCPLeases');
     final readHistory =
@@ -218,24 +235,24 @@ class RouterApi {
     final successes = results.where((item) => item.data != null).length;
     if (successes == 0) {
       if (results.every((item) => item.error is RouterPermissionException)) {
-        if (section != RouterSection.wifi) {
-          throw const RouterSessionExpiredException();
-        }
         try {
-          await _call('luci.traffic', 'getLive', const {});
+          await _call('system', 'info', const {});
         } on RouterPermissionException {
           throw const RouterSessionExpiredException();
         }
       }
       final failure = results.first.error;
-      final wifiMethodError =
-          section == RouterSection.wifi &&
-          previous != null &&
-          failure != null &&
-          (failure.message.contains('ubus 拒绝') ||
-              failure is RouterPermissionException ||
-              failure.message.contains('响应格式不正确'));
-      if (!wifiMethodError) {
+      final methodUnavailable = results.every((item) {
+        final error = item.error;
+        return error != null &&
+            (error is RouterPermissionException ||
+                error is RouterMethodUnavailableException ||
+                error.message.contains('ubus 拒绝') ||
+                error.message.contains('独立状态组件') ||
+                (section == RouterSection.wifi &&
+                    error.message.contains('响应格式不正确')));
+      });
+      if (!methodUnavailable) {
         throw failure ?? const RouterApiException('无法读取路由器状态');
       }
     }
@@ -271,7 +288,7 @@ class RouterApi {
       await Future<void>.delayed(const Duration(milliseconds: 350));
       try {
         final second = await _call(
-          'luci.traffic',
+          'router.status',
           'getSystemMetrics',
           const {},
         );
@@ -330,7 +347,7 @@ class RouterApi {
       wifiError: error('wifi') == null
           ? null
           : byKey['wifi']?.error is RouterPermissionException
-          ? '无线接口不可用，请更新路由器 Traffic 组件并检查读取权限'
+          ? '无线读取权限不足，请检查 router-status 只读权限'
           : error('wifi'),
       metricsError: error('metrics'),
       sfpError: error('sfp'),
