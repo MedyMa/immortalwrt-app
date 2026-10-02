@@ -15,8 +15,10 @@ class RouterSession {
   final RouterApi api;
   final Future<RouterCredentials?> Function() readCredentials;
 
-  Future<RouterSnapshot> fetch(RouterSection section,
-      {RouterSnapshot? previous}) async {
+  Future<RouterSnapshot> fetch(
+    RouterSection section, {
+    RouterSnapshot? previous,
+  }) async {
     try {
       return await api.fetch(section: section, previous: previous);
     } on RouterSessionExpiredException {

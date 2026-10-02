@@ -16,15 +16,15 @@ class _MemoryStorage extends FlutterSecureStorage {
   };
 
   @override
-  Future<String?> read(
-          {required String key,
-          IOSOptions? iOptions,
-          AndroidOptions? aOptions,
-          LinuxOptions? lOptions,
-          WebOptions? webOptions,
-          MacOsOptions? mOptions,
-          WindowsOptions? wOptions}) async =>
-      values[key];
+  Future<String?> read({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async => values[key];
 }
 
 class _FakeRouterApi extends RouterApi {
@@ -35,9 +35,10 @@ class _FakeRouterApi extends RouterApi {
   Future<void> login(String username, String password) async {}
 
   @override
-  Future<RouterSnapshot> fetch(
-      {RouterSection section = RouterSection.all,
-      RouterSnapshot? previous}) async {
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async {
     sections.add(section);
     return RouterSnapshot(fetchedAt: DateTime.now());
   }
@@ -53,9 +54,10 @@ class _ExpiringApi extends _FakeRouterApi {
   }
 
   @override
-  Future<RouterSnapshot> fetch(
-      {RouterSection section = RouterSection.all,
-      RouterSnapshot? previous}) async {
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async {
     reads++;
     if (reads > 1) throw const RouterSessionExpiredException();
     return RouterSnapshot(fetchedAt: DateTime.now());
@@ -77,10 +79,11 @@ class _FlakyApi extends _FakeRouterApi {
     return RouterSnapshot(
       fetchedAt: DateTime.now(),
       live: const LiveRate(
-          ready: true,
-          downBytesPerSecond: 1024,
-          upBytesPerSecond: 512,
-          at: null),
+        ready: true,
+        downBytesPerSecond: 1024,
+        upBytesPerSecond: 512,
+        at: null,
+      ),
     );
   }
 }
@@ -90,20 +93,21 @@ class _HealthyApi extends _FakeRouterApi {
   Future<RouterSnapshot> fetch({
     RouterSection section = RouterSection.all,
     RouterSnapshot? previous,
-  }) async =>
-      RouterSnapshot(
-        fetchedAt: DateTime.now(),
-        live: const LiveRate(
-            ready: true,
-            downBytesPerSecond: 1024,
-            upBytesPerSecond: 512,
-            at: null),
-      );
+  }) async => RouterSnapshot(
+    fetchedAt: DateTime.now(),
+    live: const LiveRate(
+      ready: true,
+      downBytesPerSecond: 1024,
+      upBytesPerSecond: 512,
+      at: null,
+    ),
+  );
 }
 
 void main() {
-  testWidgets('offline shell presents connection and all four sections',
-      (tester) async {
+  testWidgets('offline shell presents connection and all four sections', (
+    tester,
+  ) async {
     await tester.pumpWidget(const ImmortalWrtApp());
     await tester.pump();
     expect(find.text('连接路由器'), findsOneWidget);
@@ -115,11 +119,15 @@ void main() {
     expect(find.text('仅读取状态 · 凭据保存在本机'), findsOneWidget);
   });
 
-  testWidgets('device and BE14 status keep concise scope labels',
-      (tester) async {
+  testWidgets('device and BE14 status keep concise scope labels', (
+    tester,
+  ) async {
     final api = _FakeRouterApi();
-    await tester.pumpWidget(MaterialApp(
-        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api)));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+      ),
+    );
     await tester.pump();
     await tester.tap(find.text('设备').last);
     await tester.pump();
@@ -129,11 +137,17 @@ void main() {
     expect(find.text('BE14 驱动可能不返回全部射频'), findsOneWidget);
   });
 
-  testWidgets('healthy overview shows device to router to internet topology',
-      (tester) async {
-    await tester.pumpWidget(MaterialApp(
+  testWidgets('healthy overview shows device to router to internet topology', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
         home: RouterHome(
-            storage: _MemoryStorage(), apiFactory: (_) => _HealthyApi())));
+          storage: _MemoryStorage(),
+          apiFactory: (_) => _HealthyApi(),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('网络运行正常'), findsNothing);
     expect(find.text('MT7988'), findsOneWidget);
@@ -144,12 +158,39 @@ void main() {
     expect(find.text('设备记录'), findsOneWidget);
   });
 
+  testWidgets(
+    'overview keeps chart on traffic page and device list has no duplicate filter',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _HealthyApi(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('最近 1 小时'), findsNothing);
+      expect(find.text('CPU 使用率'), findsOneWidget);
+      expect(find.text('内存使用率'), findsOneWidget);
+      await tester.tap(find.text('设备').last);
+      await tester.pump();
+      expect(find.text('全部设备'), findsNothing);
+      expect(find.text('有流量记录'), findsNothing);
+    },
+  );
+
   testWidgets('iOS presents a platform tab bar', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     try {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(
+        MaterialApp(
           home: RouterHome(
-              storage: _MemoryStorage(), apiFactory: (_) => _FakeRouterApi())));
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _FakeRouterApi(),
+          ),
+        ),
+      );
       await tester.pump();
       expect(find.byType(CupertinoTabBar), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
@@ -162,10 +203,15 @@ void main() {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(
+      MaterialApp(
         theme: ThemeData(platform: TargetPlatform.android),
         home: RouterHome(
-            storage: _MemoryStorage(), apiFactory: (_) => _FakeRouterApi())));
+          storage: _MemoryStorage(),
+          apiFactory: (_) => _FakeRouterApi(),
+        ),
+      ),
+    );
     await tester.pump();
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
@@ -174,31 +220,42 @@ void main() {
   testWidgets('Android uses the system accent when available', (tester) async {
     const channel = MethodChannel('com.medyma.immortalwrt/appearance');
     var calls = 0;
-    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel,
-        (call) async {
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+      call,
+    ) async {
       calls++;
       return 0xFFBF5AF2;
     });
-    addTearDown(() => tester.binding.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null));
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        null,
+      ),
+    );
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     try {
       await tester.pumpWidget(const ImmortalWrtApp());
       await tester.pumpAndSettle();
       expect(calls, 1);
       final theme = Theme.of(tester.element(find.byType(RouterHome)));
-      expect(theme.colorScheme.primary,
-          ColorScheme.fromSeed(seedColor: const Color(0xFFBF5AF2)).primary);
+      expect(
+        theme.colorScheme.primary,
+        ColorScheme.fromSeed(seedColor: const Color(0xFFBF5AF2)).primary,
+      );
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
   });
 
-  testWidgets('background pauses polling and resume refreshes visible page',
-      (tester) async {
+  testWidgets('background pauses polling and resume refreshes visible page', (
+    tester,
+  ) async {
     final api = _FakeRouterApi();
-    await tester.pumpWidget(MaterialApp(
-        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api)));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+      ),
+    );
     await tester.pump();
     expect(api.sections, [RouterSection.overview]);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
@@ -214,8 +271,11 @@ void main() {
 
   testWidgets('repeated ACL denial stops automatic polling', (tester) async {
     final api = _ExpiringApi();
-    await tester.pumpWidget(MaterialApp(
-        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api)));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+      ),
+    );
     await tester.pump();
     expect(api.logins, 1);
     await tester.pump(const Duration(seconds: 16));
@@ -227,11 +287,15 @@ void main() {
     expect(api.reads, 3);
   });
 
-  testWidgets('remote interruption keeps stale data and later recovers',
-      (tester) async {
+  testWidgets('remote interruption keeps stale data and later recovers', (
+    tester,
+  ) async {
     final api = _FlakyApi();
-    await tester.pumpWidget(MaterialApp(
-        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api)));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+      ),
+    );
     await tester.pump();
     expect(find.text('互联网'), findsOneWidget);
     await tester.pump(const Duration(seconds: 16));

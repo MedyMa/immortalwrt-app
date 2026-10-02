@@ -15,7 +15,7 @@ class RouterApiException implements Exception {
 
 class RouterPermissionException extends RouterApiException {
   const RouterPermissionException(String method)
-      : super('没有读取 $method 的权限（ubus 代码 6）');
+    : super('没有读取 $method 的权限（ubus 代码 6）');
 }
 
 class RouterSessionExpiredException extends RouterApiException {
@@ -45,7 +45,7 @@ class _ReadResult {
 
 class RouterApi {
   RouterApi(this.baseUrl, {http.Client? client})
-      : _client = client ?? http.Client() {
+    : _client = client ?? http.Client() {
     validateUrl(baseUrl.toString());
   }
 
@@ -74,8 +74,11 @@ class RouterApi {
   Uri get _endpoint => baseUrl.replace(path: '/ubus');
 
   Future<Map<String, dynamic>> _call(
-      String object, String method, Map<String, dynamic> args,
-      {bool login = false}) async {
+    String object,
+    String method,
+    Map<String, dynamic> args, {
+    bool login = false,
+  }) async {
     final token = login ? '00000000000000000000000000000000' : _session;
     if (token == null) throw const RouterApiException('尚未登录路由器');
     http.Response response;
@@ -97,7 +100,8 @@ class RouterApi {
     } on HandshakeException {
       throw const RouterApiException('TLS 证书验证失败，请检查远程地址和证书');
     } on SocketException catch (error) {
-      final dns = error.message.contains('host lookup') ||
+      final dns =
+          error.message.contains('host lookup') ||
           error.message.toLowerCase().contains('dns');
       throw RouterApiException(dns ? 'DNS 解析失败，请检查域名和网络' : '无法连接路由器，请检查地址和网络');
     } on http.ClientException {
@@ -109,7 +113,14 @@ class RouterApi {
     try {
       final payload = jsonDecode(response.body);
       if (payload is! Map || payload['result'] is! List) {
-        throw const RouterApiException('路由器响应格式不正确');
+        final detail = payload is Map && payload['error'] is Map
+            ? '${(payload['error'] as Map)['message'] ?? ''}'
+            : '';
+        throw RouterApiException(
+          detail.isEmpty
+              ? '$object.$method 响应格式不正确'
+              : '$object.$method：$detail',
+        );
       }
       final result = payload['result'] as List;
       if (result.isEmpty || result[0] != 0) {
@@ -118,7 +129,8 @@ class RouterApi {
           throw RouterPermissionException('$object.$method');
         }
         throw RouterApiException(
-            'ubus 拒绝 $object.$method（代码 ${result.isEmpty ? '?' : result[0]}）');
+          'ubus 拒绝 $object.$method（代码 ${result.isEmpty ? '?' : result[0]}）',
+        );
       }
       if (result.length < 2 || result[1] is! Map) return {};
       return (result[1] as Map).map((key, value) => MapEntry('$key', value));
@@ -128,9 +140,10 @@ class RouterApi {
   }
 
   Future<void> login(String username, String password) async {
-    final result = await _call(
-        'session', 'login', {'username': username, 'password': password},
-        login: true);
+    final result = await _call('session', 'login', {
+      'username': username,
+      'password': password,
+    }, login: true);
     final session = result['ubus_rpc_session'];
     if (session is! String || session.isEmpty) {
       throw const RouterApiException('登录失败，请检查用户名和密码');
@@ -144,22 +157,39 @@ class RouterApi {
   }) async {
     const summary = _ReadSpec('summary', 'luci.traffic', 'getSummary');
     const live = _ReadSpec('live', 'luci.traffic', 'getLive');
-    const series =
-        _ReadSpec('series', 'luci.traffic', 'getSeries', {'range': '1h'});
-    const wifi = _ReadSpec('wifi', 'network.wireless', 'status');
+    const series = _ReadSpec('series', 'luci.traffic', 'getSeries', {
+      'range': '1h',
+    });
+    const wifi = _ReadSpec('wifi', 'luci.traffic', 'getWirelessStatus');
     const system = _ReadSpec('system', 'system', 'info');
+    const metrics = _ReadSpec('metrics', 'luci.traffic', 'getSystemMetrics');
+    const sfp = _ReadSpec('sfp', 'luci.sfp-status', 'getStatuses');
     const devices = _ReadSpec('devices', 'luci-rpc', 'getDHCPLeases');
     final specs = switch (section) {
-      RouterSection.overview => [summary, live, series, wifi, system],
+      RouterSection.overview => [summary, live, wifi, system, metrics, sfp],
       RouterSection.devices => [summary, devices],
       RouterSection.wifi => [wifi],
       RouterSection.traffic => [summary, series],
-      RouterSection.all => [summary, live, series, wifi, system, devices],
+      RouterSection.all => [
+        summary,
+        live,
+        series,
+        wifi,
+        system,
+        metrics,
+        sfp,
+        devices,
+      ],
     };
     Future<_ReadResult> safe(_ReadSpec spec) async {
       try {
-        return _ReadResult(
-            spec.key, await _call(spec.object, spec.method, spec.args), null);
+        final result = await _call(spec.object, spec.method, spec.args);
+        if (result['error'] is String) {
+          throw RouterApiException(
+            '${spec.object}.${spec.method}: ${result['error']}',
+          );
+        }
+        return _ReadResult(spec.key, result, null);
       } on RouterApiException catch (error) {
         return _ReadResult(spec.key, null, error);
       }
@@ -172,7 +202,16 @@ class RouterApi {
       if (results.every((item) => item.error is RouterPermissionException)) {
         throw const RouterSessionExpiredException();
       }
-      throw results.first.error ?? const RouterApiException('无法读取路由器状态');
+      final failure = results.first.error;
+      final wifiMethodError =
+          section == RouterSection.wifi &&
+          previous != null &&
+          failure != null &&
+          (failure.message.contains('ubus 拒绝') ||
+              failure.message.contains('响应格式不正确'));
+      if (!wifiMethodError) {
+        throw failure ?? const RouterApiException('无法读取路由器状态');
+      }
     }
     Map<String, dynamic>? data(String key) => byKey[key]?.data;
     String? error(String key) => byKey.containsKey(key)
@@ -184,6 +223,8 @@ class RouterApi {
             'wifi' => previous?.wifiError,
             'devices' => previous?.devicesError,
             'system' => previous?.systemError,
+            'metrics' => previous?.metricsError,
+            'sfp' => previous?.sfpError,
             _ => null,
           };
     final summaryData = data('summary');
@@ -191,6 +232,25 @@ class RouterApi {
     final seriesData = data('series');
     final wifiData = data('wifi');
     final systemData = data('system');
+    final metricsData = data('metrics');
+    final sfpData = data('sfp');
+    final firstCpu = metricsData == null
+        ? null
+        : CpuCounters.fromJson(metricsData['cpu']);
+    var cpuCounters = firstCpu;
+    if (firstCpu != null && previous?.cpuCounters == null) {
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      try {
+        final second = await _call(
+          'luci.traffic',
+          'getSystemMetrics',
+          const {},
+        );
+        cpuCounters = CpuCounters.fromJson(second['cpu']) ?? firstCpu;
+      } on RouterApiException {
+        cpuCounters = firstCpu;
+      }
+    }
     final devicesData = data('devices');
     return RouterSnapshot(
       fetchedAt: DateTime.now(),
@@ -210,12 +270,26 @@ class RouterApi {
       uptimeSeconds: systemData?['uptime'] is num
           ? (systemData!['uptime'] as num).toInt()
           : previous?.uptimeSeconds,
+      memory: systemData == null
+          ? previous?.memory
+          : RouterMemory.fromSystemInfo(systemData),
+      cpuCounters: byKey.containsKey('metrics')
+          ? cpuCounters
+          : previous?.cpuCounters,
+      cpuUsagePercent: byKey.containsKey('metrics')
+          ? cpuCounters?.usageSince(previous?.cpuCounters ?? firstCpu)
+          : previous?.cpuUsagePercent,
+      sfpPorts: sfpData == null
+          ? previous?.sfpPorts ?? const []
+          : SfpPort.parseAll(sfpData),
       trafficError: error('summary'),
       liveError: error('live'),
       seriesError: error('series'),
       devicesError: error('devices'),
       systemError: error('system'),
       wifiError: error('wifi'),
+      metricsError: error('metrics'),
+      sfpError: error('sfp'),
     );
   }
 

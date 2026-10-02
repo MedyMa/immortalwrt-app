@@ -47,7 +47,7 @@ void main() {
         'interfaces': [
           {
             'config': {'ssid': 'BE14-Home'},
-            'ifname': 'ra0'
+            'ifname': 'ra0',
           },
         ],
       },
@@ -55,6 +55,93 @@ void main() {
     expect(radios.single.name, 'radio0');
     expect(radios.single.ssids, ['BE14-Home']);
     expect(radios.single.clientCount, isNull);
+  });
+
+  test('BE14 radios keep reported bands and channels without passwords', () {
+    final radios = WifiRadio.parseAll({
+      'MT7990_1_1': {
+        'up': true,
+        'config': {'band': '2g', 'channel': '3'},
+        'interfaces': [
+          {
+            'config': {'ssid': 'Home-2G'},
+          },
+        ],
+      },
+      'MT7990_1_2': {
+        'up': true,
+        'config': {'band': '5g', 'channel': '40'},
+        'interfaces': [
+          {
+            'config': {'ssid': 'Home-5G'},
+          },
+        ],
+      },
+      'MT7990_2': {
+        'up': true,
+        'config': {'band': '6g', 'channel': '37'},
+        'interfaces': [
+          {
+            'config': {'ssid': 'Home-6G'},
+          },
+        ],
+      },
+    });
+    expect(radios.map((radio) => radio.band), ['2g', '5g', '6g']);
+    expect(radios.map((radio) => radio.channel), [3, 40, 37]);
+    expect(radios.every((radio) => radio.up), isTrue);
+  });
+
+  test('system memory and SFP statuses preserve unavailable values', () {
+    final memory = RouterMemory.fromSystemInfo({
+      'memory': {'total': 1024, 'available': 256},
+    });
+    expect(memory?.usedPercent, 75);
+    expect(RouterMemory.fromSystemInfo({'memory': {}}), isNull);
+    expect(
+      RouterMemory.fromSystemInfo({
+        'memory': {'total': 1024},
+      }),
+      isNull,
+    );
+
+    final sfp = SfpPort.parseAll({
+      'modules': [
+        {
+          'interface': 'sfp-wan',
+          'module_slot': 'SFP-WAN',
+          'link_up': true,
+          'speed': '10000Mb/s',
+          'supported': true,
+        },
+      ],
+    });
+    expect(sfp.single.speedMbps, 10000);
+    expect(sfp.single.linkUp, isTrue);
+    expect(SfpPort.parseAll({'modules': []}), isEmpty);
+  });
+
+  test('MT7988 SFP reports both real negotiated port speeds', () {
+    final ports = SfpPort.parseAll({
+      'modules': [
+        {
+          'supported': true,
+          'link_up': true,
+          'interface': 'eth1',
+          'module_slot': 'SFP1',
+          'speed': '2500Mb/s',
+        },
+        {
+          'supported': true,
+          'link_up': true,
+          'interface': 'eth2',
+          'module_slot': 'SFP2',
+          'speed': '10000Mb/s',
+        },
+      ],
+    });
+    expect(ports.map((port) => port.speedMbps), [2500, 10000]);
+    expect(ports.map((port) => port.slot), ['SFP1', 'SFP2']);
   });
 
   test('DHCP leases are labeled without claiming online status', () {

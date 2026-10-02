@@ -32,11 +32,18 @@ class _Wifi extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(_wifiAvailability(snapshot, radios.length, upCount),
-                  style: TextStyle(
-                      fontSize: 12.5, height: 1.45, color: _inkOf(context))),
-              const SizedBox(height: 4),
-              Text('BE14 驱动可能不返回全部射频', style: _bodyStyle(context)),
+              Text(
+                _wifiAvailability(snapshot, radios.length, upCount),
+                style: TextStyle(
+                  fontSize: 12.5,
+                  height: 1.45,
+                  color: _inkOf(context),
+                ),
+              ),
+              if (radios.isEmpty && snapshot.wifiError == null) ...[
+                const SizedBox(height: 4),
+                Text('BE14 驱动可能不返回全部射频', style: _bodyStyle(context)),
+              ],
             ],
           ),
         ),
@@ -75,15 +82,21 @@ class _RadioCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.wifi_rounded,
-                    size: 18, color: up ? _green : _mutedOf(context)),
+                Icon(
+                  Icons.wifi_rounded,
+                  size: 18,
+                  color: up ? _green : _mutedOf(context),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(radio.name,
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: _inkOf(context))),
+                  child: Text(
+                    radio.name,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: _inkOf(context),
+                    ),
+                  ),
                 ),
                 if (up)
                   const _Pill('已启用', _green)
@@ -92,16 +105,19 @@ class _RadioCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            Text(band ?? '频段未提供',
-                style: _figureStyle(context,
-                    color: up ? null : _mutedOf(context))),
+            Text(
+              band ?? '频段未提供',
+              style: _figureStyle(
+                context,
+                color: up ? null : _mutedOf(context),
+              ),
+            ),
             const SizedBox(height: 14),
-            _DetailLine(
-                label: 'SSID',
-                value: radio.ssids.isEmpty ? '暂无数据' : radio.ssids.join(' · ')),
+            if (radio.ssids.isNotEmpty)
+              _DetailLine(label: 'SSID', value: radio.ssids.join(' · ')),
             _DetailLine(label: '信道', value: radio.channel?.toString() ?? '未提供'),
-            _DetailLine(
-                label: '关联设备', value: radio.clientCount?.toString() ?? '未提供'),
+            if (radio.clientCount != null)
+              _DetailLine(label: '关联设备', value: '${radio.clientCount}'),
           ],
         ),
       ),

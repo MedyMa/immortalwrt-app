@@ -29,9 +29,6 @@ class _DeviceIndex {
 
   final List<_DeviceRow> rows;
 
-  List<_DeviceRow> get withTraffic =>
-      rows.where((row) => row.hasTraffic).toList(growable: false);
-
   factory _DeviceIndex.of(RouterSnapshot snapshot) {
     final clients = <String, TrafficClient>{
       for (final client in snapshot.summary?.clients ?? const <TrafficClient>[])
@@ -40,48 +37,44 @@ class _DeviceIndex {
     final rows = <_DeviceRow>[];
     for (final lease in snapshot.dhcpDevices) {
       final client = clients.remove(lease.ip);
-      rows.add(_DeviceRow(
-        name: lease.name,
-        ip: lease.ip,
-        mac: lease.mac,
-        bytes: client?.bytes,
-        hasLease: true,
-        hasTraffic: client != null,
-      ));
+      rows.add(
+        _DeviceRow(
+          name: lease.name,
+          ip: lease.ip,
+          mac: lease.mac,
+          bytes: client?.bytes,
+          hasLease: true,
+          hasTraffic: client != null,
+        ),
+      );
     }
     for (final client in clients.values) {
-      rows.add(_DeviceRow(
-        name: client.name,
-        ip: client.ip,
-        mac: '',
-        bytes: client.bytes,
-        hasLease: false,
-        hasTraffic: true,
-      ));
+      rows.add(
+        _DeviceRow(
+          name: client.name,
+          ip: client.ip,
+          mac: '',
+          bytes: client.bytes,
+          hasLease: false,
+          hasTraffic: true,
+        ),
+      );
     }
     return _DeviceIndex(rows: rows);
   }
 }
 
-class _Devices extends StatefulWidget {
+class _Devices extends StatelessWidget {
   const _Devices({required this.snapshot});
 
   final RouterSnapshot snapshot;
 
   @override
-  State<_Devices> createState() => _DevicesState();
-}
-
-class _DevicesState extends State<_Devices> {
-  static const _filters = ['全部设备', '有流量记录'];
-  int _filter = 0;
-
-  @override
   Widget build(BuildContext context) {
-    final index = _DeviceIndex.of(widget.snapshot);
-    final rows = _filter == 0 ? index.rows : index.withTraffic;
-    final leaseCount = widget.snapshot.dhcpDevices.length;
-    final trafficCount = widget.snapshot.summary?.clients.length ?? 0;
+    final index = _DeviceIndex.of(snapshot);
+    final rows = index.rows;
+    final leaseCount = snapshot.dhcpDevices.length;
+    final trafficCount = snapshot.summary?.clients.length ?? 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -100,35 +93,34 @@ class _DevicesState extends State<_Devices> {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text('${index.rows.length}',
-                      style: _figureStyle(context, size: 34)),
+                  Text(
+                    '${index.rows.length}',
+                    style: _figureStyle(context, size: 34),
+                  ),
                   const SizedBox(width: 6),
-                  Text('台',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: _mutedOf(context))),
+                  Text(
+                    '台',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _mutedOf(context),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
-              Text('DHCP $leaseCount · 流量记录 $trafficCount',
-                  style: _bodyStyle(context)),
+              Text(
+                'DHCP $leaseCount · 流量记录 $trafficCount',
+                style: _bodyStyle(context),
+              ),
               const SizedBox(height: 4),
               Text('设备记录不代表当前在线', style: _bodyStyle(context)),
             ],
           ),
         ),
         const SizedBox(height: 14),
-        _Segmented(
-            options: _filters,
-            selected: _filter,
-            onChanged: (value) => setState(() => _filter = value)),
-        const SizedBox(height: 14),
         if (rows.isEmpty)
-          _Card(
-            child: Text(_filter == 0 ? '暂无 DHCP 租约或设备流量数据。' : '暂无有流量记录的设备。',
-                style: _bodyStyle(context)),
-          )
+          _Card(child: Text('暂无 DHCP 租约或设备流量数据。', style: _bodyStyle(context)))
         else
           _Card(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -141,10 +133,12 @@ class _DevicesState extends State<_Devices> {
               ],
             ),
           ),
-        if (widget.snapshot.devicesError != null) ...[
+        if (snapshot.devicesError != null) ...[
           const SizedBox(height: 10),
-          _Notice('DHCP 租约暂不可用：${widget.snapshot.devicesError}',
-              Icons.info_outline_rounded),
+          _Notice(
+            'DHCP 租约暂不可用：${snapshot.devicesError}',
+            Icons.info_outline_rounded,
+          ),
         ],
       ],
     );
@@ -178,18 +172,23 @@ class _DeviceTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(row.name.isEmpty ? row.ip : row.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: _inkOf(context))),
+                Text(
+                  row.name.isEmpty ? row.ip : row.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _inkOf(context),
+                  ),
+                ),
                 const SizedBox(height: 3),
-                Text(tags.join(' · '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: _mutedOf(context))),
+                Text(
+                  tags.join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: _mutedOf(context)),
+                ),
               ],
             ),
           ),
@@ -197,14 +196,19 @@ class _DeviceTile extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(bytes == null ? '—' : formatBytes(bytes),
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: _inkOf(context))),
+              Text(
+                bytes == null ? '—' : formatBytes(bytes),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: _inkOf(context),
+                ),
+              ),
               if (bytes != null)
-                Text('本次会话',
-                    style: TextStyle(fontSize: 11, color: _mutedOf(context))),
+                Text(
+                  '本次会话',
+                  style: TextStyle(fontSize: 11, color: _mutedOf(context)),
+                ),
             ],
           ),
         ],

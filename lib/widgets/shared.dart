@@ -1,11 +1,12 @@
 part of '../main.dart';
 
 class _ConnectionSheet extends StatefulWidget {
-  const _ConnectionSheet(
-      {required this.url,
-      required this.username,
-      required this.connected,
-      required this.onDisconnect});
+  const _ConnectionSheet({
+    required this.url,
+    required this.username,
+    required this.connected,
+    required this.onDisconnect,
+  });
 
   final String url;
   final String username;
@@ -38,59 +39,74 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            24, 4, 24, MediaQuery.viewInsetsOf(context).bottom + 28),
-        child: SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('连接路由器',
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
-                TextField(
-                    controller: _url,
-                    keyboardType: TextInputType.url,
-                    decoration: const InputDecoration(
-                        labelText: '远程 HTTPS / 本地 HTTP（明文）',
-                        hintText: 'https://bananapi.x.ddnsto.com',
-                        border: OutlineInputBorder())),
-                const SizedBox(height: 12),
-                TextField(
-                    controller: _username,
-                    decoration: const InputDecoration(
-                        labelText: '用户名', border: OutlineInputBorder())),
-                const SizedBox(height: 12),
-                TextField(
-                    controller: _password,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                        labelText: '密码', border: OutlineInputBorder())),
-                const SizedBox(height: 20),
-                FilledButton(
-                    onPressed: () => Navigator.pop(context, (
-                          _url.text.trim(),
-                          _username.text.trim(),
-                          _password.text
-                        )),
-                    child: const Text('连接')),
-                if (widget.connected)
-                  TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        widget.onDisconnect();
-                      },
-                      child: const Text('退出并清除凭据')),
-              ],
+    padding: EdgeInsets.fromLTRB(
+      24,
+      4,
+      24,
+      MediaQuery.viewInsetsOf(context).bottom + 28,
+    ),
+    child: SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '连接路由器',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
-          ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _url,
+              keyboardType: TextInputType.url,
+              decoration: const InputDecoration(
+                labelText: '远程 HTTPS / 本地 HTTP（明文）',
+                hintText: 'https://bananapi.x.ddnsto.com',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _username,
+              decoration: const InputDecoration(
+                labelText: '用户名',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _password,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: '密码',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, (
+                _url.text.trim(),
+                _username.text.trim(),
+                _password.text,
+              )),
+              child: const Text('连接'),
+            ),
+            if (widget.connected)
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.onDisconnect();
+                },
+                child: const Text('退出并清除凭据'),
+              ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -106,23 +122,24 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        padding: padding,
-        decoration: BoxDecoration(
-          color: _cardOf(context),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _borderOf(context)),
-          boxShadow: _isDark(context)
-              ? null
-              : const [
-                  BoxShadow(
-                      color: Color(0x0D0F172A),
-                      blurRadius: 18,
-                      offset: Offset(0, 6)),
-                ],
-        ),
-        child: child,
-      );
+    width: double.infinity,
+    padding: padding,
+    decoration: BoxDecoration(
+      color: _cardOf(context),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: _borderOf(context)),
+      boxShadow: _isDark(context)
+          ? null
+          : const [
+              BoxShadow(
+                color: Color(0x0D0F172A),
+                blurRadius: 18,
+                offset: Offset(0, 6),
+              ),
+            ],
+    ),
+    child: child,
+  );
 }
 
 /// Hairline divider that follows the card border tone.
@@ -148,16 +165,18 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: padding,
-        child: Row(
-          children: [
-            Expanded(child: Text(title, style: _titleStyle(context))),
-            if (trail != null)
-              Text(trail!,
-                  style: TextStyle(fontSize: 11.5, color: _mutedOf(context))),
-          ],
-        ),
-      );
+    padding: padding,
+    child: Row(
+      children: [
+        Expanded(child: Text(title, style: _titleStyle(context))),
+        if (trail != null)
+          Text(
+            trail!,
+            style: TextStyle(fontSize: 11.5, color: _mutedOf(context)),
+          ),
+      ],
+    ),
+  );
 }
 
 /// Small page subtitle under the app bar title.
@@ -168,9 +187,9 @@ class _Lead extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: Text(text, style: _bodyStyle(context)),
-      );
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Text(text, style: _bodyStyle(context)),
+  );
 }
 
 /// Status pill: tinted rounded background with a saturated label.
@@ -183,15 +202,16 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: tint),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w700, color: color)),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: tint),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
+    ),
+  );
 }
 
 /// Rounded two-letter avatar chip.
@@ -203,23 +223,27 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 42,
-        height: 42,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: _isDark(context) ? 0.24 : 0.12),
-          borderRadius: BorderRadius.circular(13),
-        ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w800, color: color)),
-      );
+    width: 42,
+    height: 42,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: _isDark(context) ? 0.24 : 0.12),
+      borderRadius: BorderRadius.circular(13),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color),
+    ),
+  );
 }
 
 /// Circular icon action for the app bar, matching the card surfaces.
 class _RoundAction extends StatelessWidget {
-  const _RoundAction(
-      {required this.icon, required this.tooltip, required this.onPressed});
+  const _RoundAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
 
   final IconData icon;
   final String tooltip;
@@ -241,42 +265,17 @@ class _RoundAction extends StatelessWidget {
             child: SizedBox(
               width: 40,
               height: 40,
-              child: Icon(icon,
-                  size: 19,
-                  color: enabled ? _inkOf(context) : _mutedOf(context)),
+              child: Icon(
+                icon,
+                size: 19,
+                color: enabled ? _inkOf(context) : _mutedOf(context),
+              ),
             ),
           ),
         ),
       ),
     );
   }
-}
-
-/// Inline `查看流量 ›` style link.
-class _TextLink extends StatelessWidget {
-  const _TextLink({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Row(
-            children: [
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: _blue)),
-              const Icon(Icons.chevron_right_rounded, size: 16, color: _blue),
-            ],
-          ),
-        ),
-      );
 }
 
 /// Big-figure block: label with icon, large numeral, optional time scope.
@@ -306,13 +305,16 @@ class _Metric extends StatelessWidget {
             Icon(icon, size: 16, color: color),
             const SizedBox(width: 5),
             Flexible(
-              child: Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: _mutedOf(context))),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: _mutedOf(context),
+                ),
+              ),
             ),
           ],
         ),
@@ -324,9 +326,14 @@ class _Metric extends StatelessWidget {
         ),
         if (text != null) ...[
           const SizedBox(height: 4),
-          Text(text,
-              style: TextStyle(
-                  fontSize: 11.5, height: 1.35, color: _mutedOf(context))),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11.5,
+              height: 1.35,
+              color: _mutedOf(context),
+            ),
+          ),
         ],
       ],
     );
@@ -351,23 +358,25 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _Card(
-        padding: const EdgeInsets.all(16),
-        child: _Metric(
-            label: label,
-            value: value,
-            icon: icon,
-            color: color,
-            caption: caption),
-      );
+    padding: const EdgeInsets.all(16),
+    child: _Metric(
+      label: label,
+      value: value,
+      icon: icon,
+      color: color,
+      caption: caption,
+    ),
+  );
 }
 
 /// Tappable label/value row with a tinted icon chip.
 class _InfoRow extends StatelessWidget {
-  const _InfoRow(
-      {required this.icon,
-      required this.label,
-      required this.value,
-      this.onTap});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -376,40 +385,51 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                    color: _blue.withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(11)),
-                child: Icon(icon, size: 18, color: _blue),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: Text(label,
-                      style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w600,
-                          color: _inkOf(context)))),
-              Text(value,
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: _inkOf(context))),
-              if (onTap != null)
-                Icon(Icons.chevron_right_rounded,
-                    size: 18, color: _mutedOf(context)),
-            ],
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(14),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _blue.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, size: 18, color: _blue),
           ),
-        ),
-      );
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: _inkOf(context),
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: _inkOf(context),
+            ),
+          ),
+          if (onTap != null)
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: _mutedOf(context),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Explicit warning / unavailable banner. Never silently hides a failure.
@@ -422,32 +442,37 @@ class _Notice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: _Card(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                    color: tone.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(10)),
-                child: Icon(icon, size: 17, color: tone),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: Text(message,
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          height: 1.45,
-                          color: _inkOf(context)))),
-            ],
+    padding: const EdgeInsets.only(bottom: 12),
+    child: _Card(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: tone.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 17, color: tone),
           ),
-        ),
-      );
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.45,
+                color: _inkOf(context),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Download / upload legend shared by both charts.
@@ -457,7 +482,10 @@ class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(
-        fontSize: 12.5, fontWeight: FontWeight.w600, color: _mutedOf(context));
+      fontSize: 12.5,
+      fontWeight: FontWeight.w600,
+      color: _mutedOf(context),
+    );
     return Row(
       children: [
         const Icon(Icons.circle, size: 10, color: _blue),
@@ -491,65 +519,6 @@ class _TrafficChart extends StatelessWidget {
   }
 }
 
-/// Rounded segmented control (no extra dependency).
-class _Segmented extends StatelessWidget {
-  const _Segmented(
-      {required this.options, required this.selected, required this.onChanged});
-
-  final List<String> options;
-  final int selected;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = _isDark(context);
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: dark ? const Color(0xFF23272E) : const Color(0xFFE9EBEF),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          for (var i = 0; i < options.length; i++)
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onChanged(i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  curve: Curves.easeOut,
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  decoration: BoxDecoration(
-                    color: i == selected ? _cardOf(context) : null,
-                    borderRadius: BorderRadius.circular(11),
-                    boxShadow: i == selected && !dark
-                        ? const [
-                            BoxShadow(
-                                color: Color(0x14000000),
-                                blurRadius: 6,
-                                offset: Offset(0, 2)),
-                          ]
-                        : null,
-                  ),
-                  child: Text(options[i],
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight:
-                              i == selected ? FontWeight.w700 : FontWeight.w600,
-                          color: i == selected
-                              ? _inkOf(context)
-                              : _mutedOf(context))),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 /// Rounded label/value line used inside the Wi-Fi radio cards.
 class _DetailLine extends StatelessWidget {
   const _DetailLine({required this.label, required this.value});
@@ -559,24 +528,30 @@ class _DetailLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-                width: 76,
-                child: Text(label,
-                    style:
-                        TextStyle(fontSize: 12.5, color: _mutedOf(context)))),
-            Expanded(
-                child: Text(value,
-                    style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w700,
-                        color: _inkOf(context)))),
-          ],
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 76,
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 12.5, color: _mutedOf(context)),
+          ),
         ),
-      );
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: _inkOf(context),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -584,8 +559,11 @@ class _DetailLine extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _EmptyConnection extends StatelessWidget {
-  const _EmptyConnection(
-      {required this.loading, required this.error, required this.onConnect});
+  const _EmptyConnection({
+    required this.loading,
+    required this.error,
+    required this.onConnect,
+  });
 
   final bool loading;
   final String? error;
@@ -605,20 +583,27 @@ class _EmptyConnection extends StatelessWidget {
               height: 76,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                  color: _blue.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(24)),
+                color: _blue.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(24),
+              ),
               child: const Icon(Icons.router_rounded, size: 38, color: _blue),
             ),
             const SizedBox(height: 22),
-            Text('连接 MT7988',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: _inkOf(context))),
+            Text(
+              '连接 MT7988',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: _inkOf(context),
+              ),
+            ),
             const SizedBox(height: 8),
-            Text('仅读取状态 · 凭据保存在本机',
-                textAlign: TextAlign.center, style: _bodyStyle(context)),
+            Text(
+              '仅读取状态 · 凭据保存在本机',
+              textAlign: TextAlign.center,
+              style: _bodyStyle(context),
+            ),
             if (failure != null) ...[
               const SizedBox(height: 16),
               _Notice(failure, Icons.error_outline_rounded, tone: _red),
@@ -640,7 +625,8 @@ class _EmptyConnection extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
               ),
           ],

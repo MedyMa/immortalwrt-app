@@ -61,11 +61,17 @@ class _IosTabBarState extends State<_IosTabBar> {
       items: const [
         BottomNavigationBarItem(icon: Icon(CupertinoIcons.house), label: '总览'),
         BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.device_phone_portrait), label: '设备'),
+          icon: Icon(CupertinoIcons.device_phone_portrait),
+          label: '设备',
+        ),
         BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.wifi), label: 'Wi-Fi'),
+          icon: Icon(CupertinoIcons.wifi),
+          label: 'Wi-Fi',
+        ),
         BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.chart_bar), label: '流量'),
+          icon: Icon(CupertinoIcons.chart_bar),
+          label: '流量',
+        ),
       ],
     );
   }

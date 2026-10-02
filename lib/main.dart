@@ -7,10 +7,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'models/router_models.dart';
 import 'services/router_api.dart';
 import 'services/router_session.dart';
+import 'services/traffic_icons.dart';
 
 part 'widgets/shared.dart';
 part 'widgets/platform_navigation.dart';
@@ -54,18 +56,24 @@ Color _inkOf(BuildContext context) => _isDark(context) ? _inkDark : _ink;
 Color _mutedOf(BuildContext context) => _isDark(context) ? _slateDark : _slate;
 
 TextStyle _titleStyle(BuildContext context) => TextStyle(
-    fontSize: 16.5, fontWeight: FontWeight.w700, color: _inkOf(context));
+  fontSize: 16.5,
+  fontWeight: FontWeight.w700,
+  color: _inkOf(context),
+);
 
 TextStyle _bodyStyle(BuildContext context) =>
     TextStyle(fontSize: 13, height: 1.45, color: _mutedOf(context));
 
-TextStyle _figureStyle(BuildContext context,
-        {Color? color, double size = 30}) =>
-    TextStyle(
-        fontSize: size,
-        height: 1.05,
-        fontWeight: FontWeight.w800,
-        color: color ?? _inkOf(context));
+TextStyle _figureStyle(
+  BuildContext context, {
+  Color? color,
+  double size = 30,
+}) => TextStyle(
+  fontSize: size,
+  height: 1.05,
+  fontWeight: FontWeight.w800,
+  color: color ?? _inkOf(context),
+);
 
 /// First two characters of a name, used by the rounded avatar chips.
 String _initials(String name) {
@@ -134,33 +142,43 @@ class _ImmortalWrtAppState extends State<ImmortalWrtApp> {
       themeMode: ThemeMode.system,
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme:
-            ColorScheme.fromSeed(seedColor: seed, surface: Colors.white),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: seed,
+          surface: Colors.white,
+        ),
         scaffoldBackgroundColor: _page,
         appBarTheme: const AppBarTheme(
-            backgroundColor: _page,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            centerTitle: false),
+          backgroundColor: _page,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: false,
+        ),
         bottomSheetTheme: const BottomSheetThemeData(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.transparent),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+        ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-            seedColor: seed, brightness: Brightness.dark, surface: _cardDark),
+          seedColor: seed,
+          brightness: Brightness.dark,
+          surface: _cardDark,
+        ),
         scaffoldBackgroundColor: _pageDark,
         appBarTheme: const AppBarTheme(
-            backgroundColor: _pageDark,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            centerTitle: false),
+          backgroundColor: _pageDark,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: false,
+        ),
         bottomSheetTheme: const BottomSheetThemeData(
-            backgroundColor: _cardDark, surfaceTintColor: Colors.transparent),
+          backgroundColor: _cardDark,
+          surfaceTintColor: Colors.transparent,
+        ),
       ),
       home: const RouterHome(),
     );
@@ -168,10 +186,11 @@ class _ImmortalWrtAppState extends State<ImmortalWrtApp> {
 }
 
 class RouterHome extends StatefulWidget {
-  const RouterHome(
-      {super.key,
-      this.storage = const FlutterSecureStorage(),
-      this.apiFactory});
+  const RouterHome({
+    super.key,
+    this.storage = const FlutterSecureStorage(),
+    this.apiFactory,
+  });
 
   final FlutterSecureStorage storage;
   final RouterApi Function(Uri)? apiFactory;
@@ -203,11 +222,11 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   }
 
   RouterSection get _section => switch (_tab) {
-        1 => RouterSection.devices,
-        2 => RouterSection.wifi,
-        3 => RouterSection.traffic,
-        _ => RouterSection.overview,
-      };
+    1 => RouterSection.devices,
+    2 => RouterSection.wifi,
+    3 => RouterSection.traffic,
+    _ => RouterSection.overview,
+  };
 
   void _startPolling() {
     _timer?.cancel();
@@ -262,8 +281,12 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _connect(String url, String username, String password,
-      {bool save = true}) async {
+  Future<void> _connect(
+    String url,
+    String username,
+    String password, {
+    bool save = true,
+  }) async {
     final version = ++_requestVersion;
     if (mounted) {
       setState(() {
@@ -345,7 +368,8 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
           _foreground &&
           version == _requestVersion &&
           identical(api, _api)) {
-        final auth = error is RouterPermissionException ||
+        final auth =
+            error is RouterPermissionException ||
             error is RouterAccessDeniedException ||
             error is RouterSessionExpiredException ||
             '$error'.contains('登录失败') ||
@@ -402,7 +426,8 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       isScrollControlled: true,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (_) => _ConnectionSheet(
         url: _url,
         username: _username,
@@ -422,115 +447,136 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: _pageOf(context),
       appBar: AppBar(
-        title: Text(names[_tab],
-            style: const TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(
+          names[_tab],
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
         actions: [
           _RoundAction(
-              icon: Icons.refresh_rounded,
-              tooltip: '刷新',
-              onPressed: _api == null ? null : _refresh),
+            icon: Icons.refresh_rounded,
+            tooltip: '刷新',
+            onPressed: _api == null ? null : _refresh,
+          ),
           _RoundAction(
-              icon: Icons.tune_rounded,
-              tooltip: '连接设置',
-              onPressed: _showConnection),
+            icon: Icons.tune_rounded,
+            tooltip: '连接设置',
+            onPressed: _showConnection,
+          ),
           const SizedBox(width: 10),
         ],
       ),
       body: SafeArea(
-        child: Row(children: [
-          if (wide)
-            NavigationRail(
-              selectedIndex: _tab,
-              onDestinationSelected: _selectTab,
-              labelType: NavigationRailLabelType.all,
-              backgroundColor: _cardOf(context),
-              indicatorColor:
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-              destinations: const [
-                NavigationRailDestination(
+        child: Row(
+          children: [
+            if (wide)
+              NavigationRail(
+                selectedIndex: _tab,
+                onDestinationSelected: _selectTab,
+                labelType: NavigationRailLabelType.all,
+                backgroundColor: _cardOf(context),
+                indicatorColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.12),
+                destinations: const [
+                  NavigationRailDestination(
                     icon: Icon(Icons.home_outlined),
                     selectedIcon: Icon(Icons.home_rounded),
-                    label: Text('总览')),
-                NavigationRailDestination(
+                    label: Text('总览'),
+                  ),
+                  NavigationRailDestination(
                     icon: Icon(Icons.devices_outlined),
                     selectedIcon: Icon(Icons.devices_rounded),
-                    label: Text('设备')),
-                NavigationRailDestination(
+                    label: Text('设备'),
+                  ),
+                  NavigationRailDestination(
                     icon: Icon(Icons.router_outlined),
                     selectedIcon: Icon(Icons.router_rounded),
-                    label: Text('Wi-Fi')),
-                NavigationRailDestination(
+                    label: Text('Wi-Fi'),
+                  ),
+                  NavigationRailDestination(
                     icon: Icon(Icons.bar_chart_outlined),
                     selectedIcon: Icon(Icons.bar_chart_rounded),
-                    label: Text('流量')),
-              ],
-            ),
-          Expanded(
-            child: snapshot == null
-                ? _EmptyConnection(
-                    loading: _loading,
-                    error: _error,
-                    onConnect: _showConnection)
-                : RefreshIndicator(
-                    onRefresh: _refresh,
-                    color: _blue,
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-                      children: [
-                        if (_error != null)
-                          _Notice('连接中断 · 显示上次成功读取的数据\n$_error',
+                    label: Text('流量'),
+                  ),
+                ],
+              ),
+            Expanded(
+              child: snapshot == null
+                  ? _EmptyConnection(
+                      loading: _loading,
+                      error: _error,
+                      onConnect: _showConnection,
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _refresh,
+                      color: _blue,
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                        children: [
+                          if (_error != null)
+                            _Notice(
+                              '连接中断 · 显示上次成功读取的数据\n$_error',
                               Icons.wifi_off_rounded,
-                              tone: _red),
-                        if (_checking && _error == null)
-                          const _Notice(
-                              '正在核对数据 · 下方是上次成功读取的状态', Icons.sync_rounded),
-                        if (_tab == 0)
-                          _Overview(
+                              tone: _red,
+                            ),
+                          if (_checking && _error == null)
+                            const _Notice(
+                              '正在核对数据 · 下方是上次成功读取的状态',
+                              Icons.sync_rounded,
+                            ),
+                          if (_tab == 0)
+                            _Overview(
                               snapshot: snapshot,
                               endpoint: _url,
                               error: _error,
-                              onOpen: _selectTab),
-                        if (_tab == 1) _Devices(snapshot: snapshot),
-                        if (_tab == 2) _Wifi(snapshot: snapshot),
-                        if (_tab == 3) _Traffic(snapshot: snapshot),
-                      ],
+                              onOpen: _selectTab,
+                            ),
+                          if (_tab == 1) _Devices(snapshot: snapshot),
+                          if (_tab == 2) _Wifi(snapshot: snapshot),
+                          if (_tab == 3)
+                            _Traffic(snapshot: snapshot, endpoint: _url),
+                        ],
+                      ),
                     ),
-                  ),
-          ),
-        ]),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: wide
           ? null
           : isIos
-              ? _IosTabBar(selectedIndex: _tab, onSelected: _selectTab)
-              : NavigationBar(
-                  backgroundColor: _cardOf(context),
-                  indicatorColor: Theme.of(context)
-                      .colorScheme
-                      .primary
-                      .withValues(alpha: 0.12),
-                  surfaceTintColor: Colors.transparent,
-                  selectedIndex: _tab,
-                  onDestinationSelected: _selectTab,
-                  destinations: const [
-                    NavigationDestination(
-                        icon: Icon(Icons.home_outlined),
-                        selectedIcon: Icon(Icons.home_rounded),
-                        label: '总览'),
-                    NavigationDestination(
-                        icon: Icon(Icons.devices_outlined),
-                        selectedIcon: Icon(Icons.devices_rounded),
-                        label: '设备'),
-                    NavigationDestination(
-                        icon: Icon(Icons.router_outlined),
-                        selectedIcon: Icon(Icons.router_rounded),
-                        label: 'Wi-Fi'),
-                    NavigationDestination(
-                        icon: Icon(Icons.bar_chart_outlined),
-                        selectedIcon: Icon(Icons.bar_chart_rounded),
-                        label: '流量'),
-                  ],
+          ? _IosTabBar(selectedIndex: _tab, onSelected: _selectTab)
+          : NavigationBar(
+              backgroundColor: _cardOf(context),
+              indicatorColor: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.12),
+              surfaceTintColor: Colors.transparent,
+              selectedIndex: _tab,
+              onDestinationSelected: _selectTab,
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home_rounded),
+                  label: '总览',
                 ),
+                NavigationDestination(
+                  icon: Icon(Icons.devices_outlined),
+                  selectedIcon: Icon(Icons.devices_rounded),
+                  label: '设备',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.router_outlined),
+                  selectedIcon: Icon(Icons.router_rounded),
+                  label: 'Wi-Fi',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.bar_chart_outlined),
+                  selectedIcon: Icon(Icons.bar_chart_rounded),
+                  label: '流量',
+                ),
+              ],
+            ),
     );
   }
 }

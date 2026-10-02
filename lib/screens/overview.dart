@@ -5,11 +5,12 @@ part of '../main.dart';
 // ---------------------------------------------------------------------------
 
 class _Overview extends StatelessWidget {
-  const _Overview(
-      {required this.snapshot,
-      required this.endpoint,
-      required this.onOpen,
-      this.error});
+  const _Overview({
+    required this.snapshot,
+    required this.endpoint,
+    required this.onOpen,
+    this.error,
+  });
 
   final RouterSnapshot snapshot;
   final String endpoint;
@@ -20,8 +21,9 @@ class _Overview extends StatelessWidget {
   Widget build(BuildContext context) {
     final summary = snapshot.summary;
     final collected = summary?.collectedAt;
-    final age =
-        collected == null ? null : snapshot.fetchedAt.difference(collected);
+    final age = collected == null
+        ? null
+        : snapshot.fetchedAt.difference(collected);
     final stale = age != null && age > const Duration(seconds: 60);
     final offline = error != null;
     final remote = endpoint.startsWith('https://');
@@ -87,8 +89,8 @@ class _Overview extends StatelessWidget {
                 label: summary == null
                     ? '下载'
                     : summary.hasWanTotals
-                        ? 'WAN 下载'
-                        : '归属下载',
+                    ? 'WAN 下载'
+                    : '归属下载',
                 icon: Icons.south_rounded,
                 color: _blue,
                 value: down == null ? '—' : formatBytes(down),
@@ -101,8 +103,8 @@ class _Overview extends StatelessWidget {
                 label: summary == null
                     ? '上传'
                     : summary.hasWanTotals
-                        ? 'WAN 上传'
-                        : '归属上传',
+                    ? 'WAN 上传'
+                    : '归属上传',
                 icon: Icons.north_rounded,
                 color: _violet,
                 value: up == null ? '—' : formatBytes(up),
@@ -122,64 +124,72 @@ class _Overview extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        const _SectionHeader(title: 'MT7988 状态'),
         _Card(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(child: Text('最近 1 小时', style: _titleStyle(context))),
-                  _TextLink(label: '查看流量', onTap: () => onOpen(3)),
-                ],
+              _InfoRow(
+                icon: Icons.memory_rounded,
+                label: 'CPU 使用率',
+                value: snapshot.cpuUsagePercent == null
+                    ? (snapshot.metricsError == null ? '采样中' : '未获取')
+                    : '${snapshot.cpuUsagePercent!.toStringAsFixed(0)}%',
               ),
-              const SizedBox(height: 14),
-              _TrafficChart(series: snapshot.series),
-              const SizedBox(height: 12),
-              const _Legend(),
-            ],
-          ),
-        ),
-        if (snapshot.seriesError != null) ...[
-          const SizedBox(height: 10),
-          _Notice(
-              '流量曲线暂不可用：${snapshot.seriesError}', Icons.info_outline_rounded),
-        ],
-        const SizedBox(height: 20),
-        const _SectionHeader(title: '系统状态'),
-        _Card(
-          child: Column(
-            children: [
-              _InfoRow(
-                  icon: Icons.devices_rounded,
-                  label: '有流量记录的设备',
-                  value: summary == null ? '—' : '${summary.clientCount}',
-                  onTap: () => onOpen(1)),
               const _Hairline(),
               _InfoRow(
-                  icon: Icons.wifi_rounded,
-                  label: 'BE14 无线状态',
-                  value: snapshot.wifiError != null
-                      ? '不可用'
-                      : '${snapshot.radios.where((radio) => radio.up).length} 个射频已启用',
-                  onTap: () => onOpen(2)),
+                icon: Icons.storage_rounded,
+                label: '内存使用率',
+                value: snapshot.memory == null
+                    ? '未获取'
+                    : '${snapshot.memory!.usedPercent.toStringAsFixed(0)}%',
+              ),
+              const _Hairline(),
+              for (final port in snapshot.sfpPorts) ...[
+                _InfoRow(
+                  icon: Icons.settings_ethernet_rounded,
+                  label: port.slot.isEmpty ? port.interface : port.slot,
+                  value: _sfpStatus(port),
+                ),
+                const _Hairline(),
+              ],
+              if (snapshot.sfpPorts.isEmpty) ...[
+                _InfoRow(
+                  icon: Icons.settings_ethernet_rounded,
+                  label: 'SFP 连接',
+                  value: '未获取',
+                ),
+                const _Hairline(),
+              ],
+              _InfoRow(
+                icon: Icons.devices_rounded,
+                label: '有流量记录的设备',
+                value: summary == null ? '—' : '${summary.clientCount}',
+                onTap: () => onOpen(1),
+              ),
               const _Hairline(),
               _InfoRow(
-                  icon: Icons.show_chart_rounded,
-                  label: '应用流量',
-                  value: summary == null ? '不可用' : '${summary.apps.length} 项',
-                  onTap: () => onOpen(3)),
+                icon: Icons.wifi_rounded,
+                label: 'BE14 无线状态',
+                value: snapshot.wifiError != null
+                    ? '不可用'
+                    : '${snapshot.radios.where((radio) => radio.up).length} 个射频已启用',
+                onTap: () => onOpen(2),
+              ),
               const _Hairline(),
               _InfoRow(
-                  icon: Icons.memory_rounded,
-                  label: '系统运行时间',
-                  value: _uptime(snapshot.uptimeSeconds)),
+                icon: Icons.memory_rounded,
+                label: '系统运行时间',
+                value: _uptime(snapshot.uptimeSeconds),
+              ),
             ],
           ),
         ),
         if (snapshot.trafficError != null) ...[
           const SizedBox(height: 12),
           const _Notice(
-              'Traffic App 当前不可用，请确认已安装并授权读取', Icons.info_outline_rounded),
+            'Traffic App 当前不可用，请确认已安装并授权读取',
+            Icons.info_outline_rounded,
+          ),
         ],
       ],
     );
@@ -221,13 +231,16 @@ class _Hero extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(identity,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: _mutedOf(context))),
+                child: Text(
+                  identity,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: _mutedOf(context),
+                  ),
+                ),
               ),
               _Pill(stateLabel, stateColor),
             ],
@@ -236,35 +249,45 @@ class _Hero extends StatelessWidget {
           if (showTopology)
             _NetworkTopology(onOpenDevices: onOpenDevices)
           else
-            Text(headline,
-                style: TextStyle(
-                    fontSize: 26,
-                    height: 1.15,
-                    fontWeight: FontWeight.w800,
-                    color: _inkOf(context))),
+            Text(
+              headline,
+              style: TextStyle(
+                fontSize: 26,
+                height: 1.15,
+                fontWeight: FontWeight.w800,
+                color: _inkOf(context),
+              ),
+            ),
           if (detail.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text(detail,
-                style: TextStyle(
-                    fontSize: 12.5, height: 1.35, color: _mutedOf(context))),
+            Text(
+              detail,
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.35,
+                color: _mutedOf(context),
+              ),
+            ),
           ],
           const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
                 child: _Metric(
-                    label: '实时下载',
-                    value: downText,
-                    icon: Icons.south_rounded,
-                    color: _blue),
+                  label: '实时下载',
+                  value: downText,
+                  icon: Icons.south_rounded,
+                  color: _blue,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _Metric(
-                    label: '实时上传',
-                    value: upText,
-                    icon: Icons.north_rounded,
-                    color: _violet),
+                  label: '实时上传',
+                  value: upText,
+                  icon: Icons.north_rounded,
+                  color: _violet,
+                ),
               ),
             ],
           ),
@@ -285,11 +308,12 @@ class _NetworkTopology extends StatelessWidget {
     final vertical = MediaQuery.textScalerOf(context).scale(1) >= 1.5;
     final nodes = [
       _TopologyNode(
-          label: '设备',
-          icon: Icons.devices_rounded,
-          color: neutral,
-          onTap: onOpenDevices,
-          key: const ValueKey('topology-devices')),
+        label: '设备',
+        icon: Icons.devices_rounded,
+        color: neutral,
+        onTap: onOpenDevices,
+        key: const ValueKey('topology-devices'),
+      ),
       const _TopologyNode(label: 'MT7988', color: _green, router: true),
       _TopologyNode(label: '互联网', icon: Icons.public_rounded, color: neutral),
     ];
@@ -345,24 +369,32 @@ class _TopologyNode extends StatelessWidget {
           height: 48,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+            color: color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
           child: router
               ? _RouterTopologyGlyph(color: color)
               : Icon(icon, size: 27, color: color),
         ),
         const SizedBox(height: 8),
-        Text(label,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: _inkOf(context))),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            color: _inkOf(context),
+          ),
+        ),
       ],
     );
     if (onTap == null) return child;
     return InkWell(
-        onTap: onTap, borderRadius: BorderRadius.circular(12), child: child);
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: child,
+    );
   }
 }
 
@@ -374,23 +406,32 @@ class _TopologyLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
-        child: vertical
-            ? Container(
-                width: 2,
-                height: 18,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                color: color.withValues(alpha: 0.45))
-            : Padding(
-                padding: const EdgeInsets.only(top: 18),
-                child: Row(children: [
-                  Expanded(
-                      child: Container(
-                          height: 2, color: color.withValues(alpha: 0.45))),
-                  Icon(Icons.chevron_right_rounded,
-                      size: 13, color: color.withValues(alpha: 0.65)),
-                ]),
-              ),
-      );
+    child: vertical
+        ? Container(
+            width: 2,
+            height: 18,
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            color: color.withValues(alpha: 0.45),
+          )
+        : Padding(
+            padding: const EdgeInsets.only(top: 18),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 2,
+                    color: color.withValues(alpha: 0.45),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 13,
+                  color: color.withValues(alpha: 0.65),
+                ),
+              ],
+            ),
+          ),
+  );
 }
 
 class _RouterTopologyGlyph extends StatelessWidget {
@@ -400,36 +441,42 @@ class _RouterTopologyGlyph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 30,
-        height: 27,
-        child: Stack(children: [
-          Positioned(
-              left: 6,
-              top: 1,
-              child: Container(width: 2, height: 8, color: color)),
-          Positioned(
-              right: 6,
-              top: 1,
-              child: Container(width: 2, height: 8, color: color)),
-          Positioned(
-            bottom: 0,
-            child: Container(
-              width: 30,
-              height: 19,
-              padding: const EdgeInsets.only(left: 6),
-              decoration: BoxDecoration(
-                border: Border.all(color: color, width: 2),
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Row(children: [
+    width: 30,
+    height: 27,
+    child: Stack(
+      children: [
+        Positioned(
+          left: 6,
+          top: 1,
+          child: Container(width: 2, height: 8, color: color),
+        ),
+        Positioned(
+          right: 6,
+          top: 1,
+          child: Container(width: 2, height: 8, color: color),
+        ),
+        Positioned(
+          bottom: 0,
+          child: Container(
+            width: 30,
+            height: 19,
+            padding: const EdgeInsets.only(left: 6),
+            decoration: BoxDecoration(
+              border: Border.all(color: color, width: 2),
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Row(
+              children: [
                 CircleAvatar(radius: 1.5, backgroundColor: color),
                 const SizedBox(width: 4),
                 CircleAvatar(radius: 1.5, backgroundColor: color),
-              ]),
+              ],
             ),
           ),
-        ]),
-      );
+        ),
+      ],
+    ),
+  );
 }
 
 String _uptime(int? seconds) {
@@ -437,4 +484,13 @@ String _uptime(int? seconds) {
   final days = seconds ~/ 86400;
   final hours = (seconds % 86400) ~/ 3600;
   return days > 0 ? '$days 天 $hours 小时' : '$hours 小时';
+}
+
+String _sfpStatus(SfpPort port) {
+  if (port.linkUp == null) return '状态未获取';
+  if (!port.linkUp!) return '未连接';
+  final speed = port.speedMbps;
+  if (speed == null) return '已连接';
+  if (speed < 1000) return '$speed Mb/s';
+  return '${(speed / 1000).toStringAsFixed(speed % 1000 == 0 ? 0 : 1)} Gb/s';
 }

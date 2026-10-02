@@ -7,8 +7,11 @@ Map<String, dynamic> _map(Object? value) =>
 List<dynamic> _list(Object? value) => value is List ? value : const [];
 
 class TrafficClient {
-  const TrafficClient(
-      {required this.ip, required this.name, required this.bytes});
+  const TrafficClient({
+    required this.ip,
+    required this.name,
+    required this.bytes,
+  });
   final String ip;
   final String name;
   final int bytes;
@@ -18,7 +21,10 @@ class TrafficClient {
     final ip = '${json['ip'] ?? ''}';
     final name = '${json['name'] ?? ''}';
     return TrafficClient(
-        ip: ip, name: name.isEmpty ? ip : name, bytes: _number(json['bytes']));
+      ip: ip,
+      name: name.isEmpty ? ip : name,
+      bytes: _number(json['bytes']),
+    );
   }
 }
 
@@ -95,35 +101,36 @@ class TrafficSummary {
     final hasWanTotals = iface.containsKey('down') && iface.containsKey('up');
     final epoch = _number(json['collected_at']);
     return TrafficSummary(
-      collectedAt:
-          epoch > 0 ? DateTime.fromMillisecondsSinceEpoch(epoch * 1000) : null,
+      collectedAt: epoch > 0
+          ? DateTime.fromMillisecondsSinceEpoch(epoch * 1000)
+          : null,
       version: '${json['version'] ?? ''}',
-      headlineDown:
-          hasWanTotals ? _number(iface['down']) : _number(totals['down']),
+      headlineDown: hasWanTotals
+          ? _number(iface['down'])
+          : _number(totals['down']),
       headlineUp: hasWanTotals ? _number(iface['up']) : _number(totals['up']),
       headlineSource: hasWanTotals ? '${iface['dev'] ?? 'WAN'}' : '已归属流量',
       hasWanTotals: hasWanTotals,
       attributedDown: _number(totals['down']),
       attributedUp: _number(totals['up']),
       clientCount: _number(totals['client_count']),
-      clients: _list(json['clients'])
-          .map(TrafficClient.fromJson)
-          .where((c) => c.ip.isNotEmpty)
-          .toList(),
-      apps: _list(json['apps'])
-          .map(TrafficApp.fromJson)
-          .where((a) => a.name.isNotEmpty)
-          .toList(),
+      clients: _list(
+        json['clients'],
+      ).map(TrafficClient.fromJson).where((c) => c.ip.isNotEmpty).toList(),
+      apps: _list(
+        json['apps'],
+      ).map(TrafficApp.fromJson).where((a) => a.name.isNotEmpty).toList(),
     );
   }
 }
 
 class LiveRate {
-  const LiveRate(
-      {required this.ready,
-      required this.downBytesPerSecond,
-      required this.upBytesPerSecond,
-      required this.at});
+  const LiveRate({
+    required this.ready,
+    required this.downBytesPerSecond,
+    required this.upBytesPerSecond,
+    required this.at,
+  });
   final bool ready;
   final int downBytesPerSecond;
   final int upBytesPerSecond;
@@ -142,10 +149,11 @@ class LiveRate {
 }
 
 class TrafficPoint {
-  const TrafficPoint(
-      {required this.at,
-      required this.downBytesPerSecond,
-      required this.upBytesPerSecond});
+  const TrafficPoint({
+    required this.at,
+    required this.downBytesPerSecond,
+    required this.upBytesPerSecond,
+  });
   final DateTime at;
   final double downBytesPerSecond;
   final double upBytesPerSecond;
@@ -159,11 +167,11 @@ class TrafficSeries {
   /// Highest per-second rate in the series, across both directions; 0 when the
   /// series is empty. Used for the 峰值 figure on the traffic screen.
   double get peakBytesPerSecond => points.fold<double>(0, (max, point) {
-        final pointMax = point.downBytesPerSecond > point.upBytesPerSecond
-            ? point.downBytesPerSecond
-            : point.upBytesPerSecond;
-        return pointMax > max ? pointMax : max;
-      });
+    final pointMax = point.downBytesPerSecond > point.upBytesPerSecond
+        ? point.downBytesPerSecond
+        : point.upBytesPerSecond;
+    return pointMax > max ? pointMax : max;
+  });
 
   factory TrafficSeries.fromJson(Object? value) {
     final json = _map(value);
@@ -174,24 +182,27 @@ class TrafficSeries {
       if (raw is! List || raw.length < 3) continue;
       final epoch = _number(raw[0]);
       if (epoch <= 0) continue;
-      points.add(TrafficPoint(
-        at: DateTime.fromMillisecondsSinceEpoch(epoch * 1000),
-        downBytesPerSecond: _number(raw[1]) / safeInterval,
-        upBytesPerSecond: _number(raw[2]) / safeInterval,
-      ));
+      points.add(
+        TrafficPoint(
+          at: DateTime.fromMillisecondsSinceEpoch(epoch * 1000),
+          downBytesPerSecond: _number(raw[1]) / safeInterval,
+          upBytesPerSecond: _number(raw[2]) / safeInterval,
+        ),
+      );
     }
     return TrafficSeries(interval: safeInterval, points: points);
   }
 }
 
 class WifiRadio {
-  const WifiRadio(
-      {required this.name,
-      required this.up,
-      required this.ssids,
-      required this.clientCount,
-      this.band,
-      this.channel});
+  const WifiRadio({
+    required this.name,
+    required this.up,
+    required this.ssids,
+    required this.clientCount,
+    this.band,
+    this.channel,
+  });
   final String name;
   final bool up;
   final List<String> ssids;
@@ -206,6 +217,25 @@ class WifiRadio {
 
   static List<WifiRadio> parseAll(Object? value) {
     final source = _map(value);
+    if (source['radios'] is List) {
+      return _list(source['radios'])
+          .map((raw) {
+            final radio = _map(raw);
+            final channel = _number(radio['channel']);
+            final ssid = '${radio['ssid'] ?? ''}';
+            final band = '${radio['band'] ?? ''}';
+            return WifiRadio(
+              name: '${radio['name'] ?? ''}',
+              up: radio['up'] == true,
+              ssids: ssid.isEmpty ? const [] : [ssid],
+              clientCount: null,
+              band: band.isEmpty ? null : band,
+              channel: channel > 0 ? channel : null,
+            );
+          })
+          .where((radio) => radio.name.isNotEmpty)
+          .toList();
+    }
     return source.entries.where((entry) => entry.value is Map).map((entry) {
       final radio = _map(entry.value);
       final settings = _map(radio['config']);
@@ -229,6 +259,78 @@ class WifiRadio {
   }
 }
 
+class RouterMemory {
+  const RouterMemory({required this.totalBytes, required this.availableBytes});
+  final int totalBytes;
+  final int availableBytes;
+
+  double get usedPercent =>
+      (totalBytes - availableBytes).clamp(0, totalBytes) * 100 / totalBytes;
+
+  static RouterMemory? fromSystemInfo(Object? value) {
+    final memory = _map(_map(value)['memory']);
+    if (!memory.containsKey('total') || !memory.containsKey('available')) {
+      return null;
+    }
+    final total = _number(memory['total']);
+    final available = _number(memory['available']);
+    if (total <= 0 || available < 0 || available > total) return null;
+    return RouterMemory(totalBytes: total, availableBytes: available);
+  }
+}
+
+class CpuCounters {
+  const CpuCounters({required this.total, required this.idle});
+  final int total;
+  final int idle;
+
+  static CpuCounters? fromJson(Object? value) {
+    final json = _map(value);
+    final total = _number(json['total']);
+    final idle = _number(json['idle']);
+    if (total <= 0 || idle < 0 || idle > total) return null;
+    return CpuCounters(total: total, idle: idle);
+  }
+
+  double? usageSince(CpuCounters? previous) {
+    if (previous == null) return null;
+    final elapsed = total - previous.total;
+    final idleElapsed = idle - previous.idle;
+    if (elapsed <= 0 || idleElapsed < 0 || idleElapsed > elapsed) return null;
+    return (elapsed - idleElapsed) * 100 / elapsed;
+  }
+}
+
+class SfpPort {
+  const SfpPort({
+    required this.interface,
+    required this.slot,
+    required this.linkUp,
+    required this.speedMbps,
+  });
+  final String interface;
+  final String slot;
+  final bool? linkUp;
+  final int? speedMbps;
+
+  static List<SfpPort> parseAll(Object? value) => _list(_map(value)['modules'])
+      .map((raw) {
+        final json = _map(raw);
+        final speed = RegExp(
+          r'^(\d+)\s*Mb/s$',
+          caseSensitive: false,
+        ).firstMatch('${json['speed'] ?? ''}');
+        return SfpPort(
+          interface: '${json['interface'] ?? ''}',
+          slot: '${json['module_slot'] ?? ''}',
+          linkUp: json['link_up'] is bool ? json['link_up'] as bool : null,
+          speedMbps: speed == null ? null : int.tryParse(speed.group(1)!),
+        );
+      })
+      .where((port) => port.interface.isNotEmpty)
+      .toList();
+}
+
 class RouterSnapshot {
   const RouterSnapshot({
     required this.fetchedAt,
@@ -238,12 +340,18 @@ class RouterSnapshot {
     this.radios = const [],
     this.dhcpDevices = const [],
     this.uptimeSeconds,
+    this.memory,
+    this.cpuCounters,
+    this.cpuUsagePercent,
+    this.sfpPorts = const [],
     this.trafficError,
     this.liveError,
     this.seriesError,
     this.devicesError,
     this.systemError,
     this.wifiError,
+    this.metricsError,
+    this.sfpError,
   });
   final DateTime fetchedAt;
   final TrafficSummary? summary;
@@ -252,12 +360,18 @@ class RouterSnapshot {
   final List<WifiRadio> radios;
   final List<DhcpDevice> dhcpDevices;
   final int? uptimeSeconds;
+  final RouterMemory? memory;
+  final CpuCounters? cpuCounters;
+  final double? cpuUsagePercent;
+  final List<SfpPort> sfpPorts;
   final String? trafficError;
   final String? liveError;
   final String? seriesError;
   final String? devicesError;
   final String? systemError;
   final String? wifiError;
+  final String? metricsError;
+  final String? sfpError;
 }
 
 String formatBytes(num value) {
@@ -268,7 +382,11 @@ String formatBytes(num value) {
     amount /= 1024;
     index++;
   }
-  return '${amount.toStringAsFixed(index == 0 ? 0 : amount >= 100 ? 0 : 1)} ${units[index]}';
+  return '${amount.toStringAsFixed(index == 0
+      ? 0
+      : amount >= 100
+      ? 0
+      : 1)} ${units[index]}';
 }
 
 String formatRate(num bytesPerSecond) => '${formatBytes(bytesPerSecond)}/s';
