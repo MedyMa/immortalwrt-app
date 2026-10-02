@@ -2,6 +2,56 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:immortalwrt_app/models/router_models.dart';
 
 void main() {
+  test('router clock skew does not hide fresh normalized temperatures', () {
+    final received = DateTime.fromMillisecondsSinceEpoch(2000000);
+    for (final epoch in [1000, 5000]) {
+      final readings = RouterTemperature.parseAll(
+        [
+          {'kind': 'cpu', 'celsius': '52', 'sampled_at': '${epoch - 60}'},
+        ],
+        serverEpoch: epoch,
+        receivedAt: received,
+      );
+      expect(readings.single.isFresh(received), isTrue);
+      expect(
+        readings.single.isFresh(received.add(const Duration(seconds: 121))),
+        isFalse,
+      );
+    }
+  });
+  test('temperature readings validate units, kind and freshness', () {
+    final now = DateTime.fromMillisecondsSinceEpoch(2000000);
+    final readings = RouterTemperature.parseAll([
+      {
+        'kind': 'cpu',
+        'name': 'cpu-thermal',
+        'celsius': '52',
+        'sampled_at': '1990',
+      },
+      {'kind': 'wifi', 'name': 'MT7990', 'celsius': '46', 'sampled_at': '1800'},
+      {'kind': 'disk', 'name': 'nvme', 'celsius': '999', 'sampled_at': '1990'},
+      {'kind': 'bogus', 'celsius': '35', 'sampled_at': '1990'},
+      {'kind': 'cpu', 'celsius': 'NaN', 'sampled_at': '1990'},
+    ]);
+    expect(readings, hasLength(2));
+    expect(readings.first.isFresh(now), isTrue);
+    expect(readings.last.isFresh(now), isFalse);
+    expect(
+      readings.first.isFresh(DateTime.fromMillisecondsSinceEpoch(1000000)),
+      isFalse,
+    );
+    final ports = SfpPort.parseAll({
+      'modules': [
+        {
+          'interface': 'eth1',
+          'temperature': '47.74 degrees C / 117.94 degrees F',
+        },
+        {'interface': 'eth2', 'temperature': '117.94 degrees F'},
+      ],
+    });
+    expect(ports.first.temperatureCelsius, 47.74);
+    expect(ports.last.temperatureCelsius, isNull);
+  });
   test(
     'PPE occupancy preserves unknown fields and rejects invalid capacity',
     () {

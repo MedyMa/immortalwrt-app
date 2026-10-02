@@ -363,6 +363,13 @@ class RouterApi {
       cpuUsagePercent: byKey.containsKey('metrics')
           ? cpuCounters?.usageSince(previous?.cpuCounters ?? firstCpu)
           : previous?.cpuUsagePercent,
+      temperatures: byKey.containsKey('metrics')
+          ? RouterTemperature.parseAll(
+              metricsData?['temperatures'],
+              serverEpoch: int.tryParse('${metricsData?['sampled_at']}'),
+              receivedAt: DateTime.now(),
+            )
+          : previous?.temperatures ?? const [],
       sfpPorts: sfpData == null
           ? previous?.sfpPorts ?? const []
           : SfpPort.parseAll(sfpData),

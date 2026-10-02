@@ -431,11 +431,13 @@ class SfpPort {
     required this.slot,
     required this.linkUp,
     required this.speedMbps,
+    this.temperatureCelsius,
   });
   final String interface;
   final String slot;
   final bool? linkUp;
   final int? speedMbps;
+  final double? temperatureCelsius;
 
   static List<SfpPort> parseAll(Object? value) => _list(_map(value)['modules'])
       .map((raw) {
@@ -444,11 +446,20 @@ class SfpPort {
           r'^(\d+)\s*Mb/s$',
           caseSensitive: false,
         ).firstMatch('${json['speed'] ?? ''}');
+        final temperature = RegExp(
+          r'^(-?\d+(?:\.\d+)?)\s*(?:degrees\s*C|°C)\b',
+          caseSensitive: false,
+        ).firstMatch('${json['temperature'] ?? ''}');
+        final celsius = double.tryParse(temperature?.group(1) ?? '');
         return SfpPort(
           interface: '${json['interface'] ?? ''}',
           slot: '${json['module_slot'] ?? ''}',
           linkUp: json['link_up'] is bool ? json['link_up'] as bool : null,
           speedMbps: speed == null ? null : int.tryParse(speed.group(1)!),
+          temperatureCelsius:
+              celsius != null && celsius >= -40 && celsius <= 150
+              ? celsius
+              : null,
         );
       })
       .where((port) => port.interface.isNotEmpty)
@@ -486,6 +497,66 @@ class PpeTable {
   }
 }
 
+class RouterTemperature {
+  const RouterTemperature({
+    required this.kind,
+    required this.name,
+    required this.celsius,
+    required this.sampledAt,
+  });
+  final String kind;
+  final String name;
+  final double celsius;
+  final DateTime sampledAt;
+
+  bool isFresh(DateTime now) {
+    final age = now.difference(sampledAt);
+    return age >= Duration.zero && age <= const Duration(seconds: 180);
+  }
+
+  static List<RouterTemperature> parseAll(
+    Object? value, {
+    int? serverEpoch,
+    DateTime? receivedAt,
+  }) {
+    final readings = <RouterTemperature>[];
+    for (final raw in _list(value)) {
+      final json = _map(raw);
+      final kind = '${json['kind'] ?? ''}';
+      final celsius = double.tryParse('${json['celsius']}');
+      final at = int.tryParse('${json['sampled_at']}');
+      if (!const ['cpu', 'wifi', 'disk'].contains(kind) ||
+          celsius == null ||
+          !celsius.isFinite ||
+          celsius < -20 ||
+          celsius > 150 ||
+          at == null ||
+          at <= 0 ||
+          at > 253402300799) {
+        continue;
+      }
+      final sampled = DateTime.fromMillisecondsSinceEpoch(at * 1000);
+      DateTime localSampled = sampled;
+      if (serverEpoch != null) {
+        final age = serverEpoch - at;
+        if (age < 0 || age > 180) continue;
+        localSampled = (receivedAt ?? DateTime.now()).subtract(
+          Duration(seconds: age),
+        );
+      }
+      readings.add(
+        RouterTemperature(
+          kind: kind,
+          name: '${json['name'] ?? ''}',
+          celsius: celsius,
+          sampledAt: localSampled,
+        ),
+      );
+    }
+    return readings;
+  }
+}
+
 class RouterSnapshot {
   const RouterSnapshot({
     required this.fetchedAt,
@@ -515,6 +586,7 @@ class RouterSnapshot {
     this.sfpError,
     this.ppeTables = const [],
     this.ppeError,
+    this.temperatures = const [],
   });
   final DateTime fetchedAt;
   final TrafficSummary? summary;
@@ -543,6 +615,7 @@ class RouterSnapshot {
   final String? sfpError;
   final List<PpeTable> ppeTables;
   final String? ppeError;
+  final List<RouterTemperature> temperatures;
 }
 
 String formatBytes(num value) {

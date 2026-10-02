@@ -1,0 +1,6 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="1024" android:viewportHeight="1024">
+    <group android:pivotX="512" android:pivotY="512" android:scaleX="0.72" android:scaleY="0.72">
+        <path android:pathData="M512,244 L512,350 M200,512 L132,512 M824,512 L892,512 M286,370 H738 Q802,370 802,434 V590 Q802,654 738,654 H286 Q222,654 222,590 V434 Q222,370 286,370 Z M504,492 H692 V572 H504 Z" android:fillColor="@android:color/transparent" android:strokeColor="@color/router_icon_foreground" android:strokeWidth="44" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+        <path android:pathData="M488,222 a24,24 0,1 0,48 0 a24,24 0,1 0,-48 0 M300,532 a22,22 0,1 0,44 0 a22,22 0,1 0,-44 0 M374,532 a22,22 0,1 0,44 0 a22,22 0,1 0,-44 0" android:fillColor="@color/router_icon_foreground"/>
+    </group>
+</vector>

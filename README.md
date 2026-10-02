@@ -34,6 +34,8 @@ The Wi-Fi page shows the reported BE14 channel and EHT width. Its 24-hour histor
 
 ## Development
 
+Launcher artwork uses the approved router/network design. Android includes adaptive and monochrome resources with light/dark colors; iOS includes Any, Dark and Tinted variants. Sources are in `design/app-icons`; regenerate PNG assets with `tools/generate-app-icons.ps1` on Windows with Chrome installed.
+
 Flutter 3.47.5 is used by CI:
 
 ```sh
@@ -47,6 +49,8 @@ flutter run
 CI compiles against **Android 17 SDK (API 37)** with Android Gradle Plugin 9.1.1. `targetSdk` still follows Flutter's default pending Android 17 device behavior testing. The iOS job explicitly uses the **Xcode 27 / iOS 27 SDK** runner while retaining iOS 15 as its deployment target. CI prints the selected SDK versions. The Android artifact is a **debug APK**. The iOS artifact is an **unsigned simulator app**; it cannot be installed on a physical iPhone. iPhone distribution requires Apple signing credentials and a later signed release workflow.
 
 ## Refresh and backend compatibility
+
+Temperature figures require `rpcd-mod-router-status` 0.1.2 or newer. CPU temperatures use labelled CPU/SoC thermal zones; disks use NVMe/drivetemp hwmon readings when the firmware exposes them. BE14 temperature reuses the existing one-minute driver sample. Each category shows the highest fresh reading, expiring after 180 seconds; absent, invalid or failed readings show a dash. SFP rows use the module Celsius field from the existing SFP API, alongside link speed. The app follows the system light/dark appearance.
 
 Overview also reads `luci.turboacc.getMTKPPEStat` about every 15 seconds. Each PPE row uses turboacc's `BIND_PPE` / `ALL_PPE` counters; the percentage has the same scope as the local turboacc page. These are hardware flow-table entries, not unique devices or CPU load. Missing counters or invalid denominators stay unknown. Read-only accounts need the turboacc read ACL; no write permission is required. If turboacc is unavailable, other overview data remains usable.
 

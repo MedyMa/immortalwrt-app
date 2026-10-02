@@ -9,6 +9,60 @@ import 'package:immortalwrt_app/services/router_api.dart';
 
 void main() {
   test(
+    'metrics temperatures persist through live and clear on fresh missing values',
+    () async {
+      var withTemperature = true;
+      final api = RouterApi(
+        Uri.parse('https://router.example.com'),
+        client: MockClient((request) async {
+          final p = (jsonDecode(request.body) as Map)['params'] as List;
+          if (p[2] == 'login') {
+            return http.Response(
+              '{"result":[0,{"ubus_rpc_session":"s"}]}',
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'result': [
+                0,
+                p[2] == 'getSystemMetrics' && withTemperature
+                    ? {
+                        'temperatures': [
+                          {
+                            'kind': 'cpu',
+                            'name': 'cpu-thermal',
+                            'celsius': '52',
+                            'sampled_at':
+                                '${DateTime.now().millisecondsSinceEpoch ~/ 1000}',
+                          },
+                        ],
+                      }
+                    : {},
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+      await api.login('u', 'p');
+      final first = await api.fetch(section: RouterSection.overview);
+      expect(first.temperatures.single.celsius, 52);
+      final live = await api.fetch(
+        section: RouterSection.live,
+        previous: first,
+      );
+      expect(live.temperatures.single.celsius, 52);
+      withTemperature = false;
+      final missing = await api.fetch(
+        section: RouterSection.overview,
+        previous: live,
+      );
+      expect(missing.temperatures, isEmpty);
+      api.close();
+    },
+  );
+  test(
     'overview reads turboacc PPE only on full refresh and scopes its errors',
     () async {
       final methods = <String>[];

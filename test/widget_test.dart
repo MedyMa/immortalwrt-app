@@ -142,6 +142,35 @@ class _PpeApi extends _FakeRouterApi {
   }) async => RouterSnapshot(
     fetchedAt: DateTime.now(),
     ppeTables: const [PpeTable(index: 0, bound: 1024, capacity: 8192)],
+    temperatures: [
+      RouterTemperature(
+        kind: 'cpu',
+        name: 'cpu-thermal',
+        celsius: 52,
+        sampledAt: DateTime.now(),
+      ),
+      RouterTemperature(
+        kind: 'wifi',
+        name: 'MT7990',
+        celsius: 46,
+        sampledAt: DateTime.now(),
+      ),
+      RouterTemperature(
+        kind: 'disk',
+        name: 'nvme',
+        celsius: 39,
+        sampledAt: DateTime.now(),
+      ),
+    ],
+    sfpPorts: const [
+      SfpPort(
+        interface: 'eth1',
+        slot: 'SFP1',
+        linkUp: true,
+        speedMbps: 2500,
+        temperatureCelsius: 47.74,
+      ),
+    ],
   );
 }
 
@@ -217,6 +246,38 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  for (final brightness in Brightness.values) {
+    testWidgets('overview temperature order and SFP units in $brightness', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(brightness: brightness),
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _PpeApi(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.scrollUntilVisible(find.text('MT7988 状态'), 250);
+      expect(
+        tester.getTopLeft(find.text('硬件加速')).dy,
+        lessThan(tester.getTopLeft(find.text('MT7988 状态')).dy),
+      );
+      expect(find.text('CPU'), findsOneWidget);
+      expect(find.text('BE14'), findsOneWidget);
+      expect(find.text('NVMe'), findsOneWidget);
+      expect(find.text('52°C'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('2.5 Gb/s · 47.7°C'), 250);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
   testWidgets(
     'traffic lists every returned application and site beyond thirty',
     (tester) async {
@@ -339,7 +400,12 @@ void main() {
       await tester.pump();
       expect(api.sections, [RouterSection.overview]);
       expect(find.textContaining('连接中断 ·'), findsNothing);
-      await tester.tap(find.text('Wi-Fi').last);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationRail),
+          matching: find.text('Wi-Fi'),
+        ),
+      );
       await tester.pump();
       expect(api.sections.last, RouterSection.wifi);
     },
@@ -388,7 +454,12 @@ void main() {
     await tester.tap(find.text('设备').last);
     await tester.pump();
     expect(find.text('设备记录不代表当前在线'), findsOneWidget);
-    await tester.tap(find.text('Wi-Fi').last);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Wi-Fi'),
+      ),
+    );
     await tester.pump();
     expect(find.text('BE14 无线'), findsOneWidget);
     expect(find.text('2.4 GHz'), findsNothing);
@@ -406,7 +477,12 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.tap(find.text('Wi-Fi').last);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Wi-Fi'),
+      ),
+    );
     await tester.pump();
     expect(find.text('5 GHz'), findsWidgets);
     expect(find.textContaining('40 · 160 MHz'), findsOneWidget);
@@ -433,7 +509,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('网络运行正常'), findsNothing);
-    expect(find.text('MT7988'), findsOneWidget);
+    expect(find.text('MT7988'), findsWidgets);
     expect(find.text('互联网'), findsOneWidget);
     expect(find.text('UCG Fiber'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('topology-devices')));
@@ -547,7 +623,12 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
     expect(api.sections, [RouterSection.overview, RouterSection.overview]);
-    await tester.tap(find.text('Wi-Fi').last);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Wi-Fi'),
+      ),
+    );
     await tester.pump();
     expect(api.sections.last, RouterSection.wifi);
   });

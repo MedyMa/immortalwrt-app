@@ -124,10 +124,19 @@ class _Overview extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
+        const _SectionHeader(title: '硬件加速'),
+        _PpeCard(snapshot: snapshot, offline: offline),
+        const SizedBox(height: 20),
         const _SectionHeader(title: 'MT7988 状态'),
         _Card(
           child: Column(
             children: [
+              _TemperatureStrip(
+                readings: snapshot.temperatures,
+                unavailable: offline || snapshot.metricsError != null,
+              ),
+              const SizedBox(height: 18),
+              const _Hairline(),
               _InfoRow(
                 icon: Icons.memory_rounded,
                 label: 'CPU 使用率',
@@ -148,7 +157,10 @@ class _Overview extends StatelessWidget {
                 _InfoRow(
                   icon: Icons.settings_ethernet_rounded,
                   label: port.slot.isEmpty ? port.interface : port.slot,
-                  value: _sfpStatus(port),
+                  value: _sfpStatus(
+                    port,
+                    showTemperature: !offline && snapshot.sfpError == null,
+                  ),
                 ),
                 const _Hairline(),
               ],
@@ -184,9 +196,6 @@ class _Overview extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 20),
-        const _SectionHeader(title: '硬件加速'),
-        _PpeCard(snapshot: snapshot, offline: offline),
         if (snapshot.trafficError != null) ...[
           const SizedBox(height: 12),
           const _Notice(
@@ -194,6 +203,73 @@ class _Overview extends StatelessWidget {
             Icons.info_outline_rounded,
           ),
         ],
+      ],
+    );
+  }
+}
+
+class _TemperatureStrip extends StatelessWidget {
+  const _TemperatureStrip({required this.readings, required this.unavailable});
+  final List<RouterTemperature> readings;
+  final bool unavailable;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      for (final entry in const [
+        ('cpu', 'CPU', 'MT7988'),
+        ('wifi', 'Wi-Fi', 'BE14'),
+        ('disk', '硬盘', ''),
+      ])
+        Expanded(child: _figure(context, entry.$1, entry.$2, entry.$3)),
+    ],
+  );
+
+  Widget _figure(
+    BuildContext context,
+    String kind,
+    String label,
+    String caption,
+  ) {
+    final now = DateTime.now();
+    final matches =
+        readings.where((r) => r.kind == kind && r.isFresh(now)).toList()
+          ..sort((a, b) => b.celsius.compareTo(a.celsius));
+    final reading = unavailable || matches.isEmpty ? null : matches.first;
+    final source = caption.isNotEmpty
+        ? caption
+        : reading == null
+        ? '—'
+        : reading.name == 'nvme'
+        ? 'NVMe'
+        : '存储';
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 12, color: _mutedOf(context))),
+        const SizedBox(height: 7),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: reading == null
+                    ? '—'
+                    : reading.celsius.toStringAsFixed(0),
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  color: _inkOf(context),
+                ),
+              ),
+              if (reading != null)
+                TextSpan(
+                  text: '°C',
+                  style: TextStyle(fontSize: 12, color: _mutedOf(context)),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(source, style: TextStyle(fontSize: 11, color: _mutedOf(context))),
       ],
     );
   }
@@ -582,7 +658,13 @@ String _uptime(int? seconds) {
   return days > 0 ? '$days 天 $hours 小时' : '$hours 小时';
 }
 
-String _sfpStatus(SfpPort port) {
+String _sfpStatus(SfpPort port, {bool showTemperature = true}) {
+  final status = _sfpLinkStatus(port);
+  final temperature = showTemperature ? port.temperatureCelsius : null;
+  return '$status · ${temperature == null ? '—' : '${temperature.toStringAsFixed(1)}°C'}';
+}
+
+String _sfpLinkStatus(SfpPort port) {
   if (port.linkUp == null) return '状态未获取';
   if (!port.linkUp!) return '未连接';
   final speed = port.speedMbps;
