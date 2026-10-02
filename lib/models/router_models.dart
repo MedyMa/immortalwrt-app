@@ -475,6 +475,7 @@ class RouterSnapshot {
     this.sfpPorts = const [],
     this.trafficError,
     this.liveError,
+    this.liveUnavailable = false,
     this.seriesError,
     this.devicesError,
     this.systemError,
@@ -500,6 +501,7 @@ class RouterSnapshot {
   final List<SfpPort> sfpPorts;
   final String? trafficError;
   final String? liveError;
+  final bool liveUnavailable;
   final String? seriesError;
   final String? devicesError;
   final String? systemError;

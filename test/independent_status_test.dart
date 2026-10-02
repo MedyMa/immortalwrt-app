@@ -62,12 +62,14 @@ void main() {
       final overview = await api.fetch(section: RouterSection.overview);
       expect(overview.radios.single.band, '5g');
       expect(overview.liveError, isNotNull);
+      expect(overview.liveUnavailable, true);
       final live = await api.fetch(
         section: RouterSection.live,
         previous: overview,
       );
       expect(live.radios.single.band, '5g');
       expect(live.liveError, isNotNull);
+      expect(live.liveUnavailable, true);
       api.close();
     },
   );

@@ -74,7 +74,19 @@ class _NoTrafficApi extends _FakeRouterApi {
     return RouterSnapshot(
       fetchedAt: DateTime.now(),
       liveError: 'luci.traffic.getLive 不可用',
+      liveUnavailable: true,
     );
+  }
+}
+
+class _TransientLiveApi extends _FakeRouterApi {
+  @override
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async {
+    sections.add(section);
+    return RouterSnapshot(fetchedAt: DateTime.now(), liveError: '实时速率请求超时');
   }
 }
 
@@ -171,6 +183,20 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets('partial transient live failure still retries after one second', (
+    tester,
+  ) async {
+    final api = _TransientLiveApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    expect(api.sections, [RouterSection.overview, RouterSection.live]);
+  });
   testWidgets(
     'missing traffic does not flood live reads or block Wi-Fi navigation',
     (tester) async {

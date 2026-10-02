@@ -341,6 +341,10 @@ class RouterApi {
           : SfpPort.parseAll(sfpData),
       trafficError: error('summary'),
       liveError: error('live'),
+      liveUnavailable: byKey.containsKey('live')
+          ? byKey['live']?.error is RouterMethodUnavailableException ||
+                byKey['live']?.error is RouterPermissionException
+          : previous?.liveUnavailable ?? false,
       seriesError: error('series'),
       devicesError: error('devices'),
       systemError: error('system'),

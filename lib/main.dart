@@ -239,7 +239,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
             _lastFullRefresh != null &&
             DateTime.now().difference(_lastFullRefresh!) <
                 const Duration(seconds: 15);
-        if (!recent || _snapshot?.liveError == null) {
+        if (!recent || _snapshot?.liveUnavailable != true) {
           _refresh(liveOnly: recent);
         }
       });
