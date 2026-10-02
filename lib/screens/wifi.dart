@@ -142,11 +142,7 @@ class _WifiState extends State<_Wifi> {
                       ),
                     ),
                     Expanded(
-                      child: _WifiFigure(
-                        'RX CRC',
-                        latest?.rxCrcPercent,
-                        _amber,
-                      ),
+                      child: _WifiFigure('接收错误率', latest?.rxCrcPercent, _amber),
                     ),
                   ],
                 ),
@@ -165,7 +161,7 @@ class _WifiState extends State<_Wifi> {
                 else
                   _ChartEmpty('暂无质量历史'),
                 const SizedBox(height: 9),
-                const _WifiLegend('TX 失败率', 'RX CRC', _blue, _amber),
+                const _WifiLegend('TX 失败率', '接收错误率', _blue, _amber),
               ],
             ),
           ),
