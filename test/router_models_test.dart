@@ -2,6 +2,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:immortalwrt_app/models/router_models.dart';
 
 void main() {
+  test(
+    'PPE occupancy preserves unknown fields and rejects invalid capacity',
+    () {
+      final tables = PpeTable.parseAll({
+        'PPE_NUM': '4',
+        'BIND_PPE0': '0',
+        'ALL_PPE0': '8192',
+        'ALL_PPE1': '8192',
+        'BIND_PPE2': '20',
+        'ALL_PPE2': '0',
+        'BIND_PPE3': '9000',
+        'ALL_PPE3': '8192',
+      });
+      expect(tables[0].usedPercent, 0);
+      expect(tables[1].bound, isNull);
+      expect(tables[1].usedPercent, isNull);
+      expect(tables[2].usedPercent, isNull);
+      expect(tables[3].usedPercent, isNull);
+      expect(PpeTable.parseAll({'PPE_NUM': '0'}), isEmpty);
+      expect(PpeTable.parseAll({'PPE_NUM': '1000000'}), isEmpty);
+    },
+  );
   test('traffic headline uses WAN interface totals, not attributed totals', () {
     final summary = TrafficSummary.fromJson({
       'collected_at': 1720000000,

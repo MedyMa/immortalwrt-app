@@ -8,6 +8,56 @@ import 'package:immortalwrt_app/models/router_models.dart';
 import 'package:immortalwrt_app/services/router_api.dart';
 
 void main() {
+  test(
+    'overview reads turboacc PPE only on full refresh and scopes its errors',
+    () async {
+      final methods = <String>[];
+      var deny = false;
+      final api = RouterApi(
+        Uri.parse('https://router.example.com'),
+        client: MockClient((request) async {
+          final p = (jsonDecode(request.body) as Map)['params'] as List;
+          methods.add('${p[1]}.${p[2]}');
+          if (p[2] == 'login') {
+            return http.Response(
+              '{"result":[0,{"ubus_rpc_session":"s"}]}',
+              200,
+            );
+          }
+          if (p[1] == 'luci.turboacc') {
+            return http.Response(
+              deny
+                  ? '{"result":[6]}'
+                  : '{"result":[0,{"PPE_NUM":"2","BIND_PPE0":"1024","ALL_PPE0":"8192","BIND_PPE1":"0","ALL_PPE1":"8192"}]}',
+              200,
+            );
+          }
+          return http.Response('{"result":[0,{}]}', 200);
+        }),
+      );
+      await api.login('u', 'p');
+      final first = await api.fetch(section: RouterSection.overview);
+      expect(methods, contains('luci.turboacc.getMTKPPEStat'));
+      expect(first.ppeTables.first.usedPercent, 12.5);
+      expect(first.ppeTables.last.usedPercent, 0);
+      methods.clear();
+      final live = await api.fetch(
+        section: RouterSection.live,
+        previous: first,
+      );
+      expect(live.ppeTables.first.bound, 1024);
+      expect(methods, ['luci.traffic.getLive']);
+      deny = true;
+      final denied = await api.fetch(
+        section: RouterSection.overview,
+        previous: first,
+      );
+      expect(denied.trafficError, isNull);
+      expect(denied.ppeError, contains('权限'));
+      expect(denied.ppeTables.first.bound, 1024);
+      api.close();
+    },
+  );
   test('ubus login then read-only methods use the returned session', () async {
     final methods = <String>[];
     final client = MockClient((request) async {

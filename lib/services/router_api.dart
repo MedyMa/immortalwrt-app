@@ -209,6 +209,7 @@ class RouterApi {
     const system = _ReadSpec('system', 'system', 'info');
     const metrics = _ReadSpec('metrics', 'router.status', 'getSystemMetrics');
     const sfp = _ReadSpec('sfp', 'luci.sfp-status', 'getStatuses');
+    const ppe = _ReadSpec('ppe', 'luci.turboacc', 'getMTKPPEStat');
     const devices = _ReadSpec('devices', 'luci-rpc', 'getDHCPLeases');
     final readHistory =
         section == RouterSection.wifi &&
@@ -216,7 +217,15 @@ class RouterApi {
             DateTime.now().difference(previous!.wifiHistoryFetchedAt!) >=
                 const Duration(minutes: 1));
     final specs = switch (section) {
-      RouterSection.overview => [summary, live, wifi, system, metrics, sfp],
+      RouterSection.overview => [
+        summary,
+        live,
+        wifi,
+        system,
+        metrics,
+        sfp,
+        ppe,
+      ],
       RouterSection.devices => [summary, devices],
       RouterSection.wifi => [wifi, if (readHistory) wifiHistory],
       RouterSection.traffic => [window, series],
@@ -229,6 +238,7 @@ class RouterApi {
         system,
         metrics,
         sfp,
+        ppe,
         devices,
       ],
     };
@@ -286,6 +296,7 @@ class RouterApi {
             'system' => previous?.systemError,
             'metrics' => previous?.metricsError,
             'sfp' => previous?.sfpError,
+            'ppe' => previous?.ppeError,
             _ => null,
           };
     final summaryData = data('summary');
@@ -371,6 +382,10 @@ class RouterApi {
           : error('wifi'),
       metricsError: error('metrics'),
       sfpError: error('sfp'),
+      ppeTables: data('ppe') == null
+          ? previous?.ppeTables ?? const []
+          : PpeTable.parseAll(data('ppe')),
+      ppeError: error('ppe'),
     );
   }
 

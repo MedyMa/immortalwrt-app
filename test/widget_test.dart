@@ -134,6 +134,17 @@ class _HealthyApi extends _FakeRouterApi {
   );
 }
 
+class _PpeApi extends _FakeRouterApi {
+  @override
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async => RouterSnapshot(
+    fetchedAt: DateTime.now(),
+    ppeTables: const [PpeTable(index: 0, bound: 1024, capacity: 8192)],
+  );
+}
+
 class _WifiApi extends _FakeRouterApi {
   @override
   Future<RouterSnapshot> fetch({
@@ -187,6 +198,27 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets('HNAT card keeps PPE bars without aggregate or footer', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(
+          storage: _MemoryStorage(),
+          apiFactory: (_) => _PpeApi(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.scrollUntilVisible(find.text('HNAT'), 350);
+    expect(find.text('PPE 0'), findsOneWidget);
+    expect(find.text('1024 / 8192'), findsOneWidget);
+    expect(find.text('12.5%'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.text('已绑定流表'), findsNothing);
+    expect(find.text('流表占用率'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('long background pause renews session and resumes live polling', (
     tester,
   ) async {
@@ -335,7 +367,8 @@ void main() {
     await tester.pump();
     expect(find.text('5 GHz'), findsWidgets);
     expect(find.textContaining('40 · 160 MHz'), findsOneWidget);
-    expect(find.text('TX 失败率'), findsWidgets);
+    expect(find.text('TX FAL'), findsWidgets);
+    expect(find.text('RX CRC'), findsWidgets);
     expect(find.text('12%'), findsOneWidget);
     expect(find.text('BSSID 02:11:22:33:44:55'), findsOneWidget);
     await tester.tap(find.text('2.4 GHz'));

@@ -455,6 +455,37 @@ class SfpPort {
       .toList();
 }
 
+class PpeTable {
+  const PpeTable({required this.index, this.bound, this.capacity});
+  final int index;
+  final int? bound;
+  final int? capacity;
+
+  double? get usedPercent =>
+      bound == null || capacity == null || capacity! <= 0 || bound! > capacity!
+      ? null
+      : bound! * 100 / capacity!;
+
+  static List<PpeTable> parseAll(Object? value) {
+    final json = _map(value);
+    final count = int.tryParse('${json['PPE_NUM']}');
+    if (count == null || count <= 0 || count > 16) return const [];
+    int? counter(Object? raw) {
+      final n = int.tryParse('$raw');
+      return n != null && n >= 0 ? n : null;
+    }
+
+    return List.generate(
+      count,
+      (i) => PpeTable(
+        index: i,
+        bound: counter(json['BIND_PPE$i']),
+        capacity: counter(json['ALL_PPE$i']),
+      ),
+    );
+  }
+}
+
 class RouterSnapshot {
   const RouterSnapshot({
     required this.fetchedAt,
@@ -482,6 +513,8 @@ class RouterSnapshot {
     this.wifiError,
     this.metricsError,
     this.sfpError,
+    this.ppeTables = const [],
+    this.ppeError,
   });
   final DateTime fetchedAt;
   final TrafficSummary? summary;
@@ -508,6 +541,8 @@ class RouterSnapshot {
   final String? wifiError;
   final String? metricsError;
   final String? sfpError;
+  final List<PpeTable> ppeTables;
+  final String? ppeError;
 }
 
 String formatBytes(num value) {

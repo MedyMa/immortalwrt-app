@@ -184,6 +184,9 @@ class _Overview extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 20),
+        const _SectionHeader(title: '硬件加速'),
+        _PpeCard(snapshot: snapshot, offline: offline),
         if (snapshot.trafficError != null) ...[
           const SizedBox(height: 12),
           const _Notice(
@@ -192,6 +195,99 @@ class _Overview extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _PpeCard extends StatelessWidget {
+  const _PpeCard({required this.snapshot, required this.offline});
+  final RouterSnapshot snapshot;
+  final bool offline;
+
+  @override
+  Widget build(BuildContext context) {
+    final unavailable = snapshot.ppeError != null || snapshot.ppeTables.isEmpty;
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'HNAT',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: _inkOf(context),
+                  ),
+                ),
+              ),
+              _Pill(
+                offline
+                    ? '连接中断'
+                    : unavailable
+                    ? '未获取'
+                    : '已启用',
+                offline
+                    ? _red
+                    : unavailable
+                    ? _mutedOf(context)
+                    : _green,
+              ),
+            ],
+          ),
+          if (snapshot.ppeTables.isEmpty) ...[
+            const SizedBox(height: 18),
+            Text('暂无 PPE 数据', style: _bodyStyle(context)),
+          ],
+          for (final table in snapshot.ppeTables) ...[
+            const SizedBox(height: 22),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'PPE ${table.index}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _inkOf(context),
+                    ),
+                  ),
+                ),
+                Text(
+                  '${table.bound ?? '—'} / ${table.capacity ?? '—'}',
+                  style: TextStyle(fontSize: 12, color: _mutedOf(context)),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  table.usedPercent == null
+                      ? '—'
+                      : '${table.usedPercent!.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: offline || unavailable ? _mutedOf(context) : _blue,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            if (table.usedPercent != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: table.usedPercent! / 100,
+                  minHeight: 6,
+                  color: offline || unavailable
+                      ? _mutedOf(context)
+                      : _blue.withValues(alpha: 0.65),
+                  backgroundColor: _mutedOf(context).withValues(alpha: 0.1),
+                ),
+              ),
+          ],
+        ],
+      ),
     );
   }
 }

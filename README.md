@@ -48,6 +48,8 @@ CI compiles against **Android 17 SDK (API 37)** with Android Gradle Plugin 9.1.1
 
 ## Refresh and backend compatibility
 
+Overview also reads `luci.turboacc.getMTKPPEStat` about every 15 seconds. Each PPE row uses turboacc's `BIND_PPE` / `ALL_PPE` counters; the percentage has the same scope as the local turboacc page. These are hardware flow-table entries, not unique devices or CPU load. Missing counters or invalid denominators stay unknown. Read-only accounts need the turboacc read ACL; no write permission is required. If turboacc is unavailable, other overview data remains usable.
+
 Overview reads live rate every 1 second, with system status about every 15 seconds. Requests do not overlap. The Traffic page sums the latest 24 hourly buckets and loads the 24-hour minute series; session totals on Overview stay separate. Missing WAN buckets are labelled attributed totals instead of complete WAN totals.
 
 BE14, CPU and wireless history require the independent rpcd-mod-router-status package. Traffic statistics alone use luci-app-traffic; neither Wi-Fi reads nor wireless sampling depend on it. Install the status package first, update the mobile app, then upgrade traffic to 1.1.7 to remove the misplaced monitoring methods. Reconnect after rpcd restarts. Dedicated read-only accounts require the router-status read ACL. The LuCI traffic page keeps its 24-hour default.

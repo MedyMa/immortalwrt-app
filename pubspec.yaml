@@ -1,7 +1,7 @@
 name: immortalwrt_app
 description: Read-only MT7988 router status for iOS and Android.
 publish_to: none
-version: 0.4.1+15
+version: 0.4.2+16
 
 environment:
   sdk: '>=3.9.0 <4.0.0'
