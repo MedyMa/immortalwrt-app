@@ -145,6 +145,25 @@ class _PpeApi extends _FakeRouterApi {
   );
 }
 
+class _ManyAppsApi extends _FakeRouterApi {
+  @override
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async => RouterSnapshot(
+    fetchedAt: DateTime.now(),
+    trafficWindow: TrafficSummary.fromJson({
+      'apps': List.generate(
+        45,
+        (i) => {
+          'name': i.isEven ? 'Application $i' : 'site-$i.example.com',
+          'bytes': 1000 + i,
+        },
+      ),
+    }),
+  );
+}
+
 class _WifiApi extends _FakeRouterApi {
   @override
   Future<RouterSnapshot> fetch({
@@ -198,6 +217,30 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets(
+    'traffic lists every returned application and site beyond thirty',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _ManyAppsApi(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.text('流量').last);
+      await tester.pump();
+      await tester.scrollUntilVisible(find.text('Application 44'), 400);
+      for (var i = 0; i < 45; i++) {
+        expect(
+          find.text(i.isEven ? 'Application $i' : 'site-$i.example.com'),
+          findsOneWidget,
+        );
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   testWidgets('HNAT card keeps PPE bars without aggregate or footer', (
     tester,
   ) async {

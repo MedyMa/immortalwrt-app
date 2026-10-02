@@ -40,7 +40,6 @@ class _TrafficState extends State<_Traffic> {
     final points = series?.points ?? const <TrafficPoint>[];
     final double? peak = points.isEmpty ? null : series?.peakBytesPerSecond;
     final apps = summary?.apps ?? const <TrafficApp>[];
-    final shownApps = apps.take(30).toList(growable: false);
     final down = summary?.headlineDown;
     final up = summary?.headlineUp;
     final total = down == null || up == null ? null : down + up;
@@ -164,7 +163,7 @@ class _TrafficState extends State<_Traffic> {
         ],
         const SizedBox(height: 20),
         _SectionHeader(title: '应用与站点', trail: attributedText),
-        if (shownApps.isEmpty)
+        if (apps.isEmpty)
           _Card(child: Text('暂无可识别的应用流量。', style: _bodyStyle(context)))
         else
           _Card(
@@ -173,11 +172,11 @@ class _TrafficState extends State<_Traffic> {
               future: _icons,
               builder: (context, state) => Column(
                 children: [
-                  for (var i = 0; i < shownApps.length; i++) ...[
+                  for (var i = 0; i < apps.length; i++) ...[
                     if (i > 0) const _Hairline(),
                     _AppTile(
-                      app: shownApps[i],
-                      icon: state.data?.iconUri(shownApps[i].name),
+                      app: apps[i],
+                      icon: state.data?.iconUri(apps[i].name),
                     ),
                   ],
                 ],
