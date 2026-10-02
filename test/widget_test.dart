@@ -157,6 +157,25 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets('overview reads only live rate after two seconds', (
+    tester,
+  ) async {
+    final api = _FakeRouterApi();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    expect(api.sections, [RouterSection.overview, RouterSection.live]);
+    await tester.tap(find.text('设备').last);
+    await tester.pump();
+    final count = api.sections.length;
+    await tester.pump(const Duration(seconds: 2));
+    expect(api.sections.length, count);
+  });
   testWidgets('offline shell presents connection and all four sections', (
     tester,
   ) async {
@@ -376,12 +395,12 @@ void main() {
     );
     await tester.pump();
     expect(find.text('互联网'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 16));
+    await tester.pump(const Duration(seconds: 2));
     await tester.pump();
     expect(find.textContaining('连接中断 · 显示上次成功读取的数据'), findsOneWidget);
     expect(find.text('连接已中断'), findsOneWidget);
     expect(find.text('互联网'), findsNothing);
-    await tester.pump(const Duration(seconds: 16));
+    await tester.pump(const Duration(seconds: 2));
     await tester.pump();
     expect(find.textContaining('连接中断 · 显示上次成功读取的数据'), findsNothing);
     expect(find.text('互联网'), findsOneWidget);

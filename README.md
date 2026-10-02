@@ -22,7 +22,7 @@ The Wi-Fi history card also has scrolled [Android](design/previews/android-wifi-
 2. Open the app's connection screen. Its default HTTPS address is `https://bananapi.x.ddnsto.com`; the remote tunnel was checked to forward unauthenticated `/ubus` requests on 2026-10-01, but login and authorized methods still require a device-side test.
 3. Enter the LuCI/ubus username and password. At home, `http://192.168.2.1` is an optional local fallback. The username is not prefilled so a dedicated read-only account can be used.
 
-The app sends `session.login`, followed only by `luci.traffic.getSummary`, `getLive`, `getSeries`, `getSystemMetrics`, `getWirelessStatus`, `getWirelessHistory`, `luci.sfp-status.getStatuses`, `system.info`, and `luci-rpc.getDHCPLeases`. It never calls a router write method. `getWirelessStatus` filters the netifd payload on the router so configured Wi-Fi passwords are never returned to the phone. Prefer a dedicated read-only ubus account, because a full administrator credential still grants administrator rights to anyone who obtains it. Credentials are stored in Android Keystore / iOS Keychain through `flutter_secure_storage`; logout deletes them. The ubus session stays in memory.
+The app sends `session.login`, followed only by `luci.traffic.getSummary`, `getLive`, `getHourly`, `getSeries`, `getSystemMetrics`, `getWirelessStatus`, `getWirelessHistory`, `luci.sfp-status.getStatuses`, `system.info`, and `luci-rpc.getDHCPLeases`. It never calls a router write method. `getWirelessStatus` filters the netifd payload on the router so configured Wi-Fi passwords are never returned to the phone. Prefer a dedicated read-only ubus account, because a full administrator credential still grants administrator rights to anyone who obtains it. Credentials are stored in Android Keystore / iOS Keychain through `flutter_secure_storage`; logout deletes them. The ubus session stays in memory.
 
 The local `http://192.168.2.1` connection is **not encrypted**. Only this exact IP is permitted over HTTP in the app and platform network policy. The DDnsto HTTPS route provides remote connectivity without a phone VPN; it depends on that third-party tunnel being online. Use a dedicated read-only router account if available.
 
@@ -45,3 +45,9 @@ flutter run
 ```
 
 CI compiles against **Android 17 SDK (API 37)** with Android Gradle Plugin 9.1.1. `targetSdk` still follows Flutter's default pending Android 17 device behavior testing. The iOS job explicitly uses the **Xcode 27 / iOS 27 SDK** runner while retaining iOS 15 as its deployment target. CI prints the selected SDK versions. The Android artifact is a **debug APK**. The iOS artifact is an **unsigned simulator app**; it cannot be installed on a physical iPhone. iPhone distribution requires Apple signing credentials and a later signed release workflow.
+
+## Refresh and backend compatibility
+
+Overview reads live rate every 2 seconds, with system status about every 15 seconds. Requests do not overlap. The Traffic page sums the latest 24 hourly buckets and loads the 24-hour minute series; session totals on Overview stay separate. Missing WAN buckets are labelled attributed totals instead of complete WAN totals.
+
+BE14 and CPU require luci-app-traffic 1.1.6 or newer on the router. If local ubus reports Method not found for getWirelessStatus, update the router package, restart rpcd and reconnect the phone app. An unavailable wireless method no longer labels an otherwise valid connection as disconnected. The LuCI traffic page keeps its 24-hour default.

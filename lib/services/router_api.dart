@@ -26,7 +26,7 @@ class RouterAccessDeniedException extends RouterApiException {
   const RouterAccessDeniedException() : super('账号无此页面的读取权限，请检查 ubus ACL');
 }
 
-enum RouterSection { all, overview, devices, wifi, traffic }
+enum RouterSection { all, overview, devices, wifi, traffic, live }
 
 class _ReadSpec {
   const _ReadSpec(this.key, this.object, this.method, [this.args = const {}]);
@@ -116,6 +116,10 @@ class RouterApi {
         final detail = payload is Map && payload['error'] is Map
             ? '${(payload['error'] as Map)['message'] ?? ''}'
             : '';
+        if (detail.toLowerCase() == 'access denied') {
+          if (login) throw const RouterApiException('登录失败，请检查用户名和密码');
+          throw RouterPermissionException('$object.$method');
+        }
         throw RouterApiException(
           detail.isEmpty
               ? '$object.$method 响应格式不正确'
@@ -158,7 +162,10 @@ class RouterApi {
     const summary = _ReadSpec('summary', 'luci.traffic', 'getSummary');
     const live = _ReadSpec('live', 'luci.traffic', 'getLive');
     const series = _ReadSpec('series', 'luci.traffic', 'getSeries', {
-      'range': '1h',
+      'range': '24h',
+    });
+    const window = _ReadSpec('window', 'luci.traffic', 'getHourly', {
+      'hours': 24,
     });
     const wifi = _ReadSpec('wifi', 'luci.traffic', 'getWirelessStatus');
     const wifiHistory = _ReadSpec(
@@ -179,7 +186,8 @@ class RouterApi {
       RouterSection.overview => [summary, live, wifi, system, metrics, sfp],
       RouterSection.devices => [summary, devices],
       RouterSection.wifi => [wifi, if (readHistory) wifiHistory],
-      RouterSection.traffic => [summary, series],
+      RouterSection.traffic => [window, series],
+      RouterSection.live => [live],
       RouterSection.all => [
         summary,
         live,
@@ -210,7 +218,14 @@ class RouterApi {
     final successes = results.where((item) => item.data != null).length;
     if (successes == 0) {
       if (results.every((item) => item.error is RouterPermissionException)) {
-        throw const RouterSessionExpiredException();
+        if (section != RouterSection.wifi) {
+          throw const RouterSessionExpiredException();
+        }
+        try {
+          await _call('luci.traffic', 'getLive', const {});
+        } on RouterPermissionException {
+          throw const RouterSessionExpiredException();
+        }
       }
       final failure = results.first.error;
       final wifiMethodError =
@@ -218,6 +233,7 @@ class RouterApi {
           previous != null &&
           failure != null &&
           (failure.message.contains('ubus 拒绝') ||
+              failure is RouterPermissionException ||
               failure.message.contains('响应格式不正确'));
       if (!wifiMethodError) {
         throw failure ?? const RouterApiException('无法读取路由器状态');
@@ -228,6 +244,7 @@ class RouterApi {
         ? byKey[key]?.error?.message
         : switch (key) {
             'summary' => previous?.trafficError,
+            'window' => previous?.windowError,
             'live' => previous?.liveError,
             'series' => previous?.seriesError,
             'wifi' => previous?.wifiError,
@@ -269,6 +286,10 @@ class RouterApi {
       summary: summaryData == null
           ? previous?.summary
           : TrafficSummary.fromJson(summaryData),
+      trafficWindow: data('window') == null
+          ? previous?.trafficWindow
+          : TrafficSummary.fromHourly(data('window')),
+      windowError: error('window'),
       live: liveData == null ? previous?.live : LiveRate.fromJson(liveData),
       series: seriesData == null
           ? previous?.series
@@ -306,7 +327,11 @@ class RouterApi {
       seriesError: error('series'),
       devicesError: error('devices'),
       systemError: error('system'),
-      wifiError: error('wifi'),
+      wifiError: error('wifi') == null
+          ? null
+          : byKey['wifi']?.error is RouterPermissionException
+          ? '无线接口不可用，请更新路由器 Traffic 组件并检查读取权限'
+          : error('wifi'),
       metricsError: error('metrics'),
       sfpError: error('sfp'),
     );

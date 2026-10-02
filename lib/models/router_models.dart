@@ -68,6 +68,56 @@ class TrafficApp {
 }
 
 class TrafficSummary {
+  factory TrafficSummary.fromHourly(Object? value, {DateTime? now}) {
+    final cutoff = (now ?? DateTime.now()).subtract(const Duration(hours: 24));
+    final hours = _list(_map(value)['hours']).map(_map).where((hour) {
+      final at = DateTime.tryParse('${hour['hour']}:00:00');
+      return at != null && !at.isBefore(cutoff);
+    }).toList();
+    final apps = <String, TrafficApp>{};
+    var wanDown = 0;
+    var wanUp = 0;
+    var attributedDown = 0;
+    var attributedUp = 0;
+    final completeWan =
+        hours.isNotEmpty &&
+        hours.every((h) {
+          final iface = _map(h['iface']);
+          return iface['down'] is num && iface['up'] is num;
+        });
+    for (final hour in hours) {
+      final iface = _map(hour['iface']);
+      wanDown += _number(iface['down']);
+      wanUp += _number(iface['up']);
+      for (final raw in _list(hour['apps'])) {
+        final app = TrafficApp.fromJson(raw);
+        if (app.name.isEmpty) continue;
+        final old = apps[app.name];
+        apps[app.name] = TrafficApp(
+          name: app.name,
+          down: app.down + (old?.down ?? 0),
+          up: app.up + (old?.up ?? 0),
+        );
+        attributedDown += app.down;
+        attributedUp += app.up;
+      }
+    }
+    final sorted = apps.values.toList()
+      ..sort((a, b) => b.bytes.compareTo(a.bytes));
+    return TrafficSummary(
+      collectedAt: now ?? DateTime.now(),
+      version: '',
+      headlineDown: completeWan ? wanDown : attributedDown,
+      headlineUp: completeWan ? wanUp : attributedUp,
+      headlineSource: completeWan ? 'WAN' : '已归属流量',
+      hasWanTotals: completeWan,
+      attributedDown: attributedDown,
+      attributedUp: attributedUp,
+      clientCount: 0,
+      clients: const [],
+      apps: sorted,
+    );
+  }
   const TrafficSummary({
     required this.collectedAt,
     required this.version,
@@ -409,6 +459,8 @@ class RouterSnapshot {
   const RouterSnapshot({
     required this.fetchedAt,
     this.summary,
+    this.trafficWindow,
+    this.windowError,
     this.live,
     this.series,
     this.radios = const [],
@@ -432,6 +484,8 @@ class RouterSnapshot {
   });
   final DateTime fetchedAt;
   final TrafficSummary? summary;
+  final TrafficSummary? trafficWindow;
+  final String? windowError;
   final LiveRate? live;
   final TrafficSeries? series;
   final List<WifiRadio> radios;

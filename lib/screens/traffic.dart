@@ -35,7 +35,7 @@ class _TrafficState extends State<_Traffic> {
 
   @override
   Widget build(BuildContext context) {
-    final summary = widget.snapshot.summary;
+    final summary = widget.snapshot.trafficWindow;
     final series = widget.snapshot.series;
     final points = series?.points ?? const <TrafficPoint>[];
     final double? peak = points.isEmpty ? null : series?.peakBytesPerSecond;
@@ -61,12 +61,12 @@ class _TrafficState extends State<_Traffic> {
                     : summary.hasWanTotals
                     ? 'WAN 总流量'
                     : '归属流量',
-                trail: '本次采集会话',
+                trail: '最近 24 小时',
                 padding: EdgeInsets.zero,
               ),
               Text(
                 total == null ? '—' : formatBytes(total),
-                style: _figureStyle(context, size: 32),
+                style: _figureStyle(context, size: 28),
               ),
               const SizedBox(height: 6),
               Text(
@@ -121,7 +121,7 @@ class _TrafficState extends State<_Traffic> {
             children: [
               const _SectionHeader(
                 title: '流量波形',
-                trail: '最近 1 小时',
+                trail: '最近 24 小时',
                 padding: EdgeInsets.zero,
               ),
               _TrafficChart(series: series),
@@ -148,6 +148,13 @@ class _TrafficState extends State<_Traffic> {
             ],
           ),
         ),
+        if (widget.snapshot.windowError != null) ...[
+          const SizedBox(height: 10),
+          _Notice(
+            '流量统计暂不可用：${widget.snapshot.windowError}',
+            Icons.info_outline_rounded,
+          ),
+        ],
         if (widget.snapshot.seriesError != null) ...[
           const SizedBox(height: 10),
           _Notice(
@@ -190,24 +197,28 @@ class _AppTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 12),
+    padding: const EdgeInsets.symmetric(vertical: 10),
     child: Row(
       children: [
-        icon == null
-            ? _Avatar(label: _initial(app.name), color: _violet)
-            : SizedBox(
-                width: 42,
-                height: 42,
-                child: SvgPicture.network(
-                  icon.toString(),
-                  fit: BoxFit.contain,
-                  placeholderBuilder: (_) =>
-                      _Avatar(label: _initial(app.name), color: _violet),
-                  errorBuilder: (_, __, ___) =>
-                      _Avatar(label: _initial(app.name), color: _violet),
+        SizedBox(
+          width: 28,
+          height: 28,
+          child: icon == null
+              ? _Avatar(label: _initial(app.name), color: _violet)
+              : SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: SvgPicture.network(
+                    icon.toString(),
+                    fit: BoxFit.contain,
+                    placeholderBuilder: (_) =>
+                        _Avatar(label: _initial(app.name), color: _violet),
+                    errorBuilder: (_, __, ___) =>
+                        _Avatar(label: _initial(app.name), color: _violet),
+                  ),
                 ),
-              ),
-        const SizedBox(width: 12),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,8 +228,8 @@ class _AppTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
                   color: _inkOf(context),
                 ),
               ),
@@ -229,8 +240,8 @@ class _AppTile extends StatelessWidget {
         Text(
           formatBytes(app.bytes),
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
             color: _inkOf(context),
           ),
         ),

@@ -209,6 +209,8 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   bool _foreground = true;
   bool _checking = false;
   bool _requiresLogin = false;
+  bool _refreshing = false;
+  DateTime? _lastFullRefresh;
   int _requestVersion = 0;
   int _tab = 0;
   String _url = 'https://bananapi.x.ddnsto.com';
@@ -231,7 +233,16 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   void _startPolling() {
     _timer?.cancel();
     if (_foreground && _api != null && !_requiresLogin) {
-      _timer = Timer.periodic(const Duration(seconds: 15), (_) => _refresh());
+      _timer = Timer.periodic(
+        Duration(seconds: _tab == 0 ? 2 : 15),
+        (_) => _refresh(
+          liveOnly:
+              _tab == 0 &&
+              _lastFullRefresh != null &&
+              DateTime.now().difference(_lastFullRefresh!) <
+                  const Duration(seconds: 15),
+        ),
+      );
     }
   }
 
@@ -260,6 +271,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     });
     if (_loading) return;
     _requestVersion++;
+    _startPolling();
     _refresh();
   }
 
@@ -321,6 +333,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       _url = url;
       _username = username;
       _requiresLogin = false;
+      _lastFullRefresh = DateTime.now();
       setState(() {
         _snapshot = first;
         _loading = false;
@@ -340,11 +353,14 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _refresh() async {
+  Future<void> _refresh({bool liveOnly = false}) async {
     final api = _api;
     if (api == null || _loading || !_foreground || _requiresLogin) return;
+    if (_refreshing) return;
+    _refreshing = true;
+    final requestedTab = _tab;
     final version = ++_requestVersion;
-    final section = _section;
+    final section = liveOnly ? RouterSection.live : _section;
     try {
       final session = RouterSession(api, () async {
         final username = await _storage.read(key: 'router_username');
@@ -361,6 +377,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
           _snapshot = data;
           _error = null;
           _checking = false;
+          if (!liveOnly) _lastFullRefresh = DateTime.now();
         });
       }
     } catch (error) {
@@ -382,6 +399,11 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
           _error = '$error';
           _checking = false;
         });
+      }
+    } finally {
+      _refreshing = false;
+      if (mounted && _foreground && requestedTab != _tab) {
+        _refresh();
       }
     }
   }
