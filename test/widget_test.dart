@@ -246,6 +246,111 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets(
+    'Android rechecks native dark mode after returning from background',
+    (tester) async {
+      const channel = MethodChannel('com.medyma.immortalwrt/appearance');
+      var dark = false;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        (call) async => call.method == 'getAppearance'
+            ? {'dark': dark, 'accent': 0xFF2563EB}
+            : null,
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      await tester.pumpWidget(const ImmortalWrtApp());
+      await tester.pumpAndSettle();
+      expect(
+        Theme.of(tester.element(find.byType(Scaffold))).brightness,
+        Brightness.light,
+      );
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      dark = true;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(
+        Theme.of(tester.element(find.byType(Scaffold))).brightness,
+        Brightness.dark,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
+
+  testWidgets('capsule hides on upward swipe and returns on downward swipe', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(
+          storage: _MemoryStorage(),
+          apiFactory: (_) => _ManyAppsApi(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.text('流量').last);
+    await tester.pump();
+    final nav = find.byKey(const ValueKey('compact-navigation'));
+    final fade = find.ancestor(of: nav, matching: find.byType(AnimatedOpacity));
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
+    expect(
+      Focus.of(
+        tester.element(find.descendant(of: nav, matching: find.text('总览'))),
+      ).canRequestFocus,
+      isFalse,
+    );
+    expect(
+      find.descendant(of: nav, matching: find.text('总览')).hitTestable(),
+      findsNothing,
+    );
+    await tester.drag(find.byType(ListView).first, const Offset(0, 150));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
+    await tester.tap(find.descendant(of: nav, matching: find.text('总览')));
+    await tester.pump();
+    expect(find.text('MT7988 状态'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  testWidgets('appearance follows live system brightness without restarting', (
+    tester,
+  ) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await tester.pumpWidget(const ImmortalWrtApp());
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(Scaffold))).brightness,
+      Brightness.light,
+    );
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(Scaffold))).brightness,
+      Brightness.dark,
+    );
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    await tester.pumpAndSettle();
+    expect(
+      Theme.of(tester.element(find.byType(Scaffold))).brightness,
+      Brightness.light,
+    );
+  });
   testWidgets('accessible chrome avoids blur and remains navigable', (
     tester,
   ) async {
@@ -663,7 +768,7 @@ void main() {
       call,
     ) async {
       calls++;
-      return 0xFFBF5AF2;
+      return {'dark': false, 'accent': 0xFFBF5AF2};
     });
     addTearDown(
       () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

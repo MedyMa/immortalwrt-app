@@ -260,16 +260,13 @@ class _SettingsAction extends StatelessWidget {
         ),
       );
     }
-    return _GlassSurface(
-      radius: BorderRadius.circular(18),
-      child: IconButton(
-        tooltip: '连接设置',
-        onPressed: onPressed,
-        iconSize: 24,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-        icon: const Icon(Icons.settings_outlined),
-        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
-      ),
+    return IconButton(
+      tooltip: '连接设置',
+      onPressed: onPressed,
+      iconSize: 24,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      icon: const Icon(Icons.settings_outlined),
+      style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
     );
   }
 }

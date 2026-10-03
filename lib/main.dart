@@ -17,6 +17,7 @@ import 'services/traffic_icons.dart';
 
 part 'widgets/shared.dart';
 part 'widgets/glass.dart';
+part 'widgets/compact_navigation.dart';
 part 'widgets/platform_navigation.dart';
 part 'screens/overview.dart';
 part 'screens/devices.dart';
@@ -112,22 +113,56 @@ class ImmortalWrtApp extends StatefulWidget {
   State<ImmortalWrtApp> createState() => _ImmortalWrtAppState();
 }
 
-class _ImmortalWrtAppState extends State<ImmortalWrtApp> {
+class _ImmortalWrtAppState extends State<ImmortalWrtApp>
+    with WidgetsBindingObserver {
   static const _appearance = MethodChannel('com.medyma.immortalwrt/appearance');
   Color? _systemSeed;
+  Brightness? _nativeBrightness;
+  int _appearanceRequest = 0;
+  bool _usesAndroidAppearance = false;
+  bool get _android =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      _loadSystemAccent();
+    WidgetsBinding.instance.addObserver(this);
+    if (_android) {
+      _usesAndroidAppearance = true;
+      _appearance.setMethodCallHandler((call) async {
+        if (call.method == 'appearanceChanged' && call.arguments is Map) {
+          _appearanceRequest++;
+          _applyAppearance(Map<String, dynamic>.from(call.arguments as Map));
+        }
+      });
+      _loadAppearance();
     }
   }
 
-  Future<void> _loadSystemAccent() async {
+  void _applyAppearance(Map<String, dynamic> value) {
+    if (!mounted) return;
+    final dark = value['dark'];
+    final accent = value['accent'];
+    final brightness = dark is bool
+        ? (dark ? Brightness.dark : Brightness.light)
+        : null;
+    final seed = accent is int ? Color(accent) : _systemSeed;
+    if (brightness == _nativeBrightness && seed == _systemSeed) return;
+    setState(() {
+      _nativeBrightness = brightness;
+      _systemSeed = seed;
+    });
+  }
+
+  Future<void> _loadAppearance() async {
+    final request = ++_appearanceRequest;
     try {
-      final value = await _appearance.invokeMethod<int>('accentColor');
-      if (mounted && value != null) setState(() => _systemSeed = Color(value));
+      final value = await _appearance.invokeMapMethod<String, dynamic>(
+        'getAppearance',
+      );
+      if (mounted && request == _appearanceRequest && value != null) {
+        _applyAppearance(value);
+      }
     } on MissingPluginException {
       // A host without the Android channel keeps the application seed.
     } on PlatformException {
@@ -136,12 +171,36 @@ class _ImmortalWrtAppState extends State<ImmortalWrtApp> {
   }
 
   @override
+  void didChangePlatformBrightness() {
+    if (!mounted) return;
+    setState(() => _nativeBrightness = null);
+    if (_android) _loadAppearance();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _android) _loadAppearance();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (_usesAndroidAppearance) _appearance.setMethodCallHandler(null);
+    _appearanceRequest++;
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final seed = _systemSeed ?? _blue;
     return MaterialApp(
       title: 'ImmortalWrt',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
+      themeMode: _nativeBrightness == null
+          ? ThemeMode.system
+          : _nativeBrightness == Brightness.dark
+          ? ThemeMode.dark
+          : ThemeMode.light,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
@@ -232,6 +291,33 @@ class RouterHome extends StatefulWidget {
 }
 
 class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
+  final _navigationVisible = ValueNotifier(true);
+  final _scrolling = ValueNotifier(false);
+  double _scrollGesture = 0;
+
+  bool _onScroll(ScrollNotification notification) {
+    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    if (notification is ScrollStartNotification) {
+      _scrollGesture = 0;
+      _scrolling.value = true;
+    } else if (notification is ScrollEndNotification) {
+      _scrolling.value = false;
+    } else if (notification is ScrollUpdateNotification &&
+        notification.dragDetails != null) {
+      final delta = notification.scrollDelta ?? 0;
+      if (delta.sign != _scrollGesture.sign) _scrollGesture = 0;
+      _scrollGesture += delta;
+      if (notification.metrics.pixels <= 0 || _scrollGesture < -8) {
+        _navigationVisible.value = true;
+      } else if (_scrollGesture > 12) {
+        _navigationVisible.value = false;
+      }
+    }
+    return false;
+  }
+
   FlutterSecureStorage get _storage => widget.storage;
   RouterApi? _api;
   RouterSnapshot? _snapshot;
@@ -288,6 +374,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       return;
     }
     _foreground = true;
+    _navigationVisible.value = true;
     _startPolling();
     if (_api != null && !_requiresLogin) {
       setState(() => _checking = true);
@@ -296,6 +383,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   }
 
   void _selectTab(int tab) {
+    _navigationVisible.value = true;
     if (_tab == tab) return;
     setState(() {
       _tab = tab;
@@ -469,12 +557,15 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _navigationVisible.dispose();
+    _scrolling.dispose();
     _timer?.cancel();
     _api?.close();
     super.dispose();
   }
 
   Future<void> _showConnection() async {
+    _navigationVisible.value = true;
     final request = await showModalBottomSheet<(String, String, String)>(
       context: context,
       isScrollControlled: true,
@@ -505,15 +596,8 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: _pageOf(context),
       extendBody: !isIos && !wide,
-      extendBodyBehindAppBar: !isIos,
       appBar: AppBar(
-        backgroundColor: isIos ? null : Colors.transparent,
-        flexibleSpace: isIos
-            ? null
-            : const _GlassSurface(
-                radius: BorderRadius.zero,
-                child: SizedBox.expand(),
-              ),
+        backgroundColor: _pageOf(context),
         title: Text(
           names[_tab],
           style: const TextStyle(fontWeight: FontWeight.w800),
@@ -524,46 +608,41 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
         ],
       ),
       body: SafeArea(
-        top: isIos,
+        top: true,
         bottom: isIos || wide,
         child: Row(
           children: [
             if (wide)
-              Padding(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.viewPaddingOf(context).top + kToolbarHeight,
-                ),
-                child: NavigationRail(
-                  selectedIndex: _tab,
-                  onDestinationSelected: _selectTab,
-                  labelType: NavigationRailLabelType.all,
-                  backgroundColor: _cardOf(context),
-                  indicatorColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.12),
-                  destinations: const [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home_rounded),
-                      label: Text('总览'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.devices_outlined),
-                      selectedIcon: Icon(Icons.devices_rounded),
-                      label: Text('设备'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.router_outlined),
-                      selectedIcon: Icon(Icons.router_rounded),
-                      label: Text('Wi-Fi'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.bar_chart_outlined),
-                      selectedIcon: Icon(Icons.bar_chart_rounded),
-                      label: Text('流量'),
-                    ),
-                  ],
-                ),
+              NavigationRail(
+                selectedIndex: _tab,
+                onDestinationSelected: _selectTab,
+                labelType: NavigationRailLabelType.all,
+                backgroundColor: _cardOf(context),
+                indicatorColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.12),
+                destinations: const [
+                  NavigationRailDestination(
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home_rounded),
+                    label: Text('总览'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.devices_outlined),
+                    selectedIcon: Icon(Icons.devices_rounded),
+                    label: Text('设备'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.router_outlined),
+                    selectedIcon: Icon(Icons.router_rounded),
+                    label: Text('Wi-Fi'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.bar_chart_outlined),
+                    selectedIcon: Icon(Icons.bar_chart_rounded),
+                    label: Text('流量'),
+                  ),
+                ],
               ),
             Expanded(
               child: snapshot == null
@@ -572,49 +651,46 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                       error: _error,
                       onConnect: _showConnection,
                     )
-                  : RefreshIndicator(
-                      edgeOffset: isIos
-                          ? 0
-                          : MediaQuery.viewPaddingOf(context).top +
-                                kToolbarHeight,
-                      onRefresh: _refresh,
-                      color: _blue,
-                      child: ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(
-                          16,
-                          isIos
-                              ? 4
-                              : MediaQuery.viewPaddingOf(context).top + 64,
-                          16,
-                          !isIos && !wide
-                              ? 112 + MediaQuery.viewPaddingOf(context).bottom
-                              : 32,
+                  : NotificationListener<ScrollNotification>(
+                      onNotification: _onScroll,
+                      child: RefreshIndicator(
+                        onRefresh: _refresh,
+                        color: _blue,
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: EdgeInsets.fromLTRB(
+                            16,
+                            4,
+                            16,
+                            !isIos && !wide
+                                ? 112 + MediaQuery.viewPaddingOf(context).bottom
+                                : 32,
+                          ),
+                          children: [
+                            if (_error != null)
+                              _Notice(
+                                '连接中断 · 显示上次成功读取的数据\n$_error',
+                                Icons.wifi_off_rounded,
+                                tone: _red,
+                              ),
+                            if (_checking && _error == null)
+                              const _Notice(
+                                '正在核对数据 · 下方是上次成功读取的状态',
+                                Icons.sync_rounded,
+                              ),
+                            if (_tab == 0)
+                              _Overview(
+                                snapshot: snapshot,
+                                endpoint: _url,
+                                error: _error,
+                                onOpen: _selectTab,
+                              ),
+                            if (_tab == 1) _Devices(snapshot: snapshot),
+                            if (_tab == 2) _Wifi(snapshot: snapshot),
+                            if (_tab == 3)
+                              _Traffic(snapshot: snapshot, endpoint: _url),
+                          ],
                         ),
-                        children: [
-                          if (_error != null)
-                            _Notice(
-                              '连接中断 · 显示上次成功读取的数据\n$_error',
-                              Icons.wifi_off_rounded,
-                              tone: _red,
-                            ),
-                          if (_checking && _error == null)
-                            const _Notice(
-                              '正在核对数据 · 下方是上次成功读取的状态',
-                              Icons.sync_rounded,
-                            ),
-                          if (_tab == 0)
-                            _Overview(
-                              snapshot: snapshot,
-                              endpoint: _url,
-                              error: _error,
-                              onOpen: _selectTab,
-                            ),
-                          if (_tab == 1) _Devices(snapshot: snapshot),
-                          if (_tab == 2) _Wifi(snapshot: snapshot),
-                          if (_tab == 3)
-                            _Traffic(snapshot: snapshot, endpoint: _url),
-                        ],
                       ),
                     ),
             ),
@@ -625,49 +701,11 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
           ? null
           : isIos
           ? _IosTabBar(selectedIndex: _tab, onSelected: _selectTab)
-          : SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                child: _GlassSurface(
-                  child: NavigationBar(
-                    height: 72,
-                    elevation: 0,
-                    animationDuration: MediaQuery.disableAnimationsOf(context)
-                        ? Duration.zero
-                        : const Duration(milliseconds: 240),
-                    backgroundColor: Colors.transparent,
-                    indicatorColor: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer,
-                    surfaceTintColor: Colors.transparent,
-                    selectedIndex: _tab,
-                    onDestinationSelected: _selectTab,
-                    destinations: const [
-                      NavigationDestination(
-                        icon: Icon(Icons.home_outlined),
-                        selectedIcon: Icon(Icons.home_rounded),
-                        label: '总览',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.devices_outlined),
-                        selectedIcon: Icon(Icons.devices_rounded),
-                        label: '设备',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.router_outlined),
-                        selectedIcon: Icon(Icons.router_rounded),
-                        label: 'Wi-Fi',
-                      ),
-                      NavigationDestination(
-                        icon: Icon(Icons.bar_chart_outlined),
-                        selectedIcon: Icon(Icons.bar_chart_rounded),
-                        label: '流量',
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          : _CompactNavigation(
+              selectedIndex: _tab,
+              onSelected: _selectTab,
+              visible: _navigationVisible,
+              scrolling: _scrolling,
             ),
     );
   }
