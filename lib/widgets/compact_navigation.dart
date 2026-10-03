@@ -14,7 +14,7 @@ class _CompactNavigation extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: visible,
     builder: (context, _) {
-      final show = visible.value || MediaQuery.accessibleNavigationOf(context);
+      final show = visible.value;
       final duration = MediaQuery.disableAnimationsOf(context)
           ? Duration.zero
           : const Duration(milliseconds: 180);
