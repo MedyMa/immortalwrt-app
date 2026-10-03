@@ -1,0 +1,98 @@
+{
+  "google": {
+    "file": "google.svg",
+    "application": "Google",
+    "source": "dashboard-icons",
+    "upstream": "google",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "samsung": {
+    "file": "samsung.svg",
+    "application": "Samsung",
+    "source": "simple-icons",
+    "upstream": "samsung",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "synology": {
+    "file": "synology.svg",
+    "application": "Synology",
+    "source": "dashboard-icons",
+    "upstream": "synology",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "asus": {
+    "file": "asus.svg",
+    "application": "Asus",
+    "source": "dashboard-icons",
+    "upstream": "asus",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "huawei": {
+    "file": "huawei.svg",
+    "application": "Huawei",
+    "source": "dashboard-icons",
+    "upstream": "huawei",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "apple": {
+    "file": "apple.svg",
+    "application": "Apple",
+    "source": "dashboard-icons",
+    "upstream": "apple",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "lenovo": {
+    "file": "lenovo.svg",
+    "application": "Lenovo",
+    "source": "dashboard-icons",
+    "upstream": "lenovo",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "dell": {
+    "file": "dell.svg",
+    "application": "Dell",
+    "source": "dashboard-icons",
+    "upstream": "dell",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "hp": {
+    "file": "hp.svg",
+    "application": "HP",
+    "source": "dashboard-icons",
+    "upstream": "hp",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "playstation": {
+    "file": "playstation.svg",
+    "application": "PlayStation",
+    "source": "local",
+    "upstream": "local",
+    "licence": "supplied by the user, shipped in this repository (marks of their owners)",
+    "url": "tools/icons-local in the luci-app-traffic source tree"
+  },
+  "nintendo": {
+    "file": "nintendo.svg",
+    "application": "Nintendo",
+    "source": "selfhst/icons",
+    "upstream": "nintendo",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/selfhst/icons/blob/main/LICENSE"
+  },
+  "xiaomi": {
+    "file": "xiaomi.svg",
+    "application": "Xiaomi",
+    "source": "simple-icons",
+    "upstream": "xiaomi",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  }
+}

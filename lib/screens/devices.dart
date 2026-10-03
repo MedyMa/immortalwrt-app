@@ -153,66 +153,184 @@ class _DeviceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = row.hasTraffic ? _violet : _blue;
-    // One source tag per row, as the mockup does. Listing both tags overflowed
-    // the line and the ellipsis ate the second one ("… · DHCP 租约 · 有…"), and
-    // nothing is lost by dropping it: the trailing column already shows the
-    // session total, or "—" when the device has no traffic at all.
-    final tags = <String>[
-      row.ip,
-      if (row.hasLease) 'DHCP 租约' else if (row.hasTraffic) '有流量记录',
-    ];
+    final identity = DeviceIdentity.fromName(row.name);
     final bytes = row.bytes;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          _Avatar(label: _initials(row.name), color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      key: ValueKey('device-${row.ip}'),
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => _showDeviceDetails(context, row, identity),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            _DeviceIcon(identity: identity, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    row.name.isEmpty || row.name == row.ip || row.name == '*'
+                        ? '未命名设备'
+                        : '${row.name}${identity.model == null ? '' : ' · ${identity.model}'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: _inkOf(context),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${identity.typeLabel} · ${row.ip}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12, color: _mutedOf(context)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  row.name.isEmpty ? row.ip : row.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  bytes == null ? '—' : formatBytes(bytes),
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: _inkOf(context),
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  tags.join(' · '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 12, color: _mutedOf(context)),
-                ),
+                if (bytes != null)
+                  Text(
+                    '本次会话',
+                    style: TextStyle(fontSize: 11, color: _mutedOf(context)),
+                  ),
               ],
             ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                bytes == null ? '—' : formatBytes(bytes),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: _inkOf(context),
-                ),
-              ),
-              if (bytes != null)
-                Text(
-                  '本次会话',
-                  style: TextStyle(fontSize: 11, color: _mutedOf(context)),
-                ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
+
+class _DeviceIcon extends StatelessWidget {
+  const _DeviceIcon({required this.identity, required this.color});
+  final DeviceIdentity identity;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final (symbol, fallback) = switch (identity.kind) {
+      DeviceKind.phone => ('iphone', Icons.smartphone_rounded),
+      DeviceKind.tablet => ('ipad', Icons.tablet_mac_rounded),
+      DeviceKind.laptop => ('laptopcomputer', Icons.laptop_mac_rounded),
+      DeviceKind.desktop => ('desktopcomputer', Icons.desktop_windows_rounded),
+      DeviceKind.tv => ('tv', Icons.tv_rounded),
+      DeviceKind.nas => ('externaldrive', Icons.storage_rounded),
+      DeviceKind.console => ('gamecontroller', Icons.sports_esports_rounded),
+      DeviceKind.printer => ('printer', Icons.print_rounded),
+      DeviceKind.camera => ('camera', Icons.videocam_rounded),
+      DeviceKind.router => ('wifi.router', Icons.router_rounded),
+      DeviceKind.unknown => ('square.stack.3d.up', Icons.devices_other_rounded),
+    };
+    final generic = _AppleSymbol(
+      symbol,
+      fallback: fallback,
+      size: 23,
+      color: color,
+    );
+    final slug = identity.slug;
+    return Semantics(
+      label: identity.label,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: _isDark(context) ? 0.18 : 0.08),
+          borderRadius: BorderRadius.circular(13),
+        ),
+        alignment: Alignment.center,
+        child: slug == null
+            ? generic
+            : SvgPicture.asset(
+                'assets/device-brands/$slug.svg',
+                key: ValueKey('device-brand-$slug'),
+                width: 25,
+                height: 25,
+                colorFilter: ColorFilter.mode(_inkOf(context), BlendMode.srcIn),
+                excludeFromSemantics: true,
+                placeholderBuilder: (_) => generic,
+                errorBuilder: (_, _, _) => generic,
+              ),
+      ),
+    );
+  }
+}
+
+void _showDeviceDetails(
+  BuildContext context,
+  _DeviceRow row,
+  DeviceIdentity identity,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => _GlassSurface(
+      radius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('设备详情', style: _titleStyle(context)),
+              const SizedBox(height: 18),
+              for (final entry in <(String, String)>[
+                (
+                  '名称',
+                  row.name.isEmpty || row.name == row.ip || row.name == '*'
+                      ? '未命名设备'
+                      : row.name,
+                ),
+                ('类型', identity.typeLabel),
+                if (identity.brand != null) ('品牌', identity.brand!),
+                if (identity.model != null) ('型号', identity.model!),
+                ('IP', row.ip),
+                ('MAC', row.mac.isEmpty ? '未提供' : row.mac),
+                (
+                  '记录来源',
+                  [
+                    if (row.hasLease) 'DHCP 租约',
+                    if (row.hasTraffic) '流量记录',
+                  ].join(' · '),
+                ),
+                (
+                  '流量',
+                  row.bytes == null
+                      ? '未提供'
+                      : '${formatBytes(row.bytes!)} · 本次会话',
+                ),
+                ('识别依据', identity.evidence),
+              ]) ...[
+                Text(entry.$1, style: _bodyStyle(context)),
+                const SizedBox(height: 3),
+                SelectableText(
+                  entry.$2,
+                  style: TextStyle(fontSize: 15, color: _inkOf(context)),
+                ),
+                const SizedBox(height: 14),
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }

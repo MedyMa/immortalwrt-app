@@ -193,6 +193,16 @@ class _AppleSymbol extends StatelessWidget {
       );
     }
     final icon = switch (name) {
+      'iphone' => CupertinoIcons.device_phone_portrait,
+      'ipad' => CupertinoIcons.device_phone_landscape,
+      'laptopcomputer' => CupertinoIcons.device_laptop,
+      'tv' => CupertinoIcons.tv,
+      'externaldrive' => CupertinoIcons.archivebox,
+      'gamecontroller' => CupertinoIcons.game_controller,
+      'printer' => CupertinoIcons.printer,
+      'camera' => CupertinoIcons.camera,
+      'wifi.router' => CupertinoIcons.wifi,
+      'square.stack.3d.up' => CupertinoIcons.square_stack_3d_up,
       'desktopcomputer' => CupertinoIcons.desktopcomputer,
       'wifi' => CupertinoIcons.wifi,
       _ => CupertinoIcons.chevron_right,

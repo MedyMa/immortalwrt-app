@@ -11,6 +11,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'models/router_models.dart';
+import 'models/device_identity.dart';
 import 'services/router_api.dart';
 import 'services/router_session.dart';
 import 'services/traffic_icons.dart';
@@ -77,14 +78,6 @@ TextStyle _figureStyle(
   fontWeight: FontWeight.w800,
   color: color ?? _inkOf(context),
 );
-
-/// First two characters of a name, used by the rounded avatar chips.
-String _initials(String name) {
-  final trimmed = name.trim();
-  if (trimmed.isEmpty) return '?';
-  final letters = trimmed.characters.take(2).toList().join().toUpperCase();
-  return letters.isEmpty ? '?' : letters;
-}
 
 /// A single initial, for the application chips: the mockup renders those as one
 /// letter (Y for YouTube, A for Apple) rather than the first two characters.

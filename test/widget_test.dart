@@ -147,6 +147,30 @@ class _HealthyApi extends _FakeRouterApi {
   );
 }
 
+class _DeviceIdentityApi extends _HealthyApi {
+  @override
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async => RouterSnapshot(
+    fetchedAt: DateTime.now(),
+    live: const LiveRate(
+      ready: true,
+      downBytesPerSecond: 0,
+      upBytesPerSecond: 0,
+      at: null,
+    ),
+    dhcpDevices: const [
+      DhcpDevice(
+        name: 'Alice-iPhone',
+        ip: '192.168.2.114',
+        mac: '02:11:22:33:44:55',
+      ),
+      DhcpDevice(name: '192.168.2.115', ip: '192.168.2.115', mac: ''),
+    ],
+  );
+}
+
 class _PpeApi extends _FakeRouterApi {
   @override
   Future<RouterSnapshot> fetch({
@@ -259,6 +283,39 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    for (final brightness in Brightness.values) {
+      testWidgets('device brand and detail work on $platform $brightness', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(platform: platform, brightness: brightness),
+            home: RouterHome(
+              storage: _MemoryStorage(),
+              apiFactory: (_) => _DeviceIdentityApi(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('topology-devices')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('device-brand-apple')),
+          findsOneWidget,
+        );
+        expect(find.text('未命名设备'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('device-192.168.2.114')));
+        await tester.pumpAndSettle();
+        expect(find.text('设备详情'), findsOneWidget);
+        expect(find.text('02:11:22:33:44:55'), findsOneWidget);
+        expect(find.text('根据设备名称推断'), findsOneWidget);
+        expect(find.text('DHCP 租约'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      });
+    }
+  }
   testWidgets(
     'Android rechecks native dark mode after returning from background',
     (tester) async {
