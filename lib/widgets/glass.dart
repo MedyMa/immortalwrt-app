@@ -5,25 +5,25 @@ class _GlassSurface extends StatelessWidget {
   const _GlassSurface({
     required this.child,
     this.radius = const BorderRadius.all(Radius.circular(28)),
-    this.blur = true,
     this.border = true,
+    this.surfaceColor,
   });
 
   final Widget child;
   final BorderRadius radius;
-  final bool blur;
   final bool border;
+  final Color? surfaceColor;
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final opaque = !blur || media.highContrast || media.disableAnimations;
+    final opaque = media.highContrast || media.disableAnimations;
     final dark = _isDark(context);
     final tint = Color.alphaBlend(
       Theme.of(
         context,
       ).colorScheme.primary.withValues(alpha: dark ? 0.055 : 0.025),
-      _cardOf(context),
+      surfaceColor ?? _cardOf(context),
     );
     final surface = DecoratedBox(
       decoration: BoxDecoration(
@@ -49,7 +49,7 @@ class _GlassSurface extends StatelessWidget {
       child: opaque
           ? surface
           : BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
               child: surface,
             ),
     );

@@ -7,3 +7,5 @@ Investigation: current ThemeMode.system responds correctly to Flutter brightness
 Implementation: keep native appearance synchronization in MainActivity and app state; bound filter sigma to 8, use opaque navigation while scrolling, remove toolbar/gear filters. Use ValueNotifiers for navigation scroll feedback so gestures do not rebuild data pages. Preserve navigation space, show at top/tab changes/settings/resume, disable hiding for assistive navigation. Keep iOS native chrome.
 
 Verify: live system brightness, resume with stale Flutter brightness, native events, swipe directions, semantic/hit-test hiding, keyboard sheet, full suite, day/night preview and platform CI builds.
+
+User follow-up supersedes blur reduction: retain 18 sigma glass while scrolling, including a frameless page-tinted header. Keep RepaintBoundary and notifier-isolated navigation visibility. Restore toolbar content and tablet rail insets and refresh feedback offset.

@@ -292,7 +292,6 @@ class RouterHome extends StatefulWidget {
 
 class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   final _navigationVisible = ValueNotifier(true);
-  final _scrolling = ValueNotifier(false);
   double _scrollGesture = 0;
 
   bool _onScroll(ScrollNotification notification) {
@@ -301,9 +300,6 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     }
     if (notification is ScrollStartNotification) {
       _scrollGesture = 0;
-      _scrolling.value = true;
-    } else if (notification is ScrollEndNotification) {
-      _scrolling.value = false;
     } else if (notification is ScrollUpdateNotification &&
         notification.dragDetails != null) {
       final delta = notification.scrollDelta ?? 0;
@@ -558,7 +554,6 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _navigationVisible.dispose();
-    _scrolling.dispose();
     _timer?.cancel();
     _api?.close();
     super.dispose();
@@ -596,8 +591,17 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     return Scaffold(
       backgroundColor: _pageOf(context),
       extendBody: !isIos && !wide,
+      extendBodyBehindAppBar: !isIos,
       appBar: AppBar(
-        backgroundColor: _pageOf(context),
+        backgroundColor: isIos ? _pageOf(context) : Colors.transparent,
+        flexibleSpace: isIos
+            ? null
+            : _GlassSurface(
+                border: false,
+                radius: BorderRadius.zero,
+                surfaceColor: _pageOf(context),
+                child: const SizedBox.expand(),
+              ),
         title: Text(
           names[_tab],
           style: const TextStyle(fontWeight: FontWeight.w800),
@@ -608,41 +612,46 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
         ],
       ),
       body: SafeArea(
-        top: true,
+        top: isIos,
         bottom: isIos || wide,
         child: Row(
           children: [
             if (wide)
-              NavigationRail(
-                selectedIndex: _tab,
-                onDestinationSelected: _selectTab,
-                labelType: NavigationRailLabelType.all,
-                backgroundColor: _cardOf(context),
-                indicatorColor: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.12),
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home_rounded),
-                    label: Text('总览'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.devices_outlined),
-                    selectedIcon: Icon(Icons.devices_rounded),
-                    label: Text('设备'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.router_outlined),
-                    selectedIcon: Icon(Icons.router_rounded),
-                    label: Text('Wi-Fi'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.bar_chart_outlined),
-                    selectedIcon: Icon(Icons.bar_chart_rounded),
-                    label: Text('流量'),
-                  ),
-                ],
+              Padding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.viewPaddingOf(context).top + kToolbarHeight,
+                ),
+                child: NavigationRail(
+                  selectedIndex: _tab,
+                  onDestinationSelected: _selectTab,
+                  labelType: NavigationRailLabelType.all,
+                  backgroundColor: _cardOf(context),
+                  indicatorColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.12),
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.home_outlined),
+                      selectedIcon: Icon(Icons.home_rounded),
+                      label: Text('总览'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.devices_outlined),
+                      selectedIcon: Icon(Icons.devices_rounded),
+                      label: Text('设备'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.router_outlined),
+                      selectedIcon: Icon(Icons.router_rounded),
+                      label: Text('Wi-Fi'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.bar_chart_outlined),
+                      selectedIcon: Icon(Icons.bar_chart_rounded),
+                      label: Text('流量'),
+                    ),
+                  ],
+                ),
               ),
             Expanded(
               child: snapshot == null
@@ -654,13 +663,19 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                   : NotificationListener<ScrollNotification>(
                       onNotification: _onScroll,
                       child: RefreshIndicator(
+                        edgeOffset: isIos
+                            ? 0
+                            : MediaQuery.viewPaddingOf(context).top +
+                                  kToolbarHeight,
                         onRefresh: _refresh,
                         color: _blue,
                         child: ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: EdgeInsets.fromLTRB(
                             16,
-                            4,
+                            isIos
+                                ? 4
+                                : MediaQuery.viewPaddingOf(context).top + 64,
                             16,
                             !isIos && !wide
                                 ? 112 + MediaQuery.viewPaddingOf(context).bottom
@@ -705,7 +720,6 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
               selectedIndex: _tab,
               onSelected: _selectTab,
               visible: _navigationVisible,
-              scrolling: _scrolling,
             ),
     );
   }

@@ -5,16 +5,14 @@ class _CompactNavigation extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     required this.visible,
-    required this.scrolling,
   });
   final int selectedIndex;
   final ValueListenable<bool> visible;
-  final ValueListenable<bool> scrolling;
   final ValueChanged<int> onSelected;
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: Listenable.merge([visible, scrolling]),
+    animation: visible,
     builder: (context, _) {
       final show = visible.value || MediaQuery.accessibleNavigationOf(context);
       final duration = MediaQuery.disableAnimationsOf(context)
@@ -53,7 +51,6 @@ class _CompactNavigation extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                     child: RepaintBoundary(
                       child: _GlassSurface(
-                        blur: !scrolling.value && show,
                         border: false,
                         radius: BorderRadius.circular(40),
                         child: Padding(
