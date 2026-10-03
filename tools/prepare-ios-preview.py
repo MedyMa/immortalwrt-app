@@ -1,9 +1,10 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
+(root / "lib/ios_preview_fixture.dart").write_text((root / "tools/ios_preview_fixture.dart").read_text(encoding="utf-8"), encoding="utf-8")
 p = root / "lib/main.dart"
 s = p.read_text(encoding="utf-8")
-s = s.replace("import 'models/router_models.dart';", "import 'models/router_models.dart';\nimport '../tools/ios_preview_fixture.dart';")
+s = s.replace("import 'models/router_models.dart';", "import 'models/router_models.dart';\nimport 'ios_preview_fixture.dart';")
 s = s.replace("    _restore();", "    _loadPreview();", 1)
 a = s.index("  Future<void> _restore()")
 s = s[:a] + """  Future<void> _loadPreview() async {

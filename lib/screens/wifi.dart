@@ -214,26 +214,42 @@ class _BandButton extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Material(
-    color: selected ? _blue.withValues(alpha: 0.11) : _pageOf(context),
-    borderRadius: BorderRadius.circular(12),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: selected ? _blue : _mutedOf(context),
+  Widget build(BuildContext context) =>
+      Theme.of(context).platform == TargetPlatform.iOS
+      ? CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          color: selected ? _blue.withValues(alpha: 0.11) : _pageOf(context),
+          borderRadius: BorderRadius.circular(12),
+          onPressed: onTap,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: selected ? _blue : _mutedOf(context),
+            ),
           ),
-        ),
-      ),
-    ),
-  );
+        )
+      : Material(
+          color: selected ? _blue.withValues(alpha: 0.11) : _pageOf(context),
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? _blue : _mutedOf(context),
+                ),
+              ),
+            ),
+          ),
+        );
 }
 
 class _WifiFigure extends StatelessWidget {

@@ -29,6 +29,19 @@ class _MemoryStorage extends FlutterSecureStorage {
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
   }) async => values[key];
+
+  @override
+  Future<void> delete({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    values.remove(key);
+  }
 }
 
 class _FakeRouterApi extends RouterApi {
@@ -405,6 +418,32 @@ void main() {
       },
     );
   }
+  testWidgets('iOS connection actions use Cupertino host fallbacks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.iOS),
+        home: RouterHome(
+          storage: _MemoryStorage(),
+          apiFactory: (_) => _FakeRouterApi(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byIcon(CupertinoIcons.gear));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(CupertinoButton, '连接'), findsOneWidget);
+    expect(find.widgetWithText(CupertinoButton, '退出并清除凭据'), findsOneWidget);
+    expect(find.byType(TextButton), findsNothing);
+    await tester.tap(find.widgetWithText(CupertinoButton, '退出并清除凭据'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(CupertinoButton, '连接路由器'), findsOneWidget);
+    await tester.tap(find.widgetWithText(CupertinoButton, '连接路由器'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNWidgets(3));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets('appearance follows live system brightness without restarting', (
     tester,
   ) async {

@@ -108,3 +108,95 @@ class _IosTabBarState extends State<_IosTabBar> {
     );
   }
 }
+
+class _AppleButton extends StatefulWidget {
+  const _AppleButton({
+    required this.title,
+    required this.onPressed,
+    this.symbol = 'link',
+    this.prominent = true,
+  });
+  final String title;
+  final VoidCallback onPressed;
+  final String symbol;
+  final bool prominent;
+  @override
+  State<_AppleButton> createState() => _AppleButtonState();
+}
+
+class _AppleButtonState extends State<_AppleButton> {
+  MethodChannel? _channel;
+  @override
+  void dispose() {
+    _channel?.setMethodCallHandler(null);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!kIsWeb && Platform.isIOS) {
+      return SizedBox(
+        height: math.max(50, MediaQuery.textScalerOf(context).scale(17) + 28),
+        child: UiKitView(
+          viewType: 'com.medyma.immortalwrt/action-button',
+          creationParams: {
+            'title': widget.title,
+            'symbol': widget.symbol,
+            'prominent': widget.prominent,
+          },
+          creationParamsCodec: const StandardMessageCodec(),
+          onPlatformViewCreated: (id) {
+            _channel = MethodChannel('com.medyma.immortalwrt/action/$id');
+            _channel!.setMethodCallHandler((call) async {
+              if (call.method == 'activate') widget.onPressed();
+            });
+          },
+        ),
+      );
+    }
+    final child = Text(widget.title);
+    return widget.prominent
+        ? CupertinoButton.filled(onPressed: widget.onPressed, child: child)
+        : CupertinoButton(onPressed: widget.onPressed, child: child);
+  }
+}
+
+class _AppleSymbol extends StatelessWidget {
+  const _AppleSymbol(
+    this.name, {
+    required this.fallback,
+    this.size = 18,
+    required this.color,
+  });
+  final String name;
+  final IconData fallback;
+  final double size;
+  final Color color;
+  @override
+  Widget build(BuildContext context) {
+    if (Theme.of(context).platform != TargetPlatform.iOS) {
+      return Icon(fallback, size: size, color: color);
+    }
+    if (!kIsWeb && Platform.isIOS) {
+      return SizedBox.square(
+        dimension: size,
+        child: UiKitView(
+          key: ValueKey('$name-${color.toARGB32()}-$size'),
+          viewType: 'com.medyma.immortalwrt/symbol',
+          creationParams: {
+            'name': name,
+            'size': size,
+            'color': color.toARGB32(),
+          },
+          creationParamsCodec: const StandardMessageCodec(),
+        ),
+      );
+    }
+    final icon = switch (name) {
+      'desktopcomputer' => CupertinoIcons.desktopcomputer,
+      'wifi' => CupertinoIcons.wifi,
+      _ => CupertinoIcons.chevron_right,
+    };
+    return Icon(icon, size: size, color: color);
+  }
+}

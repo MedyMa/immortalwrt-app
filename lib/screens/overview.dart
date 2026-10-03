@@ -544,7 +544,15 @@ class _TopologyNode extends StatelessWidget {
             color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: router
+          child:
+              onTap != null && Theme.of(context).platform == TargetPlatform.iOS
+              ? _AppleSymbol(
+                  router ? 'wifi' : 'desktopcomputer',
+                  fallback: icon ?? Icons.router_rounded,
+                  size: 27,
+                  color: color,
+                )
+              : router
               ? _RouterTopologyGlyph(color: color)
               : Icon(icon, size: 27, color: color),
         ),
@@ -562,6 +570,13 @@ class _TopologyNode extends StatelessWidget {
       ],
     );
     if (onTap == null) return child;
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      return CupertinoButton(
+        padding: EdgeInsets.zero,
+        onPressed: onTap,
+        child: child,
+      );
+    }
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),

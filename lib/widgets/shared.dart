@@ -90,15 +90,37 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
               decoration: const InputDecoration(labelText: '密码'),
             ),
             const SizedBox(height: 20),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, (
-                _url.text.trim(),
-                _username.text.trim(),
-                _password.text,
-              )),
-              child: const Text('连接'),
-            ),
-            if (widget.connected)
+            if (Theme.of(context).platform == TargetPlatform.iOS)
+              _AppleButton(
+                title: '连接',
+                onPressed: () => Navigator.pop(context, (
+                  _url.text.trim(),
+                  _username.text.trim(),
+                  _password.text,
+                )),
+              )
+            else
+              FilledButton(
+                onPressed: () => Navigator.pop(context, (
+                  _url.text.trim(),
+                  _username.text.trim(),
+                  _password.text,
+                )),
+                child: const Text('连接'),
+              ),
+            if (widget.connected &&
+                Theme.of(context).platform == TargetPlatform.iOS)
+              _AppleButton(
+                title: '退出并清除凭据',
+                symbol: 'rectangle.portrait.and.arrow.right',
+                prominent: false,
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.onDisconnect();
+                },
+              ),
+            if (widget.connected &&
+                Theme.of(context).platform != TargetPlatform.iOS)
               TextButton(
                 onPressed: () {
                   Navigator.pop(context);
@@ -392,7 +414,17 @@ class _InfoRow extends StatelessWidget {
               color: _blue.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(11),
             ),
-            child: Icon(icon, size: 18, color: _blue),
+            child: onTap == null
+                ? Icon(icon, size: 18, color: _blue)
+                : _AppleSymbol(
+                    icon == Icons.wifi_rounded ||
+                            icon == Icons.router_outlined ||
+                            icon == Icons.router_rounded
+                        ? 'wifi'
+                        : 'desktopcomputer',
+                    fallback: icon,
+                    color: _blue,
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -414,9 +446,9 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
           if (onTap != null)
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
+            _AppleSymbol(
+              'chevron.right',
+              fallback: Icons.chevron_right_rounded,
               color: _mutedOf(context),
             ),
         ],
@@ -574,6 +606,11 @@ class _EmptyConnection extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text('正在读取路由器状态…', style: _bodyStyle(context)),
                 ],
+              )
+            else if (Theme.of(context).platform == TargetPlatform.iOS)
+              SizedBox(
+                width: double.infinity,
+                child: _AppleButton(title: '连接路由器', onPressed: onConnect),
               )
             else
               FilledButton.icon(

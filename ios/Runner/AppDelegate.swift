@@ -13,6 +13,9 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     guard let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SystemTabBar") else { return }
+    registrar.register(SystemActionFactory(messenger: registrar.messenger()),
+                       withId: "com.medyma.immortalwrt/action-button")
+    registrar.register(SystemSymbolFactory(), withId: "com.medyma.immortalwrt/symbol")
     registrar.register(SystemTabBarFactory(messenger: registrar.messenger()),
                        withId: "com.medyma.immortalwrt/system-tab-bar")
     registrar.register(SystemSettingsFactory(messenger: registrar.messenger()),
@@ -119,4 +122,69 @@ private class SystemTabBarView: NSObject, FlutterPlatformView, UITabBarDelegate 
   func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
     channel.invokeMethod("selectTab", arguments: item.tag)
   }
+}
+
+private class SystemActionFactory: NSObject, FlutterPlatformViewFactory {
+  private let messenger: FlutterBinaryMessenger
+  init(messenger: FlutterBinaryMessenger) { self.messenger = messenger; super.init() }
+  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol { FlutterStandardMessageCodec.sharedInstance() }
+  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> FlutterPlatformView {
+    SystemActionView(frame: frame, viewId: viewId, args: args, messenger: messenger)
+  }
+}
+
+private class SystemActionView: NSObject, FlutterPlatformView {
+  private let button: UIButton
+  private let channel: FlutterMethodChannel
+  init(frame: CGRect, viewId: Int64, args: Any?, messenger: FlutterBinaryMessenger) {
+    button = UIButton(frame: frame)
+    channel = FlutterMethodChannel(name: "com.medyma.immortalwrt/action/\(viewId)", binaryMessenger: messenger)
+    super.init()
+    let data = args as? [String: Any] ?? [:]
+    let prominent = data["prominent"] as? Bool ?? true
+    var config: UIButton.Configuration
+    if #available(iOS 26.0, *) { config = prominent ? .prominentGlass() : .glass() }
+    else { config = prominent ? .filled() : .plain() }
+    config.title = data["title"] as? String
+    if let symbol = data["symbol"] as? String { config.image = UIImage(systemName: symbol) }
+    config.imagePadding = 8
+    config.cornerStyle = .capsule
+    config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+    config.baseForegroundColor = prominent ? .white : .systemRed
+    config.baseBackgroundColor = prominent ? .systemBlue : nil
+    button.configuration = config
+    button.titleLabel?.adjustsFontForContentSizeCategory = true
+    button.accessibilityLabel = config.title
+    button.addTarget(self, action: #selector(activate), for: .touchUpInside)
+  }
+  func view() -> UIView { button }
+  @objc private func activate() { channel.invokeMethod("activate", arguments: nil) }
+}
+
+private class SystemSymbolFactory: NSObject, FlutterPlatformViewFactory {
+  func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol { FlutterStandardMessageCodec.sharedInstance() }
+  func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> FlutterPlatformView {
+    SystemSymbolView(frame: frame, args: args)
+  }
+}
+
+private class SystemSymbolView: NSObject, FlutterPlatformView {
+  private let imageView: UIImageView
+  init(frame: CGRect, args: Any?) {
+    imageView = UIImageView(frame: frame)
+    super.init()
+    let data = args as? [String: Any] ?? [:]
+    let size = data["size"] as? Double ?? 18
+    imageView.image = UIImage(systemName: data["name"] as? String ?? "chevron.right",
+                              withConfiguration: UIImage.SymbolConfiguration(pointSize: size, weight: .medium))
+    imageView.contentMode = .scaleAspectFit
+    if let argb = data["color"] as? NSNumber {
+      let n = argb.uint32Value
+      imageView.tintColor = UIColor(red: CGFloat((n >> 16) & 255) / 255,
+                                    green: CGFloat((n >> 8) & 255) / 255,
+                                    blue: CGFloat(n & 255) / 255, alpha: CGFloat(n >> 24) / 255)
+    } else { imageView.tintColor = .label }
+    imageView.isAccessibilityElement = false
+  }
+  func view() -> UIView { imageView }
 }
