@@ -26,6 +26,18 @@
 
 设备记录不代表当前在线；拓扑图不等于上游互联网探测结果。PPE 百分比是硬件流表占用率，不是 CPU 使用率，也不是设备数量。无线驱动未提供可用的空中占用率和客户端信号分布时，不绘制这些指标。
 
+## 页面截图
+
+<table>
+  <tr>
+    <td align="center"><b>总览（未连接）</b><br><img src="docs/images/android-app-screenshots/01-overview-empty.jpg" width="140" alt="总览未连接状态"></td>
+    <td align="center"><b>总览</b><br><img src="docs/images/android-app-screenshots/02-overview.jpg" width="140" alt="总览连接状态与硬件加速"></td>
+    <td align="center"><b>设备</b><br><img src="docs/images/android-app-screenshots/03-devices.jpg" width="140" alt="设备列表"></td>
+    <td align="center"><b>Wi-Fi</b><br><img src="docs/images/android-app-screenshots/04-wifi.jpg" width="140" alt="Wi-Fi 状态与图表"></td>
+    <td align="center"><b>流量</b><br><img src="docs/images/android-app-screenshots/05-traffic.jpg" width="140" alt="流量统计"></td>
+  </tr>
+</table>
+
 ## 连接方式
 
 1. 先安装或确认路由器组件，检查 [只读接口](docs/firmware.md#接口检查)。
