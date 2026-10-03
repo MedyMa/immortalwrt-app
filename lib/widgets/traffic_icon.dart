@@ -128,6 +128,29 @@ class _TrafficIconState extends State<TrafficIcon> {
   Widget build(BuildContext context) {
     final fallback = _fallback(context);
     final uri = widget.uri;
+    final key = widget.name.toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9]+'),
+      '-',
+    );
+    final appleIcon =
+        key == 'apple-maps' || uri?.path.endsWith('/apple-maps.svg') == true
+        ? 'apple-maps'
+        : key == 'siri' || uri?.path.endsWith('/siri.svg') == true
+        ? 'siri'
+        : null;
+    // These source SVGs use styles/gradient inheritance that Flutter renders
+    // differently from browsers. Bundle faithful 128 px raster counterparts.
+    if (appleIcon != null) {
+      return SizedBox(
+        width: 28,
+        height: 28,
+        child: Image.asset(
+          'assets/traffic-icons/$appleIcon.png',
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) => fallback,
+        ),
+      );
+    }
     Widget svg = uri?.path.endsWith('.svg') == true
         ? SvgPicture.network(
             uri.toString(),

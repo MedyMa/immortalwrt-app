@@ -5,6 +5,28 @@ import 'package:image/image.dart' as img;
 import 'package:immortalwrt_app/widgets/traffic_icon.dart';
 
 void main() {
+  testWidgets('Apple Maps and Siri use compatible bundled artwork', (
+    tester,
+  ) async {
+    for (final name in ['Apple Maps', 'Siri']) {
+      for (final brightness in Brightness.values) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(brightness: brightness),
+            home: Scaffold(body: TrafficIcon(name: name)),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final image = tester.widget<Image>(find.byType(Image));
+        expect(image.image, isA<AssetImage>());
+        expect(
+          (image.image as AssetImage).assetName,
+          'assets/traffic-icons/${name == 'Siri' ? 'siri' : 'apple-maps'}.png',
+        );
+        expect(tester.takeException(), isNull);
+      }
+    }
+  });
   test('ICO decoding produces a bounded PNG for both mobile platforms', () {
     final ico = img.encodeIco(img.Image(width: 32, height: 32));
     final png = decodeTrafficIcon(Uint8List.fromList(ico));

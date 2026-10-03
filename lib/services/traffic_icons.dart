@@ -68,7 +68,7 @@ class TrafficIcons {
 
   static Map<String, String> _websiteIndex(String text) {
     final result = <String, String>{};
-    for (final line in text.split('\n').take(256)) {
+    for (final line in text.split('\n')) {
       final fields = line.trim().split('\t');
       if (fields.length < 2 || fields.length > 3) continue;
       final host = fields[0];
@@ -89,7 +89,7 @@ class TrafficIcons {
           .get(baseUrl.replace(path: '/traffic-site-icons/websites.tsv'))
           .timeout(const Duration(seconds: 3));
       if (response.statusCode == 200 &&
-          response.bodyBytes.length <= 256 * 1024) {
+          response.bodyBytes.length <= 4 * 1024 * 1024) {
         return TrafficIcons._(
           baseUrl,
           slugs,

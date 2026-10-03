@@ -2,6 +2,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:immortalwrt_app/services/traffic_icons.dart';
 
 void main() {
+  test('website index covers all entries beyond the old 256 cutoff', () {
+    final rows = List.generate(
+      300,
+      (i) => 'site$i.com\tsite$i.com.png\t100',
+    ).join('\n');
+    final catalog = TrafficIcons.fromIndexes(
+      Uri.parse('https://router.example.com'),
+      '',
+      '',
+      rows,
+    );
+    expect(catalog.websites.length, 300);
+    expect(
+      catalog.iconUri('site299.com')?.path,
+      '/traffic-site-icons/site299.com.png',
+    );
+  });
   test('website cache is same-origin and never overrides packaged artwork', () {
     final catalog = TrafficIcons.fromIndexes(
       Uri.parse('https://router.example.com'),
