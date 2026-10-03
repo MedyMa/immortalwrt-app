@@ -280,57 +280,6 @@ void _showDeviceDetails(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => _GlassSurface(
-      radius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('设备详情', style: _titleStyle(context)),
-              const SizedBox(height: 18),
-              for (final entry in <(String, String)>[
-                (
-                  '名称',
-                  row.name.isEmpty || row.name == row.ip || row.name == '*'
-                      ? '未命名设备'
-                      : row.name,
-                ),
-                ('类型', identity.typeLabel),
-                if (identity.brand != null) ('品牌', identity.brand!),
-                if (identity.model != null) ('型号', identity.model!),
-                ('IP', row.ip),
-                ('MAC', row.mac.isEmpty ? '未提供' : row.mac),
-                (
-                  '记录来源',
-                  [
-                    if (row.hasLease) 'DHCP 租约',
-                    if (row.hasTraffic) '流量记录',
-                  ].join(' · '),
-                ),
-                (
-                  '流量',
-                  row.bytes == null
-                      ? '未提供'
-                      : '${formatBytes(row.bytes!)} · 本次会话',
-                ),
-                ('识别依据', identity.evidence),
-              ]) ...[
-                Text(entry.$1, style: _bodyStyle(context)),
-                const SizedBox(height: 3),
-                SelectableText(
-                  entry.$2,
-                  style: TextStyle(fontSize: 15, color: _inkOf(context)),
-                ),
-                const SizedBox(height: 14),
-              ],
-            ],
-          ),
-        ),
-      ),
-    ),
+    builder: (context) => _DeviceDetailSheet(row: row, identity: identity),
   );
 }

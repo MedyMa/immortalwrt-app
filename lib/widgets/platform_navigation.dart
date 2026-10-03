@@ -193,6 +193,9 @@ class _AppleSymbol extends StatelessWidget {
       );
     }
     final icon = switch (name) {
+      'xmark' => CupertinoIcons.xmark,
+      'chevron.up' => CupertinoIcons.chevron_up,
+      'chevron.down' => CupertinoIcons.chevron_down,
       'iphone' => CupertinoIcons.device_phone_portrait,
       'ipad' => CupertinoIcons.device_phone_landscape,
       'laptopcomputer' => CupertinoIcons.device_laptop,

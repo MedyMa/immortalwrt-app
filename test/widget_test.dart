@@ -148,6 +148,8 @@ class _HealthyApi extends _FakeRouterApi {
 }
 
 class _DeviceIdentityApi extends _HealthyApi {
+  _DeviceIdentityApi({this.longValues = false});
+  final bool longValues;
   @override
   Future<RouterSnapshot> fetch({
     RouterSection section = RouterSection.all,
@@ -160,14 +162,22 @@ class _DeviceIdentityApi extends _HealthyApi {
       upBytesPerSecond: 0,
       at: null,
     ),
-    dhcpDevices: const [
-      DhcpDevice(
-        name: 'Alice-iPhone',
-        ip: '192.168.2.114',
-        mac: '02:11:22:33:44:55',
-      ),
-      DhcpDevice(name: '192.168.2.115', ip: '192.168.2.115', mac: ''),
-    ],
+    dhcpDevices: longValues
+        ? const [
+            DhcpDevice(
+              name: 'Galaxy-Z-Flip-living-room-personal-device',
+              ip: 'fdc8:64ed:f962:0000:0000:0000:0000:0d1c',
+              mac: '02:11:22:33:44:55',
+            ),
+          ]
+        : const [
+            DhcpDevice(
+              name: 'Alice-iPhone',
+              ip: '192.168.2.114',
+              mac: '02:11:22:33:44:55',
+            ),
+            DhcpDevice(name: '192.168.2.115', ip: '192.168.2.115', mac: ''),
+          ],
   );
 }
 
@@ -283,6 +293,55 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets(
+    'device sheet scrolls with large text and full IPv6 on a small phone',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.8)),
+            child: child!,
+          ),
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _DeviceIdentityApi(longValues: true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('compact-navigation')),
+          matching: find.text('设备'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final tile = find.byKey(
+        const ValueKey('device-fdc8:64ed:f962:0000:0000:0000:0000:0d1c'),
+      );
+      await tester.ensureVisible(tile);
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('fdc8:64ed:f962:0000:0000:0000:0000:0d1c'),
+        findsOneWidget,
+      );
+      expect(find.text('根据设备名称推断'), findsNothing);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('device-evidence-toggle')),
+      );
+      await tester.tap(find.byKey(const ValueKey('device-evidence-toggle')));
+      await tester.pumpAndSettle();
+      expect(find.text('根据设备名称推断'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
   for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
     for (final brightness in Brightness.values) {
       testWidgets('device brand and detail work on $platform $brightness', (
@@ -307,10 +366,19 @@ void main() {
         expect(find.text('未命名设备'), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('device-192.168.2.114')));
         await tester.pumpAndSettle();
-        expect(find.text('设备详情'), findsOneWidget);
+        expect(find.text('本次会话流量'), findsOneWidget);
         expect(find.text('02:11:22:33:44:55'), findsOneWidget);
+        expect(find.text('根据设备名称推断'), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('device-evidence-toggle')));
+        await tester.pumpAndSettle();
         expect(find.text('根据设备名称推断'), findsOneWidget);
         expect(find.text('DHCP 租约'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('device-evidence-toggle')));
+        await tester.pumpAndSettle();
+        expect(find.text('根据设备名称推断'), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('device-detail-close')));
+        await tester.pumpAndSettle();
+        expect(find.text('本次会话流量'), findsNothing);
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox());
       });

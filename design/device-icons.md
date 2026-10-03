@@ -15,3 +15,15 @@
   `assets/device-brands/sources.json`, copied from the local traffic icon catalogue.
   Synology's background was removed and its view box cropped to the wordmark;
   unused stylesheet elements were removed for Flutter SVG compatibility.
+
+## Approved detail sheet (2026-10-03)
+
+The compact detail sheet lives in `lib/widgets/device_detail_sheet.dart`.
+It shows the brand icon, selectable original name and identity subtitle, then
+session traffic and selectable IP/MAC rows. Source records remain visible;
+identification evidence is collapsed initially. It supports close, scrim and
+drag dismissal. System colours and the full glass treatment remain enabled.
+Close and disclosure use Cupertino controls and SF Symbols on iOS, Material
+controls on Android. Height is bounded to 85 percent of the screen; narrow
+screens or large text stack the detail labels above their values and allow
+scrolling. It does not add router calls or dependencies.

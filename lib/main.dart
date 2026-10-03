@@ -20,6 +20,7 @@ part 'widgets/shared.dart';
 part 'widgets/glass.dart';
 part 'widgets/compact_navigation.dart';
 part 'widgets/platform_navigation.dart';
+part 'widgets/device_detail_sheet.dart';
 part 'screens/overview.dart';
 part 'screens/devices.dart';
 part 'screens/wifi.dart';
