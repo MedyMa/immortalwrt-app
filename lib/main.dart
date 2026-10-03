@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -15,6 +16,7 @@ import 'services/router_session.dart';
 import 'services/traffic_icons.dart';
 
 part 'widgets/shared.dart';
+part 'widgets/glass.dart';
 part 'widgets/platform_navigation.dart';
 part 'screens/overview.dart';
 part 'screens/devices.dart';
@@ -147,6 +149,21 @@ class _ImmortalWrtAppState extends State<ImmortalWrtApp> {
           surface: Colors.white,
         ),
         scaffoldBackgroundColor: _page,
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF0F3F9),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFDCE2ED)),
+          ),
+        ),
+        navigationBarTheme: const NavigationBarThemeData(
+          labelTextStyle: WidgetStatePropertyAll(
+            TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          iconTheme: WidgetStatePropertyAll(IconThemeData(size: 23)),
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: _page,
           surfaceTintColor: Colors.transparent,
@@ -168,6 +185,21 @@ class _ImmortalWrtAppState extends State<ImmortalWrtApp> {
           surface: _cardDark,
         ),
         scaffoldBackgroundColor: _pageDark,
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF232833),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFF3A4251)),
+          ),
+        ),
+        navigationBarTheme: const NavigationBarThemeData(
+          labelTextStyle: WidgetStatePropertyAll(
+            TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          iconTheme: WidgetStatePropertyAll(IconThemeData(size: 23)),
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: _pageDark,
           surfaceTintColor: Colors.transparent,
@@ -446,15 +478,19 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     final request = await showModalBottomSheet<(String, String, String)>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
+      backgroundColor: Colors.transparent,
+      showDragHandle: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _ConnectionSheet(
-        url: _url,
-        username: _username,
-        connected: _snapshot != null,
-        onDisconnect: _disconnect,
+      builder: (_) => _GlassSurface(
+        radius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: _ConnectionSheet(
+          url: _url,
+          username: _username,
+          connected: _snapshot != null,
+          onDisconnect: _disconnect,
+        ),
       ),
     );
     if (request != null) await _connect(request.$1, request.$2, request.$3);
@@ -468,7 +504,16 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     final wide = !isIos && MediaQuery.sizeOf(context).width >= 700;
     return Scaffold(
       backgroundColor: _pageOf(context),
+      extendBody: !isIos && !wide,
+      extendBodyBehindAppBar: !isIos,
       appBar: AppBar(
+        backgroundColor: isIos ? null : Colors.transparent,
+        flexibleSpace: isIos
+            ? null
+            : const _GlassSurface(
+                radius: BorderRadius.zero,
+                child: SizedBox.expand(),
+              ),
         title: Text(
           names[_tab],
           style: const TextStyle(fontWeight: FontWeight.w800),
@@ -479,39 +524,46 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
         ],
       ),
       body: SafeArea(
+        top: isIos,
+        bottom: isIos || wide,
         child: Row(
           children: [
             if (wide)
-              NavigationRail(
-                selectedIndex: _tab,
-                onDestinationSelected: _selectTab,
-                labelType: NavigationRailLabelType.all,
-                backgroundColor: _cardOf(context),
-                indicatorColor: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.12),
-                destinations: const [
-                  NavigationRailDestination(
-                    icon: Icon(Icons.home_outlined),
-                    selectedIcon: Icon(Icons.home_rounded),
-                    label: Text('总览'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.devices_outlined),
-                    selectedIcon: Icon(Icons.devices_rounded),
-                    label: Text('设备'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.router_outlined),
-                    selectedIcon: Icon(Icons.router_rounded),
-                    label: Text('Wi-Fi'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.bar_chart_outlined),
-                    selectedIcon: Icon(Icons.bar_chart_rounded),
-                    label: Text('流量'),
-                  ),
-                ],
+              Padding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.viewPaddingOf(context).top + kToolbarHeight,
+                ),
+                child: NavigationRail(
+                  selectedIndex: _tab,
+                  onDestinationSelected: _selectTab,
+                  labelType: NavigationRailLabelType.all,
+                  backgroundColor: _cardOf(context),
+                  indicatorColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.12),
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.home_outlined),
+                      selectedIcon: Icon(Icons.home_rounded),
+                      label: Text('总览'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.devices_outlined),
+                      selectedIcon: Icon(Icons.devices_rounded),
+                      label: Text('设备'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.router_outlined),
+                      selectedIcon: Icon(Icons.router_rounded),
+                      label: Text('Wi-Fi'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.bar_chart_outlined),
+                      selectedIcon: Icon(Icons.bar_chart_rounded),
+                      label: Text('流量'),
+                    ),
+                  ],
+                ),
               ),
             Expanded(
               child: snapshot == null
@@ -521,11 +573,24 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                       onConnect: _showConnection,
                     )
                   : RefreshIndicator(
+                      edgeOffset: isIos
+                          ? 0
+                          : MediaQuery.viewPaddingOf(context).top +
+                                kToolbarHeight,
                       onRefresh: _refresh,
                       color: _blue,
                       child: ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                        padding: EdgeInsets.fromLTRB(
+                          16,
+                          isIos
+                              ? 4
+                              : MediaQuery.viewPaddingOf(context).top + 64,
+                          16,
+                          !isIos && !wide
+                              ? 112 + MediaQuery.viewPaddingOf(context).bottom
+                              : 32,
+                        ),
                         children: [
                           if (_error != null)
                             _Notice(
@@ -560,36 +625,49 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
           ? null
           : isIos
           ? _IosTabBar(selectedIndex: _tab, onSelected: _selectTab)
-          : NavigationBar(
-              backgroundColor: _cardOf(context),
-              indicatorColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.12),
-              surfaceTintColor: Colors.transparent,
-              selectedIndex: _tab,
-              onDestinationSelected: _selectTab,
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home_rounded),
-                  label: '总览',
+          : SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: _GlassSurface(
+                  child: NavigationBar(
+                    height: 72,
+                    elevation: 0,
+                    animationDuration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 240),
+                    backgroundColor: Colors.transparent,
+                    indicatorColor: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer,
+                    surfaceTintColor: Colors.transparent,
+                    selectedIndex: _tab,
+                    onDestinationSelected: _selectTab,
+                    destinations: const [
+                      NavigationDestination(
+                        icon: Icon(Icons.home_outlined),
+                        selectedIcon: Icon(Icons.home_rounded),
+                        label: '总览',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.devices_outlined),
+                        selectedIcon: Icon(Icons.devices_rounded),
+                        label: '设备',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.router_outlined),
+                        selectedIcon: Icon(Icons.router_rounded),
+                        label: 'Wi-Fi',
+                      ),
+                      NavigationDestination(
+                        icon: Icon(Icons.bar_chart_outlined),
+                        selectedIcon: Icon(Icons.bar_chart_rounded),
+                        label: '流量',
+                      ),
+                    ],
+                  ),
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.devices_outlined),
-                  selectedIcon: Icon(Icons.devices_rounded),
-                  label: '设备',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.router_outlined),
-                  selectedIcon: Icon(Icons.router_rounded),
-                  label: 'Wi-Fi',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.bar_chart_outlined),
-                  selectedIcon: Icon(Icons.bar_chart_rounded),
-                  label: '流量',
-                ),
-              ],
+              ),
             ),
     );
   }

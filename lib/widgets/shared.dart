@@ -41,7 +41,7 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
   Widget build(BuildContext context) => Padding(
     padding: EdgeInsets.fromLTRB(
       24,
-      4,
+      12,
       24,
       MediaQuery.viewInsetsOf(context).bottom + 28,
     ),
@@ -52,6 +52,17 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: _mutedOf(context).withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
             Text(
               '连接路由器',
               style: Theme.of(
@@ -65,25 +76,18 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
               decoration: const InputDecoration(
                 labelText: '远程 HTTPS / 本地 HTTP（明文）',
                 hintText: 'https://bananapi.x.ddnsto.com',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _username,
-              decoration: const InputDecoration(
-                labelText: '用户名',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: '用户名'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _password,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: '密码',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: '密码'),
             ),
             const SizedBox(height: 20),
             FilledButton(
@@ -256,12 +260,16 @@ class _SettingsAction extends StatelessWidget {
         ),
       );
     }
-    return IconButton(
-      tooltip: '连接设置',
-      onPressed: onPressed,
-      iconSize: 24,
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-      icon: const Icon(Icons.settings_outlined),
+    return _GlassSurface(
+      radius: BorderRadius.circular(18),
+      child: IconButton(
+        tooltip: '连接设置',
+        onPressed: onPressed,
+        iconSize: 24,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        icon: const Icon(Icons.settings_outlined),
+        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+      ),
     );
   }
 }

@@ -8,6 +8,8 @@ The overview uses a three-node device → MT7988 → Internet diagram. It is a t
 
 The four screens follow the [platform-adaptive v3 design](design/platform-adaptive-v3.md). iOS uses a native UIKit tab bar, which adopts the system's Liquid Glass appearance on supported OS versions. Android uses Material 3 navigation, Android 12+ system accent color, and a navigation rail on wider screens. The content remains the same read-only router data on both platforms.
 
+Android now has bounded frosted toolbar actions, floating navigation and a connection sheet, with opaque status cards. This is a Flutter glass treatment inspired by Material 3 Expressive, not native Compose components. High contrast and reduced motion use opaque chrome. [Night preview](design/previews/android-night.png) · [Connection sheet](design/previews/android-settings.png).
+
 | iOS preview | Android preview |
 | --- | --- |
 | [Overview](design/previews/ios-overview.png) · [Devices](design/previews/ios-devices.png) · [Wi-Fi](design/previews/ios-wifi.png) · [Traffic](design/previews/ios-traffic.png) | [Overview](design/previews/android-overview.png) · [Devices](design/previews/android-devices.png) · [Wi-Fi](design/previews/android-wifi.png) · [Traffic](design/previews/android-traffic.png) |

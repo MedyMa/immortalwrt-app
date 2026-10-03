@@ -246,6 +246,76 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets('accessible chrome avoids blur and remains navigable', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(
+          highContrast: true,
+          disableAnimations: true,
+        );
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RouterHome(
+          storage: _MemoryStorage(),
+          apiFactory: (_) => _FakeRouterApi(),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(BackdropFilter), findsNothing);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Wi-Fi'),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('BE14 无线'), findsOneWidget);
+    await tester.tap(find.byTooltip('连接设置'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNWidgets(3));
+    expect(find.byType(BackdropFilter), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets(
+    'glass connection sheet keeps connect reachable with keyboard and large text',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.5)),
+            child: child!,
+          ),
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _FakeRouterApi(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.byTooltip('连接设置'));
+      await tester.pumpAndSettle();
+      tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.widgetWithText(FilledButton, '连接'));
+      await tester.pumpAndSettle();
+      expect(
+        find.widgetWithText(FilledButton, '连接').hitTestable(),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   testWidgets('toolbar has one settings action and no refresh action', (
     tester,
   ) async {
