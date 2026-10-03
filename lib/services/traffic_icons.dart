@@ -1,11 +1,12 @@
 import 'package:http/http.dart' as http;
 
 class TrafficIcons {
-  TrafficIcons._(this.baseUrl, this.slugs, this.domains);
+  TrafficIcons._(this.baseUrl, this.slugs, this.domains, this.websites);
 
   final Uri baseUrl;
   final Set<String> slugs;
   final Map<String, String> domains;
+  final Map<String, String> websites;
 
   static const _aliases = <String, String>{
     'samsung.com.cn': 'samsung',
@@ -44,8 +45,9 @@ class TrafficIcons {
   factory TrafficIcons.fromIndexes(
     Uri baseUrl,
     String indexText,
-    String domainText,
-  ) {
+    String domainText, [
+    String websiteText = '',
+  ]) {
     final slugs = indexText
         .split(RegExp(r'\r?\n'))
         .map((line) => line.trim())
@@ -61,7 +63,44 @@ class TrafficIcons {
         domains[fields[0]] = fields[1];
       }
     }
-    return TrafficIcons._(baseUrl, slugs, domains);
+    return TrafficIcons._(baseUrl, slugs, domains, _websiteIndex(websiteText));
+  }
+
+  static Map<String, String> _websiteIndex(String text) {
+    final result = <String, String>{};
+    for (final line in text.split('\n').take(256)) {
+      final fields = line.trim().split('\t');
+      if (fields.length < 2 || fields.length > 3) continue;
+      final host = fields[0];
+      if (!RegExp(r'^[a-z0-9.-]+\.[a-z]{2,}$').hasMatch(host) ||
+          host.contains('..')) {
+        continue;
+      }
+      if (fields[1] != '$host.png' && fields[1] != '$host.ico') continue;
+      if (fields.length == 3 && !RegExp(r'^\d+$').hasMatch(fields[2])) continue;
+      result[host] = fields[1] + (fields.length == 3 ? '?v=${fields[2]}' : '');
+    }
+    return result;
+  }
+
+  Future<TrafficIcons> refreshWebsites() async {
+    try {
+      final response = await http
+          .get(baseUrl.replace(path: '/traffic-site-icons/websites.tsv'))
+          .timeout(const Duration(seconds: 3));
+      if (response.statusCode == 200 &&
+          response.bodyBytes.length <= 256 * 1024) {
+        return TrafficIcons._(
+          baseUrl,
+          slugs,
+          domains,
+          _websiteIndex(response.body),
+        );
+      }
+    } catch (_) {
+      /* Keep the last valid index while offline. */
+    }
+    return this;
   }
 
   static Future<TrafficIcons> load(Uri baseUrl, {http.Client? client}) async {
@@ -82,8 +121,14 @@ class TrafficIcons {
       final results = await Future.wait([
         read('/luci-static/resources/traffic/icons/index.txt'),
         read('/luci-static/resources/traffic/icons/domains.tsv'),
+        read('/traffic-site-icons/websites.tsv'),
       ]);
-      return TrafficIcons.fromIndexes(baseUrl, results[0], results[1]);
+      return TrafficIcons.fromIndexes(
+        baseUrl,
+        results[0],
+        results[1],
+        results[2],
+      );
     } finally {
       if (ownedClient) httpClient.close();
     }
@@ -104,11 +149,13 @@ class TrafficIcons {
       ).firstMatch(host)?.group(1);
       if (key == null && root != null && slugs.contains(root)) key = root;
     }
-    return key == null
-        ? null
-        : baseUrl.replace(
-            path: '/luci-static/resources/traffic/icons/$key.svg',
-          );
+    if (key == null) {
+      final file = websites[host];
+      return file == null ? null : baseUrl.resolve('/traffic-site-icons/$file');
+    }
+    return baseUrl.replace(
+      path: '/luci-static/resources/traffic/icons/$key.svg',
+    );
   }
 
   static String _slug(String name) => name

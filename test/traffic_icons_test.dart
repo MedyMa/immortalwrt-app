@@ -2,6 +2,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:immortalwrt_app/services/traffic_icons.dart';
 
 void main() {
+  test('website cache is same-origin and never overrides packaged artwork', () {
+    final catalog = TrafficIcons.fromIndexes(
+      Uri.parse('https://router.example.com'),
+      'stripe\n',
+      'stripe.com\tstripe\n',
+      'comfylink.com\tcomfylink.com.png\nstarrydyn.com\tstarrydyn.com.ico\n'
+          'stripe.com\tstripe.com.png\nevil.com\t../private.png\n',
+    );
+    expect(
+      catalog.iconUri('comfylink.com')?.toString(),
+      'https://router.example.com/traffic-site-icons/comfylink.com.png',
+    );
+    expect(
+      catalog.iconUri('starrydyn.com')?.path,
+      '/traffic-site-icons/starrydyn.com.ico',
+    );
+    expect(
+      catalog.iconUri('stripe.com')?.path,
+      '/luci-static/resources/traffic/icons/stripe.svg',
+    );
+    expect(catalog.iconUri('evil.com'), isNull);
+  });
   test(
     'packaged names, protocol buckets and brand domains resolve locally',
     () {

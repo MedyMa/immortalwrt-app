@@ -16,6 +16,7 @@ class _Traffic extends StatefulWidget {
 
 class _TrafficState extends State<_Traffic> {
   late Future<TrafficIcons> _icons;
+  DateTime _iconsLoadedAt = DateTime.now();
 
   @override
   void initState() {
@@ -26,10 +27,16 @@ class _TrafficState extends State<_Traffic> {
   @override
   void didUpdateWidget(covariant _Traffic oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.endpoint != widget.endpoint) _loadIcons();
+    if (oldWidget.endpoint != widget.endpoint) {
+      _loadIcons();
+    } else if (DateTime.now().difference(_iconsLoadedAt).inSeconds >= 60) {
+      _iconsLoadedAt = DateTime.now();
+      _icons = _icons.then((catalog) => catalog.refreshWebsites());
+    }
   }
 
   void _loadIcons() {
+    _iconsLoadedAt = DateTime.now();
     _icons = TrafficIcons.load(Uri.parse(widget.endpoint));
   }
 
@@ -199,24 +206,7 @@ class _AppTile extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 10),
     child: Row(
       children: [
-        SizedBox(
-          width: 28,
-          height: 28,
-          child: icon == null
-              ? _Avatar(label: _initial(app.name), color: _violet)
-              : SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: SvgPicture.network(
-                    icon.toString(),
-                    fit: BoxFit.contain,
-                    placeholderBuilder: (_) =>
-                        _Avatar(label: _initial(app.name), color: _violet),
-                    errorBuilder: (_, __, ___) =>
-                        _Avatar(label: _initial(app.name), color: _violet),
-                  ),
-                ),
-        ),
+        TrafficIcon(name: app.name, uri: icon),
         const SizedBox(width: 10),
         Expanded(
           child: Column(

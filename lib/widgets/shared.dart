@@ -239,29 +239,6 @@ class _Pill extends StatelessWidget {
   );
 }
 
-/// Rounded two-letter avatar chip.
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 42,
-    height: 42,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: _isDark(context) ? 0.24 : 0.12),
-      borderRadius: BorderRadius.circular(13),
-    ),
-    child: Text(
-      label,
-      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color),
-    ),
-  );
-}
-
 class _SettingsAction extends StatelessWidget {
   const _SettingsAction({required this.onPressed});
   final VoidCallback onPressed;

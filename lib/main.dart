@@ -15,6 +15,7 @@ import 'models/device_identity.dart';
 import 'services/router_api.dart';
 import 'services/router_session.dart';
 import 'services/traffic_icons.dart';
+import 'widgets/traffic_icon.dart';
 
 part 'widgets/shared.dart';
 part 'widgets/glass.dart';
@@ -79,13 +80,6 @@ TextStyle _figureStyle(
   fontWeight: FontWeight.w800,
   color: color ?? _inkOf(context),
 );
-
-/// A single initial, for the application chips: the mockup renders those as one
-/// letter (Y for YouTube, A for Apple) rather than the first two characters.
-String _initial(String name) {
-  final trimmed = name.trim();
-  return trimmed.isEmpty ? '?' : trimmed.characters.first.toUpperCase();
-}
 
 /// Radio band as reported by the router. Unknown strings are shown verbatim
 /// rather than mapped onto a guess; null means the payload carried no band.
