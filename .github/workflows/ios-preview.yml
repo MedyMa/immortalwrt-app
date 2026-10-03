@@ -2,7 +2,7 @@ name: Render native iOS pages
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/ios-preview.yml', 'tools/prepare-ios-preview.py', 'tools/ios_preview_fixture.dart']
+    paths: ['.github/workflows/ios-preview.yml', 'tools/prepare-ios-preview.py', 'tools/ios_preview_fixture.dart', 'tools/render-ios-preview.py']
   workflow_dispatch:
 permissions:
   contents: read
@@ -22,22 +22,8 @@ jobs:
         run: python3 tools/prepare-ios-preview.py
       - run: flutter build ios --simulator --debug
       - name: Render all pages in iOS 27
-        run: |
-          set -euo pipefail
-          device_id=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r,ds in d.items() if "iOS-27" in r for x in ds if "iPhone" in x["name"]))')
-          xcrun simctl boot "$device_id"
-          xcrun simctl bootstatus "$device_id" -b
-          xcrun simctl install "$device_id" build/ios/iphonesimulator/Runner.app
-          xcrun simctl status_bar "$device_id" override --time '9:41' --batteryState charged --batteryLevel 100
-          mkdir -p ios-native-pages
-          for appearance in light dark; do
-            xcrun simctl ui "$device_id" appearance "$appearance"
-            for tab in 0 1 2 3; do
-              SIMCTL_CHILD_IOS_PREVIEW_TAB="$tab" xcrun simctl launch --terminate-running-process "$device_id" com.medyma.immortalwrtApp
-              sleep 8
-              xcrun simctl io "$device_id" screenshot "ios-native-pages/ios-$appearance-$tab.png"
-            done
-          done
+        timeout-minutes: 10
+        run: python3 tools/render-ios-preview.py
       - uses: actions/upload-artifact@v7
         if: always()
         with:
