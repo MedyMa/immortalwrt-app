@@ -286,7 +286,7 @@ void main() {
     },
   );
 
-  testWidgets('capsule hides on upward swipe and returns on downward swipe', (
+  testWidgets('capsule hides upward and returns only at page top', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -332,10 +332,65 @@ void main() {
     );
     await tester.drag(find.byType(ListView).first, const Offset(0, 150));
     await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
+    await tester.drag(find.byType(ListView).first, const Offset(0, 1000));
+    await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
     await tester.tap(find.descendant(of: nav, matching: find.text('总览')));
     await tester.pump();
     expect(find.text('MT7988 状态'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  testWidgets('Android capsule hides on short page and at scroll boundary', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.android),
+        home: RouterHome(
+          storage: _MemoryStorage(),
+          apiFactory: (_) => _FakeRouterApi(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.text('设备').last);
+    await tester.pump();
+    final list = find.byType(ListView).first;
+    final scrollable = find
+        .descendant(of: list, matching: find.byType(Scrollable))
+        .first;
+    final position = tester.state<ScrollableState>(scrollable).position;
+    expect(position.maxScrollExtent, 0);
+    final nav = find.byKey(const ValueKey('compact-navigation'));
+    final fade = find.ancestor(of: nav, matching: find.byType(AnimatedOpacity));
+    await tester.drag(list, const Offset(0, -150));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
+    await tester.drag(list, const Offset(0, 150));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
+    await tester.tap(find.descendant(of: nav, matching: find.text('总览')));
+    await tester.pump();
+    final overviewPosition = tester
+        .state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byType(ListView).first,
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        )
+        .position;
+    overviewPosition.jumpTo(overviewPosition.maxScrollExtent);
+    await tester.pump();
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
     await tester.pumpWidget(const SizedBox.shrink());
   });
   testWidgets('appearance follows live system brightness without restarting', (

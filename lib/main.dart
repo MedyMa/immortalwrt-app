@@ -300,15 +300,27 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     }
     if (notification is ScrollStartNotification) {
       _scrollGesture = 0;
-    } else if (notification is ScrollUpdateNotification &&
-        notification.dragDetails != null) {
-      final delta = notification.scrollDelta ?? 0;
-      if (delta.sign != _scrollGesture.sign) _scrollGesture = 0;
-      _scrollGesture += delta;
-      if (notification.metrics.pixels <= 0 || _scrollGesture < -8) {
+    } else {
+      final double delta;
+      final bool userDrag;
+      if (notification is ScrollUpdateNotification) {
+        delta = notification.scrollDelta ?? 0;
+        userDrag = notification.dragDetails != null;
+      } else if (notification is OverscrollNotification) {
+        delta = notification.overscroll;
+        userDrag = notification.dragDetails != null;
+      } else {
+        return false;
+      }
+      if (delta < 0 &&
+          notification.metrics.pixels <=
+              notification.metrics.minScrollExtent + 0.5) {
         _navigationVisible.value = true;
-      } else if (_scrollGesture > 12) {
-        _navigationVisible.value = false;
+      }
+      if (userDrag && delta != 0) {
+        if (delta.sign != _scrollGesture.sign) _scrollGesture = 0;
+        _scrollGesture += delta;
+        if (_scrollGesture > 12) _navigationVisible.value = false;
       }
     }
     return false;
