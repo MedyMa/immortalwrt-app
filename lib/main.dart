@@ -588,139 +588,176 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     final snapshot = _snapshot;
     final isIos = Theme.of(context).platform == TargetPlatform.iOS;
     final wide = !isIos && MediaQuery.sizeOf(context).width >= 700;
-    return Scaffold(
-      backgroundColor: _pageOf(context),
-      extendBody: !isIos && !wide,
-      extendBodyBehindAppBar: !isIos,
-      appBar: AppBar(
-        backgroundColor: isIos ? _pageOf(context) : Colors.transparent,
-        flexibleSpace: isIos
-            ? null
-            : _GlassSurface(
-                border: false,
-                radius: BorderRadius.zero,
-                surfaceColor: _pageOf(context),
-                child: const SizedBox.expand(),
-              ),
-        title: Text(
-          names[_tab],
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-        actions: [
-          _SettingsAction(onPressed: _showConnection),
-          const SizedBox(width: 10),
-        ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: _isDark(context)
+            ? Brightness.light
+            : Brightness.dark,
+        statusBarBrightness: _isDark(context)
+            ? Brightness.dark
+            : Brightness.light,
+        systemStatusBarContrastEnforced: false,
       ),
-      body: SafeArea(
-        top: isIos,
-        bottom: isIos || wide,
-        child: Row(
+      child: Scaffold(
+        backgroundColor: _pageOf(context),
+        extendBody: !isIos && !wide,
+        body: Stack(
           children: [
-            if (wide)
-              Padding(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.viewPaddingOf(context).top + kToolbarHeight,
-                ),
-                child: NavigationRail(
-                  selectedIndex: _tab,
-                  onDestinationSelected: _selectTab,
-                  labelType: NavigationRailLabelType.all,
-                  backgroundColor: _cardOf(context),
-                  indicatorColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.12),
-                  destinations: const [
-                    NavigationRailDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home_rounded),
-                      label: Text('总览'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.devices_outlined),
-                      selectedIcon: Icon(Icons.devices_rounded),
-                      label: Text('设备'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.router_outlined),
-                      selectedIcon: Icon(Icons.router_rounded),
-                      label: Text('Wi-Fi'),
-                    ),
-                    NavigationRailDestination(
-                      icon: Icon(Icons.bar_chart_outlined),
-                      selectedIcon: Icon(Icons.bar_chart_rounded),
-                      label: Text('流量'),
-                    ),
-                  ],
-                ),
-              ),
-            Expanded(
-              child: snapshot == null
-                  ? _EmptyConnection(
-                      loading: _loading,
-                      error: _error,
-                      onConnect: _showConnection,
-                    )
-                  : NotificationListener<ScrollNotification>(
-                      onNotification: _onScroll,
-                      child: RefreshIndicator(
-                        edgeOffset: isIos
-                            ? 0
-                            : MediaQuery.viewPaddingOf(context).top +
-                                  kToolbarHeight,
-                        onRefresh: _refresh,
-                        color: _blue,
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.fromLTRB(
-                            16,
-                            isIos
-                                ? 4
-                                : MediaQuery.viewPaddingOf(context).top + 64,
-                            16,
-                            !isIos && !wide
-                                ? 112 + MediaQuery.viewPaddingOf(context).bottom
-                                : 32,
+            SafeArea(
+              top: false,
+              bottom: isIos || wide,
+              child: Row(
+                children: [
+                  if (wide)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: MediaQuery.viewPaddingOf(context).top,
+                      ),
+                      child: NavigationRail(
+                        selectedIndex: _tab,
+                        onDestinationSelected: _selectTab,
+                        labelType: NavigationRailLabelType.all,
+                        backgroundColor: _cardOf(context),
+                        indicatorColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.12),
+                        destinations: const [
+                          NavigationRailDestination(
+                            icon: Icon(Icons.home_outlined),
+                            selectedIcon: Icon(Icons.home_rounded),
+                            label: Text('总览'),
                           ),
-                          children: [
-                            if (_error != null)
-                              _Notice(
-                                '连接中断 · 显示上次成功读取的数据\n$_error',
-                                Icons.wifi_off_rounded,
-                                tone: _red,
-                              ),
-                            if (_checking && _error == null)
-                              const _Notice(
-                                '正在核对数据 · 下方是上次成功读取的状态',
-                                Icons.sync_rounded,
-                              ),
-                            if (_tab == 0)
-                              _Overview(
-                                snapshot: snapshot,
-                                endpoint: _url,
-                                error: _error,
-                                onOpen: _selectTab,
-                              ),
-                            if (_tab == 1) _Devices(snapshot: snapshot),
-                            if (_tab == 2) _Wifi(snapshot: snapshot),
-                            if (_tab == 3)
-                              _Traffic(snapshot: snapshot, endpoint: _url),
-                          ],
-                        ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.devices_outlined),
+                            selectedIcon: Icon(Icons.devices_rounded),
+                            label: Text('设备'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.router_outlined),
+                            selectedIcon: Icon(Icons.router_rounded),
+                            label: Text('Wi-Fi'),
+                          ),
+                          NavigationRailDestination(
+                            icon: Icon(Icons.bar_chart_outlined),
+                            selectedIcon: Icon(Icons.bar_chart_rounded),
+                            label: Text('流量'),
+                          ),
+                        ],
                       ),
                     ),
+                  Expanded(
+                    child: snapshot == null
+                        ? Padding(
+                            padding: EdgeInsets.only(
+                              top: MediaQuery.viewPaddingOf(context).top,
+                            ),
+                            child: Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: _ScrollingToolbar(
+                                    title: names[_tab],
+                                    onSettings: _showConnection,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: _EmptyConnection(
+                                    loading: _loading,
+                                    error: _error,
+                                    onConnect: _showConnection,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : NotificationListener<ScrollNotification>(
+                            onNotification: _onScroll,
+                            child: RefreshIndicator(
+                              edgeOffset: MediaQuery.viewPaddingOf(context).top,
+                              onRefresh: _refresh,
+                              color: _blue,
+                              child: ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.fromLTRB(
+                                  16,
+                                  MediaQuery.viewPaddingOf(context).top + 4,
+                                  16,
+                                  !isIos && !wide
+                                      ? 112 +
+                                            MediaQuery.viewPaddingOf(
+                                              context,
+                                            ).bottom
+                                      : 32,
+                                ),
+                                children: [
+                                  _ScrollingToolbar(
+                                    title: names[_tab],
+                                    onSettings: _showConnection,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  if (_error != null)
+                                    _Notice(
+                                      '连接中断 · 显示上次成功读取的数据\n$_error',
+                                      Icons.wifi_off_rounded,
+                                      tone: _red,
+                                    ),
+                                  if (_checking && _error == null)
+                                    const _Notice(
+                                      '正在核对数据 · 下方是上次成功读取的状态',
+                                      Icons.sync_rounded,
+                                    ),
+                                  if (_tab == 0)
+                                    _Overview(
+                                      snapshot: snapshot,
+                                      endpoint: _url,
+                                      error: _error,
+                                      onOpen: _selectTab,
+                                    ),
+                                  if (_tab == 1) _Devices(snapshot: snapshot),
+                                  if (_tab == 2) _Wifi(snapshot: snapshot),
+                                  if (_tab == 3)
+                                    _Traffic(
+                                      snapshot: snapshot,
+                                      endpoint: _url,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: MediaQuery.viewPaddingOf(context).top,
+              child: IgnorePointer(
+                child: _GlassSurface(
+                  key: const ValueKey('system-status-glass'),
+                  border: false,
+                  radius: BorderRadius.zero,
+                  surfaceColor: _pageOf(context),
+                  child: const SizedBox.expand(),
+                ),
+              ),
             ),
           ],
         ),
+        bottomNavigationBar: wide
+            ? null
+            : isIos
+            ? _IosTabBar(selectedIndex: _tab, onSelected: _selectTab)
+            : _CompactNavigation(
+                selectedIndex: _tab,
+                onSelected: _selectTab,
+                visible: _navigationVisible,
+              ),
       ),
-      bottomNavigationBar: wide
-          ? null
-          : isIos
-          ? _IosTabBar(selectedIndex: _tab, onSelected: _selectTab)
-          : _CompactNavigation(
-              selectedIndex: _tab,
-              onSelected: _selectTab,
-              visible: _navigationVisible,
-            ),
     );
   }
 }

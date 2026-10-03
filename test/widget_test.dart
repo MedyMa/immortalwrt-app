@@ -291,6 +291,7 @@ void main() {
   ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
+    tester.view.viewPadding = const FakeViewPadding(top: 32);
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
@@ -303,12 +304,22 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('流量').last);
     await tester.pump();
+    final header = find.byKey(const ValueKey('scrolling-toolbar'));
+    expect(header.hitTestable(), findsOneWidget);
+    expect(
+      tester.widget<ColoredBox>(header).color,
+      tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
+    );
+    final status = find.byKey(const ValueKey('system-status-glass'));
+    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
     final nav = find.byKey(const ValueKey('compact-navigation'));
     final fade = find.ancestor(of: nav, matching: find.byType(AnimatedOpacity));
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
     await tester.drag(find.byType(ListView).first, const Offset(0, -400));
     await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
+    expect(header.hitTestable(), findsNothing);
+    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
     expect(
       Focus.of(
         tester.element(find.descendant(of: nav, matching: find.text('总览'))),
