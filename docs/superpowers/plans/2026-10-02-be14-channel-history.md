@@ -1,54 +1,25 @@
-# BE14 Channel History Implementation Plan
+# BE14 信道历史实施计划（早期方案）
 
-> **For agentic workers:** Implement task by task, with a failing focused test before each production change.
+本文件保留最初将无线监测加入 Traffic 的方案，**已由独立状态组件方案替代，不应按此重新向 Traffic 添加方法**。当前接口与安装要求见 [配套固件说明](../../firmware.md)。
 
-**Goal:** Render real BE14 channel, width, link quality and 24-hour activity in the mobile Wi-Fi page.
+**目标**：显示真实 BE14 信道、带宽、链路质量与 24 小时活动。
 
-**Architecture:** A router-side one-minute sampler derives rates from vendor and interface counters, retaining a bounded RAM history. Read-only ubus methods expose sanitized status and history. The Flutter Wi-Fi screen selects a band and renders only fields backed by valid samples.
+**架构**：路由器每分钟采样，根据计数器差值计算速率和质量，保留受限的内存历史，通过只读 ubus 返回脱敏数据。手机仅绘制有有效采样支持的字段。
 
-**Tech Stack:** BusyBox shell/awk, rpcd jshn, Flutter/Dart, existing custom painters and test harness.
+**技术**：BusyBox shell / awk、rpcd / jshn、Flutter / Dart、现有自绘图表与测试工具。
 
-## Global constraints
+## 约束
 
-- No Wi-Fi password, station MAC, raw `iwpriv` response, or DDnsto token in the mobile RPC payload.
-- `iw survey` is unsupported on the observed driver. Never label vendor TX failures as airtime, interference, or retransmissions.
-- History lives in `/tmp/traffic`, has a 24-hour cap, and survives phone app restarts but not router reboot.
-- Missing counters produce gaps or unavailable fields, never zero-filled measurements.
-- Preserve existing traffic collection and its CI gate.
+- 响应不包含无线密码、客户端 MAC、原始驱动输出或 DDnsto 令牌。
+- 当前驱动不支持 `iw survey`；TX 失败不标为空中占用、干扰或重试。
+- 早期目录是 `/tmp/traffic`，现已迁到 `/tmp/router-status`；保留 24 小时，手机重启不清空，路由器重启清空。
+- 缺失计数器不填零，不改变既有流量采集和构建门禁。
 
----
+## 当时的步骤
 
-### Task 1: Sanitized status
+1. 为脱敏状态增加 `htmode`、`ifname` 与密码过滤测试，先观察失败，再实现白名单字段。
+2. 对连续采样、重置、缺失、历史上限及敏感字段增加测试；计算有效计数器差值，原子更新历史，再增加只读历史 RPC 与 ACL。
+3. 增加带宽、空值与零、历史空点、按页请求和频段选择测试；实现射频选择器、质量及活动曲线，隐藏不支持的区域。
+4. 运行 shell、rpcd、格式、分析和 Flutter 完整测试，更新预览、提交推送，再核对组件和手机 CI；硬件验证单独记录。
 
-**Files:** `Luci-app/luci-app-traffic/root/usr/libexec/rpcd/luci.traffic`, `Luci-app/luci-app-traffic/tools/mobile-status-selftest.sh`.
-
-- [ ] Extend the failing selftest to expect `htmode` and `ifname` from a BE14 fixture and to reject a fixture key.
-- [ ] Run the selftest and confirm failure on the missing fields.
-- [ ] Project only allowlisted `htmode` and interface name in `getWirelessStatus`.
-- [ ] Run the selftest and existing rpcd selftest.
-
-### Task 2: Router samples and history RPC
-
-**Files:** `Luci-app/luci-app-traffic/root/usr/share/traffic/wifi-collector.sh`, `Luci-app/luci-app-traffic/root/etc/init.d/traffic`, `Luci-app/luci-app-traffic/root/usr/libexec/rpcd/luci.traffic`, `Luci-app/luci-app-traffic/root/usr/share/rpcd/acl.d/luci-app-traffic.json`, `Luci-app/luci-app-traffic/Makefile`, `Luci-app/luci-app-traffic/tools/wifi-history-selftest.sh`.
-
-- [ ] Write a shell fixture for two counter samples, reset, missing stats, bounded history, and no secret fields; verify it fails.
-- [ ] Add one-minute per-radio RAM sampling and atomic latest/history updates; compute TX failure %, RX CRC %, and RX/TX byte rates only from valid deltas.
-- [ ] Add bounded read-only `getWirelessHistory` JSON and ACL; verify fixture, rpcd and package tests.
-- [ ] Bump package version and run shell checks.
-
-### Task 3: Flutter models and page
-
-**Files:** `lib/models/router_models.dart`, `lib/services/router_api.dart`, `lib/screens/wifi.dart`, `test/router_models_test.dart`, `test/router_api_test.dart`, `test/widget_test.dart`.
-
-- [ ] Add failing tests for channel width, missing versus zero metric, history gap, page-scoped RPC and selector behavior.
-- [ ] Parse width from `htmode` and timestamps/metrics from the bounded history RPC.
-- [ ] Build the approved band selector, quality and activity charts; omit unsupported occupancy/interference/client signal sections.
-- [ ] Run format, analyze and all Flutter tests; update real-component preview fixture.
-
-### Task 4: Integration
-
-**Files:** Both READMEs and app preview screenshots.
-
-- [ ] Compare the rendered screen with the approved mockup and verify small-screen scrolling.
-- [ ] Run full CI-equivalent local gates, review the diff for secrets, commit and push both repositories.
-- [ ] Confirm both GitHub Actions runs and report router installation/hardware validation separately.
+当时目标文件为 `luci-app-traffic` 的 RPC、服务、ACL、采样脚本与手机模型/页面/测试。最终归属和迁移步骤见 [独立状态组件计划](2026-10-02-independent-router-status.md)。本次翻译不追溯改变旧计划任务状态。

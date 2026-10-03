@@ -1,7 +1,9 @@
-# Implementation plan
+# 首版实施计划（历史记录）
 
-1. Scaffold Flutter application and implement the overview/connection screens using a shared design system. Verify widget rendering and offline states.
-2. Implement ubus session login, per-method readers, robust decoding, credential storage, and focused protocol tests.
-3. Implement device, BE14 Wi-Fi, and traffic screens with explicit scope/recency labels. Test partial payloads and stale data.
-4. Add Android/iOS network configuration and GitHub Actions analysis, tests, and build artifacts.
-5. Verify locally where tooling permits, push the repository, then inspect the remote CI and repair any failures before calling the build complete.
+1. 创建 Flutter 工程，实现总览和连接页、共享样式与离线显示。
+2. 实现 ubus 登录、读取、响应校验、安全凭据存储及协议测试。
+3. 实现设备、BE14 与流量页，明确数据口径和时效，测试部分数据缺失。
+4. 配置 Android / iOS 网络策略和 GitHub Actions 分析、测试与构建。
+5. 本地验证后推送，再检查 CI；构建失败需要修复，不能提前宣称完成。
+
+当前安装与固件要求见 [配套固件说明](firmware.md)。

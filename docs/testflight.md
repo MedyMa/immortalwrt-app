@@ -1,23 +1,32 @@
-# TestFlight publishing
+# TestFlight 发布说明
 
-The manual **Publish iOS to TestFlight** workflow builds a signed device IPA and uploads it to App Store Connect. Simulator artifacts cannot be uploaded to TestFlight.
+手动工作流 **Publish iOS to TestFlight** 构建已签名真机 IPA 并上传 App Store Connect。普通 CI 的模拟器 App 不能用于 TestFlight。
 
-Create the App Store Connect app record and explicit App ID `com.medyma.immortalwrtApp` in the same Apple Developer team. Create an Apple Distribution certificate with its private key exported as a password-protected P12, and an App Store distribution provisioning profile for that exact ID and certificate.
+## 前置条件
 
-Configure GitHub repository secrets (or secrets in the `testflight` environment):
+Apple Developer Program 已生效，并能创建分发证书和描述文件。在同一团队创建 App Store Connect 应用记录和明确 App ID：`com.medyma.immortalwrtApp`。导出包含私钥、受密码保护的 Apple Distribution P12，并创建匹配 App ID 和证书的 App Store 分发描述文件。
 
-| Secret | Value |
-|---|---|
-| `IOS_TEAM_ID` | Apple Developer team ID |
-| `IOS_DISTRIBUTION_P12_BASE64` | Base64-encoded distribution P12 |
-| `IOS_DISTRIBUTION_P12_PASSWORD` | P12 export password |
-| `IOS_PROVISION_PROFILE_BASE64` | Base64-encoded App Store provisioning profile |
-| `ASC_KEY_ID` | App Store Connect team API key ID |
-| `ASC_ISSUER_ID` | API key issuer ID |
-| `ASC_PRIVATE_KEY_BASE64` | Base64-encoded API key P8 |
+## GitHub 机密变量
 
-Use a team API key with Developer or higher access to this app. Never commit these files or paste their contents into chat. GitHub Actions only needs the secrets above; it does not need your Apple ID password.
+在仓库或 `testflight` 环境中配置：
 
-Run the workflow on `main`, using a new build number for each upload (first build: 19). Upload completion means Apple received the build. Wait for processing in App Store Connect → TestFlight, answer export-compliance questions where required, and add the build to the intended tester group. External testing may require Apple's beta review. No tester invitations are sent by this workflow.
+| 变量 | 内容 |
+| --- | --- |
+| `IOS_TEAM_ID` | Apple 开发者团队 ID |
+| `IOS_DISTRIBUTION_P12_BASE64` | 分发证书 P12 的 Base64 |
+| `IOS_DISTRIBUTION_P12_PASSWORD` | P12 导出密码 |
+| `IOS_PROVISION_PROFILE_BASE64` | 分发描述文件的 Base64 |
+| `ASC_KEY_ID` | App Store Connect 团队 API 密钥 ID |
+| `ASC_ISSUER_ID` | API 密钥签发者 ID |
+| `ASC_PRIVATE_KEY_BASE64` | API 密钥 P8 的 Base64 |
 
-The signing workflow requires macOS/Xcode and configured credentials; it cannot be validated as a signed upload on Windows. Routine CI continues to produce the Android debug APK and unsigned iOS simulator package.
+API 密钥需要足够的应用访问权限。工作流不需要 Apple ID 登录密码，不要将证书、私钥、密码或验证码提交仓库。
+
+## 发布步骤
+
+1. 在 `main` 手动运行工作流，输入未使用过的构建号；每次上传递增，不固定沿用工作流默认值。
+2. 检查签名、真机构建和上传步骤是否成功。
+3. 在 App Store Connect → TestFlight 等待处理，按要求填写出口合规信息，再分配测试组。
+4. 外部测试可能需要 Apple 测试版审核；工作流不会自动邀请测试者。
+
+上传成功仅表示 Apple 接收了构建，不表示已经可供测试。Windows 可检查配置，不能替代 macOS / Xcode 的签名上传验证。开发者资格或签名配置未完成时，继续使用常规 Android / iOS 模拟器构建。

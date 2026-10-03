@@ -1,27 +1,26 @@
-# Independent Router Status Implementation Plan
+# 独立路由器状态组件实施计划
 
-> Execute sequentially with regression gates before publishing.
+按顺序实施，每次发布前检查回归。
 
-**Goal:** Read BE14 and CPU through an independent router package and remove those responsibilities from traffic.
+**目标**：通过独立组件读取 BE14 和 CPU，并从 Traffic 移除这些职责。
 
-**Architecture:** `rpcd-mod-router-status` publishes the read-only `router.status` object. It owns its collector and `/tmp/router-status` history. Traffic keeps its existing data, RPC object, collector, UI and 24-hour default.
+**架构**：`rpcd-mod-router-status` 发布只读 `router.status`，管理自己的采样服务与 `/tmp/router-status` 历史。Traffic 保持流量数据、接口、采集、界面及 24 小时默认范围。
 
-**Tech Stack:** Flutter/Dart, rpcd shell plugins, procd, jshn, AWK, OpenWrt SDK.
+**技术**：Flutter / Dart、rpcd shell 插件、procd、jshn、AWK 与 OpenWrt SDK。
 
-## Constraints
+## 约束
 
-- Keep 1-second foreground rate polling and 24-hour traffic statistics.
-- No wireless passwords, write RPCs, driver configuration commands or fabricated radio measurements.
-- No dependency on traffic in the status package, its ACL, polling, or Wi-Fi session checks.
-- Preserve existing flow statistics and persistent archives when upgrading.
-- Use monotonic version increases; ship installation and device verification instructions.
-- Hardware validation requires installing the new router package; host tests are not hardware proof.
+- 保留前台每秒速率读取和 24 小时流量统计。
+- 不返回无线密码，不调用写 RPC 或驱动配置，不编造测量值。
+- 状态组件、ACL、轮询和 Wi-Fi 会话检查不依赖 Traffic。
+- 升级保留既有流量统计和持久档案，版本递增并提供安装检查说明。
+- 无关工作区改动不纳入此次提交。
 
-## Steps
+## 步骤
 
-1. Add failing app and package boundary tests for independent status, missing traffic, denied ACL and expired sessions.
-2. Move sanitized radio status, CPU counters, history sampling and tests to a standalone package with its own service, ACL, directory and SDK workflow.
-3. Restore traffic RPC, service, ACL, packaging and documentation to their pre-monitoring behavior. Remove the added wireless files/tests; keep unrelated traffic improvements.
-4. Switch the app to `router.status`; distinguish absent components from connection failures and use a system read for session checks.
-5. Run the existing traffic suites, independent status suites, Flutter format/analyze/tests and real-component previews.
-6. Publish router packages and mobile changes, verify CI artifacts, and document router installation plus a read-only hardware checklist.
+1. 增加接口独立性、组件缺失、会话与迁移边界测试。
+2. 创建独立软件包及服务、ACL、目录和 SDK 构建工作流。
+3. 将 Traffic 的 RPC、服务、ACL、打包和文档恢复为监测加入前的职责，移除新增无线脚本与测试，保留无关的流量改进。
+4. 手机切换到 `router.status`，区分组件缺失与连接失败，使用系统读取检查会话。
+5. 运行 Traffic、独立状态组件及 Flutter 全部门禁，并检查真实组件预览。
+6. 发布软件包和手机改动，核对 CI 产物，记录安装及硬件侧只读检查。

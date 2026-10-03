@@ -1,29 +1,15 @@
-# Device records
+# 设备图标与详情说明
 
-- Bundle brand SVGs locally; no icon downloads or new router RPCs.
-- Use explicit hostname tokens for brand and broad device type. Unknown names
-  retain a generic icon. Names are not proof of online state or exact model.
-- The owner confirmed that `XiaoQiang` is their Xiaomi AX9000. This exact,
-  case-insensitive name has a confirmed mapping. Other Xiaomi devices are not
-  assigned this model. Update the mapping if the device using this name changes.
-- Show type and IP below the original name. The confirmed model appears beside
-  the name. Details expose the full name, IP, MAC, record sources, traffic and
-  identification basis, with selectable values.
-- Brand marks use the current foreground colour for system light/dark mode.
-  Generic icons use SF Symbols on iOS and Material icons on Android.
-- SVG provenance and upstream licence references are preserved in
-  `assets/device-brands/sources.json`, copied from the local traffic icon catalogue.
-  Synology's background was removed and its view box cropped to the wordmark;
-  unused stylesheet elements were removed for Flutter SVG compatibility.
+- 品牌 SVG 随安装包保存，不下载图标、不新增路由器 RPC。
+- 根据明确的设备名称匹配品牌和类型；未知名称显示通用图标，不据此声称在线或推断具体型号。
+- 用户确认 `XiaoQiang` 对应小米 AX9000，因此该名称精确匹配时显示确认型号。其他小米设备不套用 AX9000；更换同名设备时应更新映射。
+- 三星 `Z-flip`、`Z Flip`、`ZFlip` 和 Z Fold 系列名称识别为三星手机，不凭名称推测代数。
+- 列表保留原名称，确认型号显示在名称旁；副行显示类型和 IP。点击查看完整数据。
+- 品牌图标颜色跟随日夜模式；通用图标在 iOS 使用 SF Symbols，在 Android 使用 Material。
+- 图标来源与上游许可链接保存在 `assets/device-brands/sources.json`。群晖图标去掉背景并裁剪到文字标志；移除无用样式元素以兼容 Flutter SVG。
 
-## Approved detail sheet (2026-10-03)
+## 已确认的详情卡片
 
-The compact detail sheet lives in `lib/widgets/device_detail_sheet.dart`.
-It shows the brand icon, selectable original name and identity subtitle, then
-session traffic and selectable IP/MAC rows. Source records remain visible;
-identification evidence is collapsed initially. It supports close, scrim and
-drag dismissal. System colours and the full glass treatment remain enabled.
-Close and disclosure use Cupertino controls and SF Symbols on iOS, Material
-controls on Android. Height is bounded to 85 percent of the screen; narrow
-screens or large text stack the detail labels above their values and allow
-scrolling. It does not add router calls or dependencies.
+详情组件位于 `lib/widgets/device_detail_sheet.dart`。顶部为品牌图标、可选择的原名称及品牌/型号/类型；之后显示会话流量、IP、MAC 和记录来源。识别依据默认收起，点击展开。
+
+支持关闭按钮、点击遮罩与拖动关闭。保留系统日夜配色和完整玻璃效果；iOS 使用 Cupertino 控件与 SF Symbols，Android 使用 Material 控件。高度上限为屏幕的 85%，大字体或窄屏时信息行改为上下排列并允许滚动，不增加路由器请求或依赖。

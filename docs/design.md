@@ -1,33 +1,31 @@
-# ImmortalWrt Mobile: first release
+# ImmortalWrt 手机 App：首版设计记录
 
-## Scope
+本文记录首版设计，后续变化以 [当前功能说明](../README.md) 和 [配套固件说明](firmware.md) 为准。
 
-One standalone Flutter application for iOS and Android. At home it can read `192.168.2.1`; outside it uses the existing `https://bananapi.x.ddnsto.com` HTTPS tunnel, which was verified to forward `/ubus` JSON-RPC. No VPN, MiWiFi data, router configuration, or background collection.
+## 定位
 
-## Screens
+独立 Flutter 应用，支持 Android 与 iOS。在家读取 `192.168.2.1`，家外通过 HTTPS 隧道读取 `/ubus`。不连接 VPN、不接入 MiWiFi、不修改路由器设置、不在手机后台采集。
 
-1. **Overview:** connection state and last update, current down/up rate, session usage, router uptime, and quick links to three details.
-2. **Devices:** clients identified by the Traffic App, with current session usage and names/IPs. The UI does not call an address a Wi-Fi client unless the router reports that association.
-3. **Wi-Fi:** MT7988 BE14 radio information from `network.wireless status`; show unsupported details as unavailable rather than inventing values.
-4. **Traffic:** a history chart from `luci.traffic.getSeries`, traffic totals, and top applications from `getSummary`.
-5. **Connection:** router URL, username, and password. Credentials are stored in OS secure storage. The app does not persist an ubus session ID after logout.
+## 页面
 
-## Visual language
+1. 总览：连接状态、更新时间、速率、会话总量、运行时间及快捷入口。
+2. 设备：名称、IP 与本次会话流量；没有关联证据时不标记为在线无线客户端。
+3. Wi-Fi：MT7988 BE14 射频信息；缺失字段显示不可用。首版曾直接读取 `network.wireless.status`，现由独立组件脱敏后返回。
+4. 流量：趋势、总量与应用列表；当前版本统计最近 24 小时。
+5. 连接：地址和路由器账号；凭据保存于系统安全存储，会话仅驻内存。
 
-Light neutral canvas, dark ink text, blue for download, purple for upload, restrained green for online state. Important measurements have large numerals and their time scope next to them. Cards use consistent padding and minimum touch target sizes. Empty, stale, loading, and error states are explicit. Dark mode follows the system.
+## 视觉与安全
 
-## Data and security
+浅色中性背景，下载蓝色、上传紫色，状态使用克制的绿色。重要数值带单位和时间口径，明确区分空值、过期、加载和错误。深色模式跟随系统。
 
-The client uses the router's existing ubus JSON-RPC endpoint. It logs in through `session.login` and reads only `luci.traffic.getSummary`, `getLive`, `getSeries`, `network.wireless.status`, and `system.info`. Each payload is validated separately; one unavailable service does not erase other data. No write RPC is called by the app. The account's permissions are determined by the router; a dedicated read-only account is recommended. The remote endpoint uses a trusted HTTPS certificate. Plain HTTP is permitted only for `192.168.2.1` and is clearly identified in the connection screen because credentials would cross the LAN without transport encryption.
+通过 ubus JSON-RPC 登录后仅调用读取方法，逐项验证响应，单个服务缺失不清空其他数据。专用账号权限由路由器决定。本地 HTTP 仅允许 `192.168.2.1`，该连接不加密；远程使用可信 HTTPS。
 
-## Delivery
+## 交付与验收
 
-GitHub Actions runs formatting, static analysis, tests, Android debug APK build, and unsigned iOS simulator build. An unsigned iOS artifact is for simulator/CI verification only; physical iPhone distribution needs Apple signing credentials and a separate release workflow.
+CI 执行格式、分析、测试、Android 调试 APK 与 iOS 模拟器构建。真实 iPhone 与 TestFlight 另需签名。
 
-## Acceptance
-
-- iOS and Android navigate all screens without a router and show a useful offline state.
-- With a reachable router, Traffic values agree with LuCI for the same session and timestamps.
-- Missing Traffic App or Wi-Fi status produces a clear partial-data state.
-- Network calls are read-only after login; passwords never appear in logs or committed files.
-- CI publishes Android and iOS simulator artifacts on successful builds.
+- 离线时可打开所有页面并呈现明确状态。
+- 同一采集会话和时间口径下，流量应与路由器一致。
+- 组件缺失只影响对应区域。
+- 不调用配置写接口，不将密码写入日志或仓库。
+- 构建成功后上传对应产物；硬件验证和 CI 结果分别报告。

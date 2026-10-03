@@ -1,65 +1,75 @@
-# ImmortalWrt Mobile
+# ImmortalWrt 手机 App
 
-An independent iOS and Android status app for the MT7988 router. It uses the existing `https://bananapi.x.ddnsto.com` endpoint outside the home and can use `192.168.2.1` locally, without a phone VPN.
+面向 MT7988 路由器的独立 Android / iOS 状态查看工具。支持家庭局域网直连，也可通过可访问 `/ubus` 的 HTTPS 隧道在家外查看，不需要手机连接 VPN。
 
-The app shows router uptime, CPU and memory usage, SFP link speeds, Traffic App rates and session totals, DHCP leases and traffic clients, and BE14 radio status. It does not display MiWiFi, modify router settings, or connect a VPN.
+## 配套固件
 
-The overview uses a three-node device → MT7988 → Internet diagram. It is a topology sketch: the app verifies its MT7988 connection, but does not measure the upstream Internet link or claim that device records are currently online.
+主要配合 [MedyMa/BananaPi-BPI-R4](https://github.com/MedyMa/BananaPi-BPI-R4) 构建的 BPI-R4 / MT7988 ImmortalWrt 固件使用。BE14 无线历史和温度的已确认数据来自 MT7990 厂商驱动；其他驱动、机型和固件仅在提供相同接口时兼容，不能保证全部指标可用。
 
-The four screens follow the [platform-adaptive v3 design](design/platform-adaptive-v3.md). iOS uses a native UIKit tab bar, which adopts the system's Liquid Glass appearance on supported OS versions. Android uses Material 3 navigation, Android 12+ system accent color, and a navigation rail on wider screens. The content remains the same read-only router data on both platforms.
+| 路由器软件包 | 用途 | 要求 |
+| --- | --- | --- |
+| `rpcd-mod-router-status` | CPU、温度、BE14 状态与无线历史 | 温度功能需要 0.1.2 或更新版本 |
+| `luci-app-traffic` | 实时速率、流量记录、最近 24 小时曲线与应用图标 | 推荐 1.1.7 或更新版本 |
+| `luci-app-sfp-status` | SFP 链路、速率与模块温度 | 提供 `luci.sfp-status.getStatuses` |
+| turboacc | HNAT / PPE 已绑定流表与占用率 | 提供 `luci.turboacc.getMTKPPEStat` |
 
-Page titles and settings scroll with the content on a matching page-colored background. A bounded glass backdrop remains under the sharp system time and battery icons. Android uses compact capsule navigation and a frosted connection sheet, with opaque status cards. Navigation hides on upward swipes and returns only after scrolling back to the page top; hidden items cannot receive touch, screen-reader or keyboard focus. The original glass blur strength is retained while scrolling; high contrast and reduced motion still use opaque chrome. Android configuration events and a resume-time native appearance read keep the app in sync with system dark mode. This remains a Flutter treatment, not native Compose components. [Night preview](design/previews/android-night.png) · [Connection sheet](design/previews/android-settings.png).
+以上组件分工独立。Wi-Fi 和 CPU 不通过 Traffic App 读取；缺少某一组件时，相应区域显示不可用，其他数据仍可读取。
 
-| iOS preview | Android preview |
-| --- | --- |
-| [Overview](design/previews/ios-overview.png) · [Devices](design/previews/ios-devices.png) · [Wi-Fi](design/previews/ios-wifi.png) · [Traffic](design/previews/ios-traffic.png) | [Overview](design/previews/android-overview.png) · [Devices](design/previews/android-devices.png) · [Wi-Fi](design/previews/android-wifi.png) · [Traffic](design/previews/android-traffic.png) |
+**固件选择、软件包格式、安装步骤及接口检查见 [配套固件与安装说明](docs/firmware.md)。** 小米 AX9000 是设备列表中的下游设备，不是手机 App 必须搭配的固件，也不接入 MiWiFi 管理接口。
 
-The previews render the shipped Flutter widgets with example data. Golden tests block HTTP, so the Traffic preview shows initial avatars; on a connected device the app loads SVGs from the router's packaged icon directory. The iOS previews use a Cupertino tab bar fallback because they were rendered on Windows; the actual UIKit Liquid Glass appearance must be checked in the iOS simulator.
+## 页面功能
 
-The Wi-Fi history card also has scrolled [Android](design/previews/android-wifi-detail.png) and [iOS](design/previews/ios-wifi-detail.png) previews. Their curves are example data used only for layout review.
+- **总览**：设备 → MT7988 → 互联网示意拓扑、实时下载/上传、会话 WAN 总量、HNAT / PPE、CPU、内存、温度与 SFP。
+- **设备**：合并 DHCP 租约和流量记录，显示品牌或设备类型图标；点击查看名称、IP、MAC、流量及识别依据。`XiaoQiang` 按用户确认映射为小米 AX9000；其他设备不会套用该型号。三星 Z Flip / Z Fold 名称支持识别。
+- **Wi-Fi**：BE14 频段、信道、EHT 带宽、BSSID，以及最近 24 小时的 TX FAL、RX CRC 和活动曲线。
+- **流量**：最近 24 小时统计、速率曲线与完整应用/站点列表。总览的会话总量与 24 小时统计分开呈现。
 
-## Connect
+设备记录不代表当前在线；拓扑图不等于上游互联网探测结果。PPE 百分比是硬件流表占用率，不是 CPU 使用率，也不是设备数量。无线驱动未提供可用的空中占用率和客户端信号分布时，不绘制这些指标。
 
-1. Install `rpcd-mod-router-status` for CPU, BE14 and wireless history. Install `luci-app-traffic` for flow statistics and `luci-app-sfp-status` for SFP details. These packages operate independently; the wireless sampler does not need traffic to be installed or running.
-2. Open the app's connection screen. Its default HTTPS address is `https://bananapi.x.ddnsto.com`; the remote tunnel was checked to forward unauthenticated `/ubus` requests on 2026-10-01, but login and authorized methods still require a device-side test.
-3. Enter the LuCI/ubus username and password. At home, `http://192.168.2.1` is an optional local fallback. The username is not prefilled so a dedicated read-only account can be used.
+## 连接方式
 
-The app sends `session.login`, followed only by `luci.traffic.getSummary`, `getLive`, `getHourly`, `getSeries`, `router.status.getSystemMetrics`, `router.status.getWirelessStatus`, `router.status.getWirelessHistory`, `luci.sfp-status.getStatuses`, `system.info`, and `luci-rpc.getDHCPLeases`. It never calls a router write method. `router.status.getWirelessStatus` filters the netifd payload on the router so configured Wi-Fi passwords are never returned to the phone. Prefer a dedicated read-only ubus account, because a full administrator credential still grants administrator rights to anyone who obtains it. Credentials are stored in Android Keystore / iOS Keychain through `flutter_secure_storage`; logout deletes them. The ubus session stays in memory.
+1. 先安装或确认路由器组件，检查 [只读接口](docs/firmware.md#接口检查)。
+2. 在 App 的连接页填写路由器地址和 LuCI / ubus 账号。HTTPS 地址可自行替换；代码中的默认地址为 `https://bananapi.x.ddnsto.com`。
+3. 在家可使用 `http://192.168.2.1`。当前 App 和平台策略只允许这个 IP 使用明文 HTTP。
+4. 在家外使用自己的 HTTPS 域名，并用手机蜂窝网络检查连接。隧道需要支持 App 直接访问 `/ubus`；浏览器登录 Cookie 不会自动带入 App。
 
-The local `http://192.168.2.1` connection is **not encrypted**. Only this exact IP is permitted over HTTP in the app and platform network policy. The DDnsto HTTPS route provides remote connectivity without a phone VPN; it depends on that third-party tunnel being online. Use a dedicated read-only router account if available.
+手机 App 不保存 DDnsto 客户端令牌，不登录 DDnsto 账号。令牌在路由器 DDnsto 客户端中配置；隧道如果另加网页登录鉴权，需要另外解决 App 接入问题。
 
-Device rows combine DHCP leases with devices that have traffic in the current collection session; neither proves a device is currently online. The session WAN counter and identified-application totals have different scopes; the UI labels them separately. CPU usage is calculated from two `/proc/stat` samples, so the first screen briefly shows a sampling state. SFP status is read from `luci-app-sfp-status` and shown by the module's reported slot, without guessing which port is WAN. The Traffic page loads packaged SVG icons from the same router origin and falls back to an initial where artwork is unavailable.
+## 数据与安全
 
-Only the visible page is polled. Polling pauses while the app is in the background and resumes immediately when it returns to the foreground. An expired ubus session is reauthenticated once from secure storage, then the read is retried. If the second read is still denied, the app reports a likely ACL issue and stops automatic login attempts. DNS, TLS, timeout, HTTP and ubus permission errors have separate messages. Failed sections keep their previous data with an explicit error label.
+App 仅调用 `session.login` 和状态读取方法，不修改路由器配置、不建立 VPN、不在手机后台持续采集。推荐使用拥有必要读取权限的专用账号；App 只读并不会降低管理员账号本身的权限。
 
-The Wi-Fi page shows the reported BE14 channel and EHT width. Its 24-hour history uses one-minute counter samples, reduced to five-minute points for transfer. TX failure and RX CRC come from consecutive vendor-driver counters; download and upload rates come from AP-interface byte counters. This driver did not provide `nl80211` survey data or a usable station list, so airtime occupancy and client signal distribution are omitted. History lives in router RAM and starts anew after a reboot or package upgrade.
+凭据通过 `flutter_secure_storage` 保存在 Android / iOS 系统安全存储中，退出连接会删除凭据；ubus 会话仅保存在内存。本地 HTTP 不加密；远程连接依赖 HTTPS 证书与第三方隧道可用性。
 
-## Development
+只轮询当前页面：总览实时速率每 1 秒读取，系统状态约每 15 秒更新，速率请求不重叠。App 切到后台后暂停轮询，返回前台立即刷新；会话失效后进行一次重新登录与重试，重复拒绝时停止自动尝试并提示检查权限。
 
-Signed iPhone/TestFlight delivery uses the manual `Publish iOS to TestFlight` workflow. See [publishing setup](docs/testflight.md) for the required signing secrets and App Store Connect app record.
+无线采样在路由器侧独立运行，每分钟采样，保留最近 24 小时，按 5 分钟粒度传输。历史位于 `/tmp/router-status`；路由器重启会清空，普通服务重启或升级会保留。温度缓存超过 180 秒不再使用，缺失传感器显示 `—`。
 
-Launcher artwork uses the approved router/network design. Android includes adaptive and monochrome resources with light/dark colors; iOS includes Any, Dark and Tinted variants. Sources are in `design/app-icons`; regenerate PNG assets with `tools/generate-app-icons.ps1` on Windows with Chrome installed.
+## 界面
 
-Flutter 3.47.5 is used by CI:
+两端跟随系统日夜模式。iOS 的原生 UIKit 控件在支持的系统上使用 Liquid Glass，按钮及通用设备符号使用 SF Symbols；Android 使用 Flutter Material 3、系统动态色与玻璃导航。这不是原生 Compose 实现。
+
+标题与设置按钮随页面滚动；系统时间、电量保持清晰，下方页面内容模糊显示。导航上滑隐藏，回到顶部时显示；保留滚动时的完整玻璃效果，高对比度或减少动态效果时使用不透明回退。
+
+设备品牌图标随安装包保存，不依赖联网下载。流量图标从路由器同源图标目录读取，缺失时使用回退图标。预览图中的示例数据不是路由器实测，Windows 下的 iOS 风格渲染也不等于原生模拟器截图。
+
+## 构建与安装包
+
+CI 使用 Flutter 3.47.5、Android 17 SDK（API 37）以及 Xcode 27 / iOS 27 SDK。Android 的 `targetSdk` 和最低版本遵循工程配置，不因编译 SDK 升级自动提高；iOS 保留 iOS 15 部署目标。
+
+[GitHub Actions](https://github.com/MedyMa/immortalwrt-app/actions) 的常规构建提供：
+
+- `immortalwrt-android-debug`：可安装的 Android 调试 APK。
+- `immortalwrt-ios-simulator`：未签名模拟器 App，不能安装到真实 iPhone，也不能上传 TestFlight。
+
+真实 iPhone / TestFlight 需要有效的 Apple Developer Program、签名证书、描述文件和 App Store Connect 记录，详见 [TestFlight 发布说明](docs/testflight.md)。
 
 ```sh
 flutter pub get
-dart format lib test
+dart format --output=none --set-exit-if-changed lib test
 flutter analyze --fatal-infos
 flutter test
 flutter run
 ```
 
-CI compiles against **Android 17 SDK (API 37)** with Android Gradle Plugin 9.1.1. `targetSdk` still follows Flutter's default pending Android 17 device behavior testing. The iOS job explicitly uses the **Xcode 27 / iOS 27 SDK** runner while retaining iOS 15 as its deployment target. CI prints the selected SDK versions. The Android artifact is a **debug APK**. The iOS artifact is an **unsigned simulator app**; it cannot be installed on a physical iPhone. iPhone distribution requires Apple signing credentials and a later signed release workflow.
-
-## Refresh and backend compatibility
-
-Temperature figures require `rpcd-mod-router-status` 0.1.2 or newer. CPU temperatures use labelled CPU/SoC thermal zones; disks use NVMe/drivetemp hwmon readings when the firmware exposes them. BE14 temperature reuses the existing one-minute driver sample. Each category shows the highest fresh reading, expiring after 180 seconds; absent, invalid or failed readings show a dash. SFP rows use the module Celsius field from the existing SFP API, alongside link speed. The app follows the system light/dark appearance.
-
-Overview also reads `luci.turboacc.getMTKPPEStat` about every 15 seconds. Each PPE row uses turboacc's `BIND_PPE` / `ALL_PPE` counters; the percentage has the same scope as the local turboacc page. These are hardware flow-table entries, not unique devices or CPU load. Missing counters or invalid denominators stay unknown. Read-only accounts need the turboacc read ACL; no write permission is required. If turboacc is unavailable, other overview data remains usable.
-
-Overview reads live rate every 1 second, with system status about every 15 seconds. Requests do not overlap. The Traffic page sums the latest 24 hourly buckets and loads the 24-hour minute series; session totals on Overview stay separate. Missing WAN buckets are labelled attributed totals instead of complete WAN totals.
-
-BE14, CPU and wireless history require the independent rpcd-mod-router-status package. Traffic statistics alone use luci-app-traffic; neither Wi-Fi reads nor wireless sampling depend on it. Install the status package first, update the mobile app, then upgrade traffic to 1.1.7 to remove the misplaced monitoring methods. Reconnect after rpcd restarts. Dedicated read-only accounts require the router-status read ACL. The LuCI traffic page keeps its 24-hour default.
-
-Router installation and device checks: https://github.com/MedyMa/luci-app/tree/main/Luci-app/rpcd-mod-router-status
+桌面图标源文件位于 `design/app-icons`，可使用 `tools/generate-app-icons.ps1` 重新生成。设备识别与详情设计见 [设备图标说明](design/device-icons.md)。`design/`、`docs/` 中较早的设计与计划保留演进记录；当前使用方式以本文和配套固件说明为准。

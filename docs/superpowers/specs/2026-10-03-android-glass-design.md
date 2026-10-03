@@ -1,11 +1,11 @@
-# Android glass surfaces
+# Android 玻璃界面设计（历史版本）
 
-Approved in chat: frosted navigation, toolbar actions and connection sheet; opaque readable data cards; coherent light/dark appearance and Material expressive selection feedback.
+已确认：磨砂导航、顶部操作与连接弹层，状态卡保持不透明，日夜外观一致，使用 Material 风格选中反馈。
 
-Use Flutter's bounded BackdropFilter for Android chrome, with system-seeded colors. This is an application treatment inspired by Material 3 Expressive, not a claim that Flutter renders native Compose components. Keep UIKit iOS chrome. No API, permission, polling or router changes.
+使用 Flutter 受限范围的 `BackdropFilter` 和系统配色。这是参考 Material 3 Expressive 的应用设计，不是原生 Compose 组件。保留 UIKit 控件；不改变 API、权限、轮询或路由器。
 
-Floating navigation has a 28 dp radius and 72 dp bar. Scroll content continues underneath, with bottom padding to keep the last item accessible. Toolbar blurs only its own bounds. Settings uses a 48 dp touch target. Connection sheet uses a 28 dp top radius and filled readable fields; its controls remain usable with the keyboard open.
+浮动导航圆角 28 dp、高 72 dp，内容从下方经过，底部留空间。设置触控区域为 48 dp，连接弹层顶部圆角 28 dp，键盘打开时仍可操作。原设计的顶部模糊框已被后续同色、随滚动顶部方案替代。
 
-High contrast disables translucency. Reduced motion disables blur and navigation animation. Do not blur individual data cards or animate live figures.
+高对比度关闭半透明；减少动态效果时关闭模糊和导航动画。单个数据卡不模糊，不对实时数值增加动画。
 
-Acceptance: all four tabs and settings work; short pages still pull-refresh; no overflow at phone/tablet widths or larger text; light/dark real Flutter renders; existing session tests pass; Android and iOS compile in CI.
+验收：四页和设置可用、短页可刷新、手机/平板/大字体不溢出，交付组件日夜渲染通过，既有会话测试通过，两端 CI 构建完成。

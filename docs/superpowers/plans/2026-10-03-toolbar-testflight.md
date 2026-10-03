@@ -1,8 +1,10 @@
-# Toolbar and TestFlight implementation plan
+# 顶部按钮与 TestFlight 实施计划
 
-Goal: remove redundant toolbar refresh, retain pull refresh, use a standard platform settings action, and prepare a signed TestFlight delivery workflow.
+目标：移除重复刷新按钮，保留下拉刷新，采用平台设置按钮，并准备签名发布工作流。
 
-- Use a 24 dp outlined gear in an Android Material IconButton, with system colors and no custom container; use a UIKit glass gear button on iOS, bridged into Flutter with a Cupertino fallback for host tests.
-- Make short connected pages scrollable for pull refresh. Verify settings still opens the connection sheet.
-- Provide manual signing/build/upload workflow, exact app profile validation and secret cleanup. Do not dispatch an upload without valid configured credentials and app record.
-- Run Flutter format/analyze/tests and signing configuration tests. Push and verify routine CI starts.
+- Android 使用 24 dp 描边设置图标、系统色和标准 Material `IconButton`，不套自定义容器；iOS 使用 UIKit 玻璃设置按钮，通过平台视图桥接，主机测试使用 Cupertino 回退。
+- 短页面仍可下拉刷新，设置按钮可打开连接页。
+- 增加手动签名、构建和上传工作流，校验应用标识与描述文件，清理机密。有效凭据和应用记录未配置时不触发上传。
+- 执行 Flutter 格式、分析、测试与签名配置测试，推送并核对常规 CI。
+
+实际签名要求见 [TestFlight 发布说明](../../testflight.md)。

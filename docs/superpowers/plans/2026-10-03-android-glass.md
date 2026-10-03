@@ -1,15 +1,15 @@
-# Android glass implementation plan
+# Android 玻璃界面实施计划（历史记录）
 
-**Goal:** Implement the approved glass chrome while keeping router status readable.
+**目标**：实现已确认的玻璃控制区域，保持状态卡清晰。
 
-**Architecture:** A shared bounded glass widget in `lib/widgets/glass.dart`, integrated by `lib/main.dart` and `lib/widgets/shared.dart`. Preserve the existing iOS UIKit bridge and data layer.
+**架构**：`lib/widgets/glass.dart` 提供受限范围的玻璃表面，由 `main.dart` 和共享组件使用，保留 iOS UIKit 桥接与数据层。
 
-**Tech stack:** Flutter Material 3, dart:ui ImageFilter. No new dependencies.
+**技术**：Flutter Material 3、`dart:ui ImageFilter`，无新增依赖。
 
-- [x] Add glass surface with high-contrast/reduced-motion opaque fallback, 18 sigma bounded blur and light/dark tint.
-- [x] Integrate toolbar, floating Android navigation and sheet; reserve scroll space and retain pull refresh.
-- [x] Style settings action, filled fields and selected navigation with system colors and short animation.
-- [x] Run format, analyze, full tests and render the delivery components with sample data in light/dark modes. Check sheet keyboard and navigation visibility.
-- [x] Bump version, commit, push and verify Android/iOS build jobs.
+- [x] 增加日夜色调、强度 18 的模糊及高对比度/减少动态效果的不透明回退。
+- [x] 接入顶部、浮动导航和连接弹层，保留滚动空间与下拉刷新。
+- [x] 设置按钮、输入框和选中导航使用系统配色与短动画。
+- [x] 执行格式、分析、完整测试，并用示例数据渲染两种外观，检查键盘与导航。
+- [x] 提升版本、提交推送并核对两端构建。
 
-Verification: Flutter analyze clean; 68 tests pass; phone light/dark, four tabs and keyboard sheet rendered from delivery widgets. Review fixes include tablet toolbar inset and pull-refresh feedback offset. CI result tracked in Actions.
+该阶段分析通过、68 项测试通过，渲染了日夜四页与键盘弹层，修复了平板边距和刷新反馈位置。数字仅为当时结果；之后顶部和导航行为另有更新。

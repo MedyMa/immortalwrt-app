@@ -1,11 +1,11 @@
-# Adaptive navigation and appearance
+# 自适应导航与日夜模式计划（演进记录）
 
-User approved: follow system dark mode; seamless page-colored header without glass frame; compact capsule navigation based on the supplied image, hidden on upward swipe and restored on downward swipe.
+最初要求：跟随系统深色模式，顶部与页面同色且无玻璃框，参考提供的胶囊导航图片，上滑隐藏、下滑显示。
 
-Investigation: current ThemeMode.system responds correctly to Flutter brightness in a host test. The device failure is not reproduced; add Android uiMode events and a resume-time native appearance read to cover missed/stale engine notifications, without claiming hardware proof.
+排查发现主机测试中 `ThemeMode.system` 能响应 Flutter 亮度变化；未在主机复现手机故障。因此补充 Android `uiMode` 事件和返回前台时的原生外观读取，不将测试结果等同于硬件验证。
 
-Implementation: keep native appearance synchronization in MainActivity and app state; bound filter sigma to 8, use opaque navigation while scrolling, remove toolbar/gear filters. Use ValueNotifiers for navigation scroll feedback so gestures do not rebuild data pages. Preserve navigation space, show at top/tab changes/settings/resume, disable hiding for assistive navigation. Keep iOS native chrome.
+最初方案曾建议模糊强度降至 8、滚动时用不透明导航、移除顶部模糊，并在辅助导航下保持显示。**这些条目已被后续要求覆盖**：保留强度 18 的完整玻璃效果；标题与设置随内容滚动；导航仅回到顶部时恢复，辅助导航不强制永久显示，但隐藏项不可触摸、朗读或获得键盘焦点。
 
-Verify: live system brightness, resume with stale Flutter brightness, native events, swipe directions, semantic/hit-test hiding, keyboard sheet, full suite, day/night preview and platform CI builds.
+保留 `RepaintBoundary` 和通知器驱动导航可见性，避免滚动手势重建数据页；恢复平板边距与下拉刷新位置。iOS 保留原生控件。
 
-User follow-up supersedes blur reduction: retain 18 sigma glass while scrolling, including a frameless page-tinted header. Keep RepaintBoundary and notifier-isolated navigation visibility. Restore toolbar content and tablet rail insets and refresh feedback offset.
+验证实时系统外观、前台恢复、原生事件、滚动边界、隐藏语义与命中、键盘弹层、日夜预览及两端构建。具体修复见导航边界与滚动顶部计划。

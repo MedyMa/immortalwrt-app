@@ -1,18 +1,18 @@
-# Device detail card implementation plan
+# 设备详情卡片实施计划
 
-Use executing-plans to implement the approved preview in this session.
+采用已确认的预览，按步骤实施与验证。
 
-**Goal:** Replace the verbose device detail sheet with the approved compact card on Android and iOS.
+**目标**：将 Android 与 iOS 原来冗长的详情弹窗改成紧凑卡片。
 
-**Architecture:** Keep the existing read-only data and device identity model. Use a separate stateful detail sheet within the current Dart library for disclosure state. Retain the shared glass surface and system brightness colours; use native-style close and disclosure icons.
+**架构**：保留只读数据和设备识别模型；在当前 Dart library 中新增独立有状态组件管理展开状态。复用玻璃表面、系统日夜颜色及平台关闭/展开图标。
 
-## Approved design
+## 已确认设计
 
-Brand icon and original device name head the sheet. Brand, confirmed model and type appear beneath. A session traffic card precedes selectable IP/MAC and record-source rows. Identification evidence is collapsed initially. Closing, scrim dismissal and dragging remain available. Height is bounded and content can scroll at larger text sizes. Unknown values display a dash or "not provided", never a fabricated value.
+品牌图标和原名称在顶部，下面显示品牌、已确认型号与类型。会话流量单独突出，IP / MAC 可选择复制，记录来源可见。识别依据初始收起。支持按钮、遮罩和拖动关闭；高度受限，大字体可滚动；未知值不编造。
 
-## Steps
+## 步骤
 
-- [x] Update device widget tests for collapsed evidence, disclosure and close. Run to demonstrate failure against the old sheet.
-- [x] Implement `lib/widgets/device_detail_sheet.dart`; connect from `screens/devices.dart` through `main.dart`.
-- [x] Verify long IPv6, large text, both platforms and both brightness modes. Rerender the approved preview from the delivered components.
-- [x] Run format, analysis, tests and diff checks; bump version, commit and push; verify CI starts.
+- [x] 修改界面测试，验证初始收起、展开和关闭，先确认旧界面不满足要求。
+- [x] 实现 `lib/widgets/device_detail_sheet.dart`，从设备页通过 `main.dart` 接入。
+- [x] 验证长 IPv6、大字体、两端日夜模式，用交付组件重新渲染。
+- [x] 执行格式、分析、完整测试和差异检查，提升版本、提交推送，确认 CI 触发。

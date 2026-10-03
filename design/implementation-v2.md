@@ -1,18 +1,16 @@
-# Mobile v2 Implementation Plan
+# 手机 App v2 实施计划（历史记录）
 
-**Goal:** Ship the approved v2 UI with reliable read-only remote status on Android 17 and iOS 27 SDKs.
+**目标**：交付已确认的 v2 界面、可靠的只读远程状态与 Android 17 / iOS 27 SDK 构建。
 
-**Architecture:** Keep ubus transport in `services/router_api.dart`; define a section-specific read policy and typed failures. The app shell owns lifecycle, secure credentials, refresh scheduling and snapshots. Screen and shared widget files remain presentation-only.
+**架构**：ubus 传输在 `services/router_api.dart`；应用外壳管理生命周期、凭据、刷新和快照；页面与公共组件处理展示。
 
-**Tech stack:** Flutter 3.47.5, Dart, `http`, `flutter_secure_storage`, Android API 37, Xcode 27 / iOS 27 SDK.
+**工具**：Flutter 3.47.5、Dart、`http`、`flutter_secure_storage`、Android API 37、Xcode 27 / iOS 27 SDK。
 
-## Tasks
+- [x] 增加会话失效、单次重登、权限、网络错误、局部失败与按页请求测试。
+- [x] 实现分类错误、按页读取与快照合并。
+- [x] 实现后台暂停、前台恢复与页面切换状态机及测试。
+- [x] 将代码拆入 `screens/`、`widgets/`、`services/`、`models/`，保持原布局和测试。
+- [x] 固定编译 SDK、输出构建工具版本并记录签名限制。
+- [x] 执行格式、分析、完整测试，提交推送并核对两端产物；当时的 [CI 记录](https://github.com/MedyMa/immortalwrt-app/actions/runs/36807475862) 已成功。
 
-- [x] Add transport tests for session expiry, one re-login, permission rejection, DNS/TLS/HTTP classification, partial series errors and section request sets.
-- [x] Implement typed ubus errors, section-specific fetch and snapshot merging; verify tests.
-- [x] Add widget/lifecycle tests for background pause, resume refresh and section switching; implement shell state machine.
-- [x] Split `main.dart` into `screens/`, `widgets/`, `services/`, `models/` while preserving the rendered v2 UI and existing tests.
-- [x] Pin Android compile SDK 37 and Xcode 27 CI image, print tool versions and document signing limits.
-- [x] Run format, analyze, full Flutter tests, inspect Git diff, commit/push, verify both GitHub Actions jobs and artifacts. Both jobs succeeded in [CI run 36807475862](https://github.com/MedyMa/immortalwrt-app/actions/runs/36807475862).
-
-No router write RPCs, background collection, MiWiFi data or VPN are introduced.
+不增加路由器写接口、手机后台采集、MiWiFi 或 VPN。此处构建结果为历史记录，不代表之后提交的构建结果。

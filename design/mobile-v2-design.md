@@ -1,5 +1,7 @@
 # ImmortalWrt Mobile v2 设计说明
 
+> 本文保留当时的设计方案；刷新频率、统计范围、独立组件与交付方式已继续更新，当前使用方式以 [README](../README.md) 和 [配套固件说明](../docs/firmware.md) 为准。
+
 效果图：[四屏预览](mobile-v2.png) · [可缩放 HTML](mobile-v2.html)。图中的数值是设计示意，不是路由器实测。
 
 ## 目标与界面

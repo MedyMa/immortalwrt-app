@@ -1,12 +1,10 @@
-# Overview temperatures
+# 总览温度实施计划
 
-Approved layout: put HNAT before MT7988 status; keep PPE rows only. Add CPU (MT7988), Wi-Fi (BE14), disk temperature figures above CPU/memory/SFP rows. No synthetic values or extra in-page explanations.
+已确认布局：HNAT 放在 MT7988 状态之前，仅保留 PPE 行。CPU、BE14 和硬盘温度位于 CPU / 内存 / SFP 行之前；不显示虚构值或额外说明卡。每个 SFP 行同时显示速率和模块温度，缺失时显示 `—`。
 
-Additional approved requirement: include each SFP module temperature alongside its link speed, read from the existing SFP status API. Missing or failed SFP reads show a temperature dash.
+已确认桌面图标：路由器与网络连接的日夜版本；提供 Android 自适应/单色资源，以及 iOS 普通/深色/着色 RGB 资源，保留旧尺寸。
 
-Approved launcher artwork: router/network day and night variants. Include Android adaptive/monochrome resources and iOS Any/Dark/Tinted RGB assets, retaining legacy icon sizes.
-
-1. Independent router component: extend existing system metrics with sanitized temperature records. Read labelled CPU thermal zones and NVMe/drivetemp hwmon sensors. Reuse the one-minute BE14 driver sample and expire its temperature cache after 180 seconds. Preserve wireless history fields and cadence; no new daemon or dependency.
-2. Phone: validate sensor kind and Celsius range, retain data on untouched sections, clear missing values after fresh reads. Show maximum available reading per category, with missing/stale values as a dash. Move HNAT before MT7988 status.
-3. Verify package fixtures including malformed/stale/unsupported sensors and sampler history. Verify mobile API/model/widget handling, approved order, missing readings, format/analyze/full tests. Independently review changes.
-4. Bump both versions, push package and phone repositories, verify CI dispatch and report device verification limits. Copy published package sources back to the root workspace mirror.
+1. 独立组件扩展脱敏温度记录：读取有标签的 CPU 热区与 NVMe / drivetemp；复用每分钟 BE14 采样，180 秒过期。不新增进程或依赖，不改变无线历史频率和字段。
+2. 手机校验种类和温度范围；未刷新区域保留数据，新响应缺失则清除。每类显示有效最高温度，缺失或过期显示 `—`，调整 HNAT 顺序。
+3. 测试异常、过期和不支持传感器、采样历史、模型、接口、界面、顺序及空值；执行格式、分析和完整测试并检查改动。
+4. 提升组件与手机版本，推送并核对 CI；硬件验证范围单独记录，将发布组件源码同步到本地镜像。

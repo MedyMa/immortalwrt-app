@@ -1,10 +1,10 @@
-# Scrolling header implementation plan
+# 随页面滚动的顶部实施计划
 
-Approved behavior: page titles and settings scroll away with content; system time and battery remain sharp above a bounded glass backdrop. Top color follows the page exactly in both appearances.
+已确认行为：页面标题和设置按钮随内容滑出；系统时间、电量保持清晰，其下保留受限玻璃背景。顶部颜色在日夜模式均与页面一致。
 
-- [x] Move the toolbar into the scroll content, retaining settings accessibility and pull refresh.
-- [x] Overlay only the system safe inset with page-colored glass at sigma 18; preserve accessibility opaque fallback.
-- [x] Verify scrolling, theme color, status inset, existing widgets, and static analysis.
-- [ ] Push the verified change and trigger mobile CI.
+- [x] 将顶部工具区域移入滚动内容，保留设置可访问性和下拉刷新。
+- [x] 仅在系统安全区绘制页面同色、强度 18 的玻璃，保留无障碍不透明回退。
+- [x] 验证滚动、主题颜色、安全区和既有组件，执行静态分析。
+- [ ] 推送并触发手机 CI（原计划中的勾选状态保留）。
 
-Verification: static analysis clean; 71 tests passed, including toolbar scrolling out of hit testing and a fixed 32 px status glass inset. Light and dark previews rendered from delivery components using sample data.
+当时静态分析通过、71 项测试通过，包括标题滑出命中范围与固定 32 px 状态区玻璃。预览使用交付组件和示例数据。后续发布情况以提交和 CI 为准。

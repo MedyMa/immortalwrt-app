@@ -1,9 +1,9 @@
-# Navigation gesture boundary repair
+# 导航手势边界修复计划
 
-Requirement: hide on upward swipe, restore only when scrolling back to the page top.
+要求：上滑隐藏，只有回到页面顶部才恢复显示。
 
-Confirmed failure: Android clamping scroll physics sends OverscrollNotification on short pages and at the bottom. The existing handler listened only to ScrollUpdateNotification and treated zero scroll position as a reason to show navigation regardless of direction.
+已确认原因：Android 在短页面和页面底部发送 `OverscrollNotification`，原逻辑只监听 `ScrollUpdateNotification`，还将滚动位置为零直接视为显示条件，忽略手势方向。
 
-Fix: consume user drag deltas from both notification types; retain the 12 logical pixel upward threshold. Restore on negative movement only when the top is reached, including inertial movement. Keep notifier-driven chrome updates and full glass effects.
+修复：处理两类通知的用户拖动差值，保留 12 逻辑像素的上滑阈值；只有负向移动到顶部才恢复，包括惯性移动。保留通知器更新和完整玻璃效果。后续同时移除了辅助导航强制显示的覆盖条件。
 
-Verification: failing tests reproduced short-page hiding and early restoration; after the fix all 26 widget tests passed. Full analysis and suite run before publishing.
+当时失败测试复现了短页不隐藏与过早恢复，修复后 26 项界面测试通过；发布前另执行完整分析与测试。本文件记录当时证据，不替代真机验证。

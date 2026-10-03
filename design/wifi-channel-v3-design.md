@@ -1,9 +1,9 @@
-# BE14 channel view
+# BE14 信道页设计
 
-The approved mobile layout groups BE14's 2.4, 5 and 6 GHz radios in a selector. The selected radio shows its configured channel and width, current TX failure rate, a 24-hour link-quality chart, client signal distribution when supported, and a 24-hour RX/TX activity chart. All values must be sourced from the router; unavailable sections are omitted rather than filled with sample data.
+使用 2.4 / 5 / 6 GHz 选择器展示射频。选中后显示信道、EHT 带宽、TX FAL、RX CRC、最近 24 小时链路质量和收发活动。客户端信号分布仅在驱动提供有效数据时显示，不用示意数据补齐。
 
-The MT7988 vendor driver in use returns `nl80211 not found` for `iw survey dump`. Its `iwpriv <interface> stat` output includes cumulative TX success/failure and RX success/CRC counts. The UI must call these **TX failure** and **RX CRC**, never airtime occupancy, interference, or TX retry count. `network.wireless status` supplies band, channel, EHT width and AP interface; its raw payload contains Wi-Fi keys and must be reduced on the router before delivery. `/sys/class/net/<interface>/statistics/{rx,tx}_bytes` supplies activity counters. Client signal bins require a parseable station list; the observed empty list means no distribution can yet be verified.
+厂商驱动的 `iw survey dump` 返回 `nl80211 not found`；`iwpriv stat` 提供 TX 成功/失败、RX 成功/CRC 累计计数。它们不等于空中占用率、干扰率或 TX 重试次数。原始 `network.wireless.status` 可能包含密码，必须由独立组件脱敏。
 
-The router records one sample per radio per minute in `/tmp/traffic`, retaining at most 24 hours in memory. A sample is emitted only when two monotonic counter readings exist. Resets and gaps yield missing points. The read-only `getWirelessHistory` RPC sends bounded, downsampled points with no Wi-Fi keys, station MACs, or private driver text. The app fetches it only for the Wi-Fi page. A missing history RPC leaves channel/status available. The app preserves timestamps and never draws across a gap as continuous data.
+`router.status` 返回状态和历史，接口字节计数来自 sysfs。历史迁移到 `/tmp/router-status`，每分钟采样，按 5 分钟桶保存最近 24 小时；缺失、重置和采样间隔过大时保留空点。仅 Wi-Fi 页读取历史，不把缺失区间连成连续实测曲线。
 
-The mockup is [`wifi-channel-v3.png`](../../.tmp/wifi-channel-v3.png). Its curves are layout examples, not measurements.
+本文件更新了早期方案中 `/tmp/traffic` 的旧路径。历史与 CPU/无线职责均属于 `rpcd-mod-router-status`，不属于 Traffic App。示意曲线只用于布局评审。
