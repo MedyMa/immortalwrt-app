@@ -34,6 +34,8 @@ The Wi-Fi page shows the reported BE14 channel and EHT width. Its 24-hour histor
 
 ## Development
 
+Signed iPhone/TestFlight delivery uses the manual `Publish iOS to TestFlight` workflow. See [publishing setup](docs/testflight.md) for the required signing secrets and App Store Connect app record.
+
 Launcher artwork uses the approved router/network design. Android includes adaptive and monochrome resources with light/dark colors; iOS includes Any, Dark and Tinted variants. Sources are in `design/app-icons`; regenerate PNG assets with `tools/generate-app-icons.ps1` on Windows with Chrome installed.
 
 Flutter 3.47.5 is used by CI:

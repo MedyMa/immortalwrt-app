@@ -246,6 +246,16 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets('toolbar has one settings action and no refresh action', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: RouterHome()));
+    expect(find.byIcon(Icons.refresh_rounded), findsNothing);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    await tester.tap(find.byTooltip('连接设置'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsWidgets);
+  });
   for (final brightness in Brightness.values) {
     testWidgets('overview temperature order and SFP units in $brightness', (
       tester,

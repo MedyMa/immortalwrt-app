@@ -236,43 +236,32 @@ class _Avatar extends StatelessWidget {
   );
 }
 
-/// Circular icon action for the app bar, matching the card surfaces.
-class _RoundAction extends StatelessWidget {
-  const _RoundAction({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback? onPressed;
+class _SettingsAction extends StatelessWidget {
+  const _SettingsAction({required this.onPressed});
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onPressed != null;
-    return Padding(
-      padding: const EdgeInsets.only(left: 6),
-      child: Tooltip(
-        message: tooltip,
-        child: Material(
-          color: _cardOf(context),
-          clipBehavior: Clip.antiAlias,
-          shape: CircleBorder(side: BorderSide(color: _borderOf(context))),
-          child: InkWell(
-            onTap: onPressed,
-            child: SizedBox(
-              width: 40,
-              height: 40,
-              child: Icon(
-                icon,
-                size: 19,
-                color: enabled ? _inkOf(context) : _mutedOf(context),
-              ),
-            ),
-          ),
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      if (!kIsWeb && Platform.isIOS) {
+        return _IosSettingsButton(onPressed: onPressed);
+      }
+      return Semantics(
+        label: '连接设置',
+        button: true,
+        child: CupertinoButton(
+          onPressed: onPressed,
+          padding: const EdgeInsets.all(12),
+          child: Icon(CupertinoIcons.gear, size: 24, color: _inkOf(context)),
         ),
-      ),
+      );
+    }
+    return IconButton(
+      tooltip: '连接设置',
+      onPressed: onPressed,
+      iconSize: 24,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      icon: const Icon(Icons.settings_outlined),
     );
   }
 }

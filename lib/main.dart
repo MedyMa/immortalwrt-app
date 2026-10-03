@@ -474,16 +474,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
           style: const TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
-          _RoundAction(
-            icon: Icons.refresh_rounded,
-            tooltip: '刷新',
-            onPressed: _api == null ? null : _refresh,
-          ),
-          _RoundAction(
-            icon: Icons.tune_rounded,
-            tooltip: '连接设置',
-            onPressed: _showConnection,
-          ),
+          _SettingsAction(onPressed: _showConnection),
           const SizedBox(width: 10),
         ],
       ),
@@ -533,6 +524,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                       onRefresh: _refresh,
                       color: _blue,
                       child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
                         children: [
                           if (_error != null)

@@ -1,5 +1,37 @@
 part of '../main.dart';
 
+class _IosSettingsButton extends StatefulWidget {
+  const _IosSettingsButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  State<_IosSettingsButton> createState() => _IosSettingsButtonState();
+}
+
+class _IosSettingsButtonState extends State<_IosSettingsButton> {
+  MethodChannel? _channel;
+  @override
+  void dispose() {
+    _channel?.setMethodCallHandler(null);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 48,
+    height: 48,
+    child: UiKitView(
+      viewType: 'com.medyma.immortalwrt/settings-button',
+      onPlatformViewCreated: (id) {
+        _channel = MethodChannel('com.medyma.immortalwrt/settings/$id');
+        _channel!.setMethodCallHandler((call) async {
+          if (call.method == 'openSettings') widget.onPressed();
+        });
+      },
+    ),
+  );
+}
+
 /// The iOS device embeds a system UITabBar. Widget tests on non-iOS hosts use
 /// CupertinoTabBar so the selection contract remains testable without UIKit.
 class _IosTabBar extends StatefulWidget {
