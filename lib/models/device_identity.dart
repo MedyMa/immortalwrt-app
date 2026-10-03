@@ -77,7 +77,7 @@ class DeviceIdentity {
     } else if (has(r'xiaomi|redmi\d*|小米|红米')) {
       brand = 'Xiaomi';
       slug = 'xiaomi';
-    } else if (has(r'samsung|galaxy|三星')) {
+    } else if (has(r'samsung|galaxy|三星|z[ -]?(?:flip|fold)\d*')) {
       brand = 'Samsung';
       slug = 'samsung';
     } else if (has(r'synology|群晖')) {
@@ -106,7 +106,8 @@ class DeviceIdentity {
       _ when has(r'ipad\d*|tablet|平板') => DeviceKind.tablet,
       _ when has(r'tv|television|电视|apple[ -]?tv') => DeviceKind.tv,
       _ when has(r'macbook|laptop|thinkpad|笔记本') => DeviceKind.laptop,
-      _ when has(r'iphone\d*|pixel\d*|phone|手机') => DeviceKind.phone,
+      _ when has(r'iphone\d*|pixel\d*|phone|手机|z[ -]?(?:flip|fold)\d*') =>
+        DeviceKind.phone,
       _ when has(r'nas|synology|群晖') => DeviceKind.nas,
       _ when has(r'playstation[ -]?\d*|ps[345]|nintendo[ -]?switch|游戏主机') =>
         DeviceKind.console,

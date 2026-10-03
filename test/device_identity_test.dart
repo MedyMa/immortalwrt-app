@@ -2,6 +2,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:immortalwrt_app/models/device_identity.dart';
 
 void main() {
+  test(
+    'Samsung Z Flip and Fold variants are phones without guessed generations',
+    () {
+      for (final name in [
+        'Z-flip',
+        'Z Flip',
+        'ZFlip',
+        'Galaxy-Z-Flip6',
+        'Z-Fold5',
+        'Galaxy Z Fold 6',
+      ]) {
+        final identity = DeviceIdentity.fromName(name);
+        expect(identity.brand, 'Samsung', reason: name);
+        expect(identity.kind, DeviceKind.phone, reason: name);
+        expect(identity.model, isNull, reason: name);
+      }
+      expect(DeviceIdentity.fromName('flip-camera').brand, isNull);
+      expect(DeviceIdentity.fromName('z-flipbackup').brand, isNull);
+    },
+  );
   test('recognizes explicit product names without inventing a model', () {
     final phone = DeviceIdentity.fromName('Alice-iPhone-17-Pro');
     expect(phone.brand, 'Apple');
