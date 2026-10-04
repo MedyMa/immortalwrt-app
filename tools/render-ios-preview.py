@@ -152,7 +152,7 @@ def render(out=Path("ios-native-pages")):
         run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=120, deadline=deadline)
         install_preview(device, deadline)
         container = run(["xcrun", "simctl", "get_app_container", device, BUNDLE, "data"],
-                        capture_output=True, deadline=deadline).stdout.decode().strip()
+                        timeout=120, capture_output=True, deadline=deadline).stdout.decode().strip()
         marker = Path(container) / "Documents/ios-preview-ready.json"
         run(["xcrun", "simctl", "status_bar", device, "override", "--time", "9:41",
              "--batteryState", "charged", "--batteryLevel", "100"], deadline=deadline)
@@ -164,10 +164,11 @@ def render(out=Path("ios-native-pages")):
                 env = dict(os.environ, SIMCTL_CHILD_IOS_PREVIEW_TAB=str(tab),
                            SIMCTL_CHILD_IOS_PREVIEW_NONCE=expected["nonce"],
                            SIMCTL_CHILD_IOS_PREVIEW_APPEARANCE=appearance)
-                page_deadline = min(deadline, time.monotonic() + PAGE_SECONDS)
+                cold_start = appearance == "light" and tab == 0
+                page_deadline = min(deadline, time.monotonic() + (90 if cold_start else PAGE_SECONDS))
                 # A launch timeout is a failure: it never grants permission to capture.
                 run(["xcrun", "simctl", "launch", "--terminate-running-process", device, BUNDLE],
-                    timeout=20, deadline=page_deadline, env=env)
+                    timeout=60 if cold_start else 20, deadline=page_deadline, env=env)
                 wait_ready(marker, expected, page_deadline)
                 pending = out / f"pending-{appearance}-{tab}.png"
                 try:

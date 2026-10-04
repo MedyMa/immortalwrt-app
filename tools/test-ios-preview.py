@@ -235,6 +235,34 @@ class RenderTests(unittest.TestCase):
             self.assertEqual(len([c for c in calls if c[2] == "bootstatus"]), 2)
             self.assertEqual(len(list(out.glob("ios-*.png"))), 8)
 
+    def test_cold_container_lookup_has_startup_budget(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            timeouts = []
+            def cold_container(args, **kwargs):
+                if args[2] == "get_app_container":
+                    timeouts.append(kwargs.get("timeout", 60))
+                    if timeouts[-1] < 90:
+                        raise subprocess.TimeoutExpired(args, timeouts[-1])
+                return fake(args, **kwargs)
+            with patch.object(render, "run", side_effect=cold_container):
+                render.render(Path(directory) / "out")
+            self.assertEqual(timeouts, [120])
+
+    def test_first_launch_can_warm_engine_but_later_launches_stay_short(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            timeouts = []
+            def cold_launch(args, **kwargs):
+                if args[2] == "launch":
+                    timeouts.append(kwargs["timeout"])
+                    if len(timeouts) == 1 and timeouts[-1] < 45:
+                        raise subprocess.TimeoutExpired(args, timeouts[-1])
+                return fake(args, **kwargs)
+            with patch.object(render, "run", side_effect=cold_launch):
+                render.render(Path(directory) / "out")
+            self.assertEqual(timeouts, [60] + [20] * 7)
+
     def test_persistent_install_timeout_stops_before_capture(self):
         with tempfile.TemporaryDirectory() as directory:
             fake, calls = self.simulated(directory)
