@@ -38,6 +38,7 @@ class AndroidSigningWorkflowTests(unittest.TestCase):
         self.assertIn('        env:\n', secret_steps[0])
         self.assertIn('prepare-android-signing.py', secret_steps[0])
         self.assertIn(' verify --verbose --print-certs ', secret_steps[0])
+        self.assertIn('--key-pass "file:$RUNNER_TEMP/android-signing/key-password.txt"', secret_steps[0])
 
     def test_separate_artifacts_and_cleanup(self):
         self.assertIn('name: immortalwrt-android-release', self.android)
@@ -76,6 +77,7 @@ class AndroidSigningIdentityTests(unittest.TestCase):
             self.assertIn('-storepass:file', arguments)
             self.assertNotIn('test-password', arguments)
             self.assertEqual((self.root / 'identity/password.txt').read_text(), 'test-password')
+            self.assertEqual((self.root / 'identity/key-password.txt').read_text(), 'test-password')
 
     def test_invalid_secret_size_and_password_are_rejected(self):
         for config in [{'keystore': 'eA==', 'password': 'pw'},

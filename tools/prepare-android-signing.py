@@ -23,7 +23,10 @@ def prepare(bundle, destination, expected_certificate):
         raise ValueError('Invalid pinned Android signing certificate')
     destination.mkdir(mode=0o700, parents=True, exist_ok=True)
     destination.chmod(0o700)
-    for name, data in [('key.jks', keystore), ('password.txt', password.encode())]:
+    # apksigner consumes successive lines when both passwords share one file.
+    # Independent files allow each input to read its own first line.
+    for name, data in [('key.jks', keystore), ('password.txt', password.encode()),
+                       ('key-password.txt', password.encode())]:
         with os.fdopen(os.open(destination / name, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'wb') as output:
             output.write(data)
         (destination / name).chmod(0o600)
