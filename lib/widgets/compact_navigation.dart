@@ -2,9 +2,10 @@ part of '../main.dart';
 
 /// Shared compact chrome dimensions; safe-area padding is added separately.
 abstract final class _NavigationGeometry {
-  static const radius = 28.0;
-  static const height = 72.0;
+  static const radius = 40.0;
+  static const height = 60.0;
   static const inset = 4.0;
+  static const selectedRadius = 32.0;
   static const horizontalMargin = 12.0;
   static const bottomMargin = 8.0;
   static const labelSize = 11.0;
@@ -20,7 +21,7 @@ abstract final class _NavigationGeometry {
       contentHeight(scaler) + 2 * inset + bottomMargin + 24;
 }
 
-class _CompactNavigation extends StatelessWidget {
+class _CompactNavigation extends StatefulWidget {
   const _CompactNavigation({
     required this.selectedIndex,
     required this.onSelected,
@@ -31,11 +32,83 @@ class _CompactNavigation extends StatelessWidget {
   final ValueChanged<int> onSelected;
 
   @override
+  State<_CompactNavigation> createState() => _CompactNavigationState();
+}
+
+class _CompactNavigationState extends State<_CompactNavigation>
+    with WidgetsBindingObserver {
+  static const _accessibility = MethodChannel(
+    'com.medyma.immortalwrt/navigation-accessibility',
+  );
+  bool? _touchExploration;
+  bool _usesAndroidAccessibility = false;
+  int _request = 0;
+  bool get _android =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    if (_android) {
+      _usesAndroidAccessibility = true;
+      _accessibility.setMethodCallHandler((call) async {
+        if (call.method == 'touchExplorationChanged' &&
+            call.arguments is bool) {
+          _request++;
+          _applyTouchExploration(call.arguments as bool);
+        }
+      });
+      _loadTouchExploration();
+    }
+  }
+
+  void _applyTouchExploration(bool value) {
+    if (mounted && value != _touchExploration) {
+      setState(() => _touchExploration = value);
+    }
+  }
+
+  Future<void> _loadTouchExploration() async {
+    final request = ++_request;
+    try {
+      final value = await _accessibility.invokeMethod<bool>(
+        'getTouchExplorationEnabled',
+      );
+      if (mounted && request == _request && value != null) {
+        _applyTouchExploration(value);
+      }
+    } on MissingPluginException {
+      // Older hosts retain the framework accessibility fallback.
+    } on PlatformException {
+      // Keep navigation reachable when native state cannot be read.
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_android && state == AppLifecycleState.resumed) {
+      _loadTouchExploration();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _request++;
+    if (_usesAndroidAccessibility) _accessibility.setMethodCallHandler(null);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: visible,
+    animation: widget.visible,
     builder: (context, _) {
-      // TalkBack users must be able to switch pages without scrolling to top.
-      final show = MediaQuery.accessibleNavigationOf(context) || visible.value;
+      // Android's generic accessibleNavigation flag can be set by node queries,
+      // even without TalkBack. Prefer the actual touch-exploration state.
+      final keepVisible =
+          _touchExploration ?? MediaQuery.accessibleNavigationOf(context);
+      final show = keepVisible || widget.visible.value;
       final duration = MediaQuery.disableAnimationsOf(context)
           ? Duration.zero
           : _NavigationGeometry.duration;
@@ -90,7 +163,7 @@ class _CompactNavigation extends StatelessWidget {
                           child: Row(
                             key: const ValueKey('compact-navigation'),
                             children: List.generate(4, (index) {
-                              final selected = index == selectedIndex;
+                              final selected = index == widget.selectedIndex;
                               return Expanded(
                                 child: Semantics(
                                   label: labels[index],
@@ -105,15 +178,14 @@ class _CompactNavigation extends StatelessWidget {
                                             )
                                           : Colors.transparent,
                                       borderRadius: BorderRadius.circular(
-                                        _NavigationGeometry.radius -
-                                            _NavigationGeometry.inset,
+                                        _NavigationGeometry.selectedRadius,
                                       ),
                                     ),
                                     child: Material(
                                       color: Colors.transparent,
                                       child: InkWell(
                                         customBorder: const StadiumBorder(),
-                                        onTap: () => onSelected(index),
+                                        onTap: () => widget.onSelected(index),
                                         child: SizedBox(
                                           height:
                                               _NavigationGeometry.contentHeight(

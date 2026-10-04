@@ -512,13 +512,32 @@ void main() {
     expect(find.text('MT7988 状态'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
-  for (final accessible in [false, true]) {
+  for (final (accessible, touchExploration) in [
+    (false, null),
+    (true, null),
+    (true, false),
+    (true, true),
+  ]) {
     testWidgets(
-      'Android capsule keeps accessible navigation reachable $accessible',
+      'Android capsule accessibility $accessible touch exploration $touchExploration',
       (tester) async {
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
+        const accessibility = MethodChannel(
+          'com.medyma.immortalwrt/navigation-accessibility',
+        );
+        if (touchExploration != null) {
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            accessibility,
+            (_) async => touchExploration,
+          );
+          addTearDown(
+            () => tester.binding.defaultBinaryMessenger
+                .setMockMethodCallHandler(accessibility, null),
+          );
+        }
+        final keepVisible = touchExploration ?? accessible;
         final semantics = tester.ensureSemantics();
         await tester.pumpWidget(
           MaterialApp(
@@ -553,7 +572,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(
           tester.widget<AnimatedOpacity>(fade).opacity,
-          accessible ? 1 : 0,
+          keepVisible ? 1 : 0,
         );
         await tester.drag(list, const Offset(0, 150));
         await tester.pumpAndSettle();
@@ -577,9 +596,25 @@ void main() {
         await tester.pumpAndSettle();
         expect(
           tester.widget<AnimatedOpacity>(fade).opacity,
-          accessible ? 1 : 0,
+          keepVisible ? 1 : 0,
         );
-        if (accessible) {
+        if (touchExploration == false) {
+          for (final enabled in [true, false]) {
+            await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+              accessibility.name,
+              const StandardMethodCodec().encodeMethodCall(
+                MethodCall('touchExplorationChanged', enabled),
+              ),
+              (_) {},
+            );
+            await tester.pumpAndSettle();
+            expect(
+              tester.widget<AnimatedOpacity>(fade).opacity,
+              enabled ? 1 : 0,
+            );
+          }
+        }
+        if (keepVisible) {
           final destination = find.descendant(
             of: nav,
             matching: find.text('设备'),
@@ -653,7 +688,7 @@ void main() {
       );
       expect(
         tester.getSize(find.byKey(const ValueKey('compact-navigation'))).height,
-        64,
+        52,
       );
       await tester.pumpWidget(const SizedBox.shrink());
     },
