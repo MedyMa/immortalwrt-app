@@ -749,12 +749,8 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
               right: 0,
               height: MediaQuery.viewPaddingOf(context).top,
               child: IgnorePointer(
-                child: _IosGlassSurface(
+                child: _StatusBarGlass(
                   key: const ValueKey('system-status-glass'),
-                  border: false,
-                  radius: BorderRadius.zero,
-                  surfaceColor: _pageOf(context),
-                  child: const SizedBox.expand(),
                 ),
               ),
             ),

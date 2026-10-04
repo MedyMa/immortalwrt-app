@@ -1189,6 +1189,44 @@ void main() {
     }
   });
 
+  for (final brightness in [Brightness.light, Brightness.dark]) {
+    testWidgets('iOS status blur shares page hue in $brightness', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.view.viewPadding = const FakeViewPadding(top: 32, bottom: 34);
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(
+            platform: TargetPlatform.iOS,
+            brightness: brightness,
+          ),
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _HealthyApi(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final status = find.byKey(const ValueKey('system-status-glass'));
+      expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
+      expect(
+        find.descendant(of: status, matching: find.byType(BackdropFilter)),
+        findsOneWidget,
+      );
+      final surface = tester.widget<DecoratedBox>(
+        find.descendant(of: status, matching: find.byType(DecoratedBox)),
+      );
+      final tint = (surface.decoration as BoxDecoration).color!;
+      final page = tester.widget<Scaffold>(find.byType(Scaffold).first);
+      expect(tint.withValues(alpha: 1), page.backgroundColor);
+      expect(page.extendBody, isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
   testWidgets(
     'iOS extends behind chrome and hides on up drag, restores on down drag',
     (tester) async {

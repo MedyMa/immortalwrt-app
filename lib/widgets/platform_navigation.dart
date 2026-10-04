@@ -185,26 +185,16 @@ class _IosTabBarState extends State<_IosTabBar> {
 /// accessibility settings. Other platforms retain their existing glass surface.
 class _IosGlassSurface extends StatelessWidget {
   const _IosGlassSurface({
-    super.key,
     required this.child,
     this.radius = const BorderRadius.all(Radius.circular(28)),
-    this.border = true,
-    this.surfaceColor,
   });
   final Widget child;
   final BorderRadius radius;
-  final bool border;
-  final Color? surfaceColor;
 
   @override
   Widget build(BuildContext context) {
     if (kIsWeb || !Platform.isIOS) {
-      return _GlassSurface(
-        radius: radius,
-        border: border,
-        surfaceColor: surfaceColor,
-        child: child,
-      );
+      return _GlassSurface(radius: radius, child: child);
     }
     return ClipRRect(
       borderRadius: radius,

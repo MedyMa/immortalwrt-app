@@ -1,5 +1,20 @@
 part of '../main.dart';
 
+/// Keep the status area in the page's color space. UIKit's systemMaterial
+/// supplies an independent tint which makes a strip above the Flutter page.
+/// Blur only the page beneath the transparent system status text/icons.
+class _StatusBarGlass extends StatelessWidget {
+  const _StatusBarGlass({super.key});
+
+  @override
+  Widget build(BuildContext context) => _GlassSurface(
+    border: false,
+    radius: BorderRadius.zero,
+    surfaceColor: _pageOf(context),
+    child: const SizedBox.expand(),
+  );
+}
+
 /// Bounded chrome blur; live status cards remain opaque.
 class _GlassSurface extends StatelessWidget {
   const _GlassSurface({
