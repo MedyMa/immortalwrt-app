@@ -146,6 +146,9 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
               ),
             if (widget.connected &&
                 Theme.of(context).platform == TargetPlatform.iOS)
+              const SizedBox(height: 24),
+            if (widget.connected &&
+                Theme.of(context).platform == TargetPlatform.iOS)
               _AppleButton(
                 title: '退出并清除凭据',
                 symbol: 'rectangle.portrait.and.arrow.right',

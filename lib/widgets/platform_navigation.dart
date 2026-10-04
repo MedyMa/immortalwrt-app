@@ -35,10 +35,15 @@ class _IosSettingsButtonState extends State<_IosSettingsButton> {
 /// The iOS device embeds a system UITabBar. Widget tests on non-iOS hosts use
 /// CupertinoTabBar so the selection contract remains testable without UIKit.
 class _IosTabBar extends StatefulWidget {
-  const _IosTabBar({required this.selectedIndex, required this.onSelected});
+  const _IosTabBar({
+    required this.selectedIndex,
+    required this.onSelected,
+    required this.visible,
+  });
 
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final ValueListenable<bool> visible;
 
   @override
   State<_IosTabBar> createState() => _IosTabBarState();
@@ -46,10 +51,30 @@ class _IosTabBar extends StatefulWidget {
 
 class _IosTabBarState extends State<_IosTabBar> {
   MethodChannel? _channel;
+  bool get _native => !kIsWeb && Platform.isIOS;
+  bool get _show =>
+      MediaQuery.accessibleNavigationOf(context) || widget.visible.value;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.visible.addListener(_syncVisibility);
+  }
+
+  void _syncVisibility() {
+    _channel?.invokeMethod<void>('setVisible', _show);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncVisibility();
+  }
 
   void _onCreated(int viewId) {
     final channel = MethodChannel('com.medyma.immortalwrt/navigation/$viewId');
     _channel = channel;
+    _syncVisibility();
     channel.setMethodCallHandler((call) async {
       if (call.method == 'selectTab' && call.arguments is int) {
         final index = call.arguments as int;
@@ -61,6 +86,11 @@ class _IosTabBarState extends State<_IosTabBar> {
   @override
   void didUpdateWidget(covariant _IosTabBar oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.visible != widget.visible) {
+      oldWidget.visible.removeListener(_syncVisibility);
+      widget.visible.addListener(_syncVisibility);
+      _syncVisibility();
+    }
     if (oldWidget.selectedIndex != widget.selectedIndex) {
       _channel?.invokeMethod<void>('setTab', widget.selectedIndex);
     }
@@ -68,43 +98,130 @@ class _IosTabBarState extends State<_IosTabBar> {
 
   @override
   void dispose() {
+    widget.visible.removeListener(_syncVisibility);
     _channel?.setMethodCallHandler(null);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!kIsWeb && Platform.isIOS) {
-      return SizedBox(
-        height: 50 + MediaQuery.viewPaddingOf(context).bottom,
+    final Widget bar;
+    if (_native) {
+      bar = SizedBox(
+        height: 72 + MediaQuery.viewPaddingOf(context).bottom,
         child: UiKitView(
           viewType: 'com.medyma.immortalwrt/system-tab-bar',
-          creationParams: {'selectedIndex': widget.selectedIndex},
+          creationParams: {
+            'selectedIndex': widget.selectedIndex,
+            'visible': _show,
+          },
           creationParamsCodec: const StandardMessageCodec(),
           onPlatformViewCreated: _onCreated,
         ),
       );
+    } else {
+      bar = CupertinoTabBar(
+        currentIndex: widget.selectedIndex,
+        onTap: widget.onSelected,
+        activeColor: _blue,
+        backgroundColor: _cardOf(context),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.house),
+            label: '总览',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.device_phone_portrait),
+            label: '设备',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.wifi),
+            label: 'Wi-Fi',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.chart_bar),
+            label: '流量',
+          ),
+        ],
+      );
     }
-    return CupertinoTabBar(
-      currentIndex: widget.selectedIndex,
-      onTap: widget.onSelected,
-      activeColor: _blue,
-      backgroundColor: _cardOf(context),
-      items: const [
-        BottomNavigationBarItem(icon: Icon(CupertinoIcons.house), label: '总览'),
-        BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.device_phone_portrait),
-          label: '设备',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.wifi),
-          label: 'Wi-Fi',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(CupertinoIcons.chart_bar),
-          label: '流量',
-        ),
-      ],
+    return AnimatedBuilder(
+      key: const ValueKey('ios-navigation-shell'),
+      animation: widget.visible,
+      child: bar,
+      builder: (context, child) {
+        final show = _show;
+        final duration = MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : _NavigationGeometry.duration;
+        // UIKit animates its own glass view; fading a platform view in Flutter
+        // can leave a stale native surface. Hosts without UIKit use this fallback.
+        return IgnorePointer(
+          ignoring: !show,
+          child: ExcludeFocus(
+            excluding: !show,
+            child: ExcludeSemantics(
+              excluding: !show,
+              child: _native
+                  ? child!
+                  : AnimatedSlide(
+                      offset: show ? Offset.zero : const Offset(0, 1.4),
+                      duration: duration,
+                      child: AnimatedOpacity(
+                        opacity: show ? 1 : 0,
+                        duration: duration,
+                        child: child,
+                      ),
+                    ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Native system material samples the underlying page and follows iOS
+/// accessibility settings. Other platforms retain their existing glass surface.
+class _IosGlassSurface extends StatelessWidget {
+  const _IosGlassSurface({
+    super.key,
+    required this.child,
+    this.radius = const BorderRadius.all(Radius.circular(28)),
+    this.border = true,
+    this.surfaceColor,
+  });
+  final Widget child;
+  final BorderRadius radius;
+  final bool border;
+  final Color? surfaceColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb || !Platform.isIOS) {
+      return _GlassSurface(
+        radius: radius,
+        border: border,
+        surfaceColor: surfaceColor,
+        child: child,
+      );
+    }
+    return ClipRRect(
+      borderRadius: radius,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: IgnorePointer(
+              child: UiKitView(
+                viewType: 'com.medyma.immortalwrt/glass-surface',
+                creationParams: {'sheet': radius != BorderRadius.zero},
+                creationParamsCodec: const StandardMessageCodec(),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
   }
 }

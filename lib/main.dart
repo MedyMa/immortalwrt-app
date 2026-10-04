@@ -576,7 +576,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => _GlassSurface(
+      builder: (_) => _IosGlassSurface(
         radius: const BorderRadius.vertical(top: Radius.circular(28)),
         child: _ConnectionSheet(
           url: _url,
@@ -610,12 +610,12 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       ),
       child: Scaffold(
         backgroundColor: _pageOf(context),
-        extendBody: !isIos && !wide,
+        extendBody: !wide,
         body: Stack(
           children: [
             SafeArea(
               top: false,
-              bottom: isIos || wide,
+              bottom: wide,
               child: Row(
                 children: [
                   if (wide)
@@ -694,7 +694,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                                   16,
                                   MediaQuery.viewPaddingOf(context).top + 4,
                                   16,
-                                  !isIos && !wide
+                                  !wide
                                       ? _NavigationGeometry.bottomClearance(
                                               MediaQuery.textScalerOf(context),
                                             ) +
@@ -749,7 +749,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
               right: 0,
               height: MediaQuery.viewPaddingOf(context).top,
               child: IgnorePointer(
-                child: _GlassSurface(
+                child: _IosGlassSurface(
                   key: const ValueKey('system-status-glass'),
                   border: false,
                   radius: BorderRadius.zero,
@@ -763,7 +763,11 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
         bottomNavigationBar: wide
             ? null
             : isIos
-            ? _IosTabBar(selectedIndex: _tab, onSelected: _selectTab)
+            ? _IosTabBar(
+                selectedIndex: _tab,
+                onSelected: _selectTab,
+                visible: _navigationVisible,
+              )
             : _CompactNavigation(
                 selectedIndex: _tab,
                 onSelected: _selectTab,

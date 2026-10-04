@@ -49,7 +49,7 @@ foreach ($mode in @('day','night','tinted')) {
         }
     }
 }
-$catalog.images = @($catalog.images | Where-Object { $_.idiom -ne 'universal' }) + @(
+$catalog.images = @(
     @{idiom='universal'; platform='ios'; size='1024x1024'; filename='Router-day-1024.png'},
     @{idiom='universal'; platform='ios'; size='1024x1024'; filename='Router-night-1024.png'; appearances=@(@{appearance='luminosity'; value='dark'})},
     @{idiom='universal'; platform='ios'; size='1024x1024'; filename='Router-tinted-1024.png'; appearances=@(@{appearance='luminosity'; value='tinted'})}

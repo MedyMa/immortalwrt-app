@@ -41,6 +41,7 @@ jobs:
       - run: flutter analyze --fatal-infos
       - run: flutter test
       - run: python3 tools/test-ios-signing.py
+      - run: python3 tools/test-ios-icons.py
       - run: python3 tools/test-ios-preview.py
       - run: python3 tools/test-testflight-workflow.py
       - run: python3 tools/test-android-signing.py

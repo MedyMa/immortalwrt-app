@@ -710,6 +710,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(CupertinoButton, '连接'), findsOneWidget);
     expect(find.widgetWithText(CupertinoButton, '退出并清除凭据'), findsOneWidget);
+    final connectRect = tester.getRect(
+      find.widgetWithText(CupertinoButton, '连接'),
+    );
+    final disconnectRect = tester.getRect(
+      find.widgetWithText(CupertinoButton, '退出并清除凭据'),
+    );
+    expect(disconnectRect.top - connectRect.bottom, greaterThanOrEqualTo(20));
     expect(find.byType(TextButton), findsNothing);
     await tester.tap(find.widgetWithText(CupertinoButton, '退出并清除凭据'));
     await tester.pumpAndSettle();
@@ -1181,6 +1188,44 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     }
   });
+
+  testWidgets(
+    'iOS extends behind chrome and hides on up drag, restores on down drag',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.iOS),
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _HealthyApi(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Scaffold>(find.byType(Scaffold).first).extendBody,
+        isTrue,
+      );
+      final nav = find.byKey(const ValueKey('ios-navigation-shell'));
+      final fade = find.descendant(
+        of: nav,
+        matching: find.byType(AnimatedOpacity),
+      );
+      expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
+      await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+      await tester.pumpAndSettle();
+      expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
+      expect(find.byType(CupertinoTabBar).hitTestable(), findsNothing);
+      await tester.drag(find.byType(ListView).first, const Offset(0, 120));
+      await tester.pumpAndSettle();
+      expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
+      expect(find.byType(CupertinoTabBar).hitTestable(), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets('wide Android uses a navigation rail', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);

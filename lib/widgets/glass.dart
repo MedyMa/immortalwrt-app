@@ -3,7 +3,6 @@ part of '../main.dart';
 /// Bounded chrome blur; live status cards remain opaque.
 class _GlassSurface extends StatelessWidget {
   const _GlassSurface({
-    super.key,
     required this.child,
     this.radius = const BorderRadius.all(Radius.circular(28)),
     this.border = true,
