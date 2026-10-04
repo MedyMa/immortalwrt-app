@@ -2,6 +2,14 @@ enum DeviceKind {
   unknown,
   phone,
   tablet,
+  watch,
+  speaker,
+  light,
+  plug,
+  sensor,
+  vacuum,
+  appliance,
+  iot,
   laptop,
   desktop,
   tv,
@@ -35,6 +43,14 @@ class DeviceIdentity {
     DeviceKind.unknown => '设备',
     DeviceKind.phone => '手机',
     DeviceKind.tablet => '平板',
+    DeviceKind.watch => '手表',
+    DeviceKind.speaker => '智能音箱',
+    DeviceKind.light => '智能灯',
+    DeviceKind.plug => '智能插座',
+    DeviceKind.sensor => '传感器',
+    DeviceKind.vacuum => '扫地机器人',
+    DeviceKind.appliance => '家电',
+    DeviceKind.iot => '智能设备',
     DeviceKind.laptop => '笔记本',
     DeviceKind.desktop => '电脑',
     DeviceKind.tv => '电视',
@@ -63,9 +79,17 @@ class DeviceIdentity {
     bool has(String expression) => RegExp(
       '(?:^|[^a-z0-9])(?:$expression)(?=\u0024|[^a-z0-9])',
     ).hasMatch(value);
+    final iphone = value.contains('iphone');
+    final ipad = value.contains('ipad');
+    final appleWatch = RegExp(r'apple[ _-]?watch').hasMatch(value);
+    final macbook = value.contains('macbook');
     String? brand;
     String? slug;
-    if (has(r'apple|iphone\d*|ipad\d*|macbook|imac|mac|apple[ -]?tv')) {
+    if (iphone ||
+        ipad ||
+        appleWatch ||
+        macbook ||
+        has(r'apple|imac|mac|homepod|apple[ -]?tv')) {
       brand = 'Apple';
       slug = 'apple';
     } else if (has(r'google|pixel\d*')) {
@@ -89,10 +113,10 @@ class DeviceIdentity {
     } else if (has(r'nintendo|任天堂')) {
       brand = 'Nintendo';
       slug = 'nintendo';
-    } else if (has(r'dell|戴尔')) {
+    } else if (has(r'dell|戴尔|optiplex')) {
       brand = 'Dell';
       slug = 'dell';
-    } else if (has(r'lenovo|thinkpad|联想')) {
+    } else if (has(r'lenovo|thinkpad|thinkbook|ideapad|联想')) {
       brand = 'Lenovo';
       slug = 'lenovo';
     } else if (has(r'asus|华硕')) {
@@ -101,12 +125,56 @@ class DeviceIdentity {
     } else if (has(r'hp|惠普')) {
       brand = 'HP';
       slug = 'hp';
+    } else if (has(r'acer|宏碁')) {
+      brand = 'Acer';
+      slug = 'acer';
+    } else if (has(r'msi|微星')) {
+      brand = 'MSI';
+      slug = 'msi';
+    } else if (has(r'gigabyte|技嘉')) {
+      brand = 'Gigabyte';
+    } else if (has(r'razer|雷蛇')) {
+      brand = 'Razer';
+      slug = 'razer';
+    } else if (has(r'microsoft|surface|微软')) {
+      brand = 'Microsoft';
+      slug = 'microsoft';
+    } else if (has(r'aqara|绿米')) {
+      brand = 'Aqara';
+    } else if (has(r'roborock|石头')) {
+      brand = 'Roborock';
+    } else if (has(r'sonos')) {
+      brand = 'Sonos';
+      slug = 'sonos';
+    } else if (has(r'philips|飞利浦')) {
+      brand = 'Philips';
+    } else if (has(r'tuya|涂鸦')) {
+      brand = 'Tuya';
+    } else if (has(r'espressif|esp32|esp8266')) {
+      brand = 'Espressif';
+      slug = 'espressif';
     }
     final kind = switch (value) {
-      _ when has(r'ipad\d*|tablet|平板') => DeviceKind.tablet,
+      _ when appleWatch => DeviceKind.watch,
+      _ when iphone => DeviceKind.phone,
+      _ when ipad => DeviceKind.tablet,
+      _ when macbook => DeviceKind.laptop,
+      _ when has(r'smart[ -]?plug|plug|socket|插座') => DeviceKind.plug,
+      _ when has(r'sensor|传感器') => DeviceKind.sensor,
+      _ when has(r'vacuum|扫地|扫地机器人') => DeviceKind.vacuum,
+      _ when has(r'speaker|homepod|音箱') => DeviceKind.speaker,
+      _ when has(r'smart[ -]?light|light|bulb|灯') => DeviceKind.light,
+      _ when has(r'air[ -]?conditioner|fridge|refrigerator|washer|空调|冰箱|洗衣机') =>
+        DeviceKind.appliance,
+      _ when has(r'tablet|平板') => DeviceKind.tablet,
       _ when has(r'tv|television|电视|apple[ -]?tv') => DeviceKind.tv,
-      _ when has(r'macbook|laptop|thinkpad|笔记本') => DeviceKind.laptop,
-      _ when has(r'iphone\d*|pixel\d*|phone|手机|z[ -]?(?:flip|fold)\d*') =>
+      _
+          when macbook ||
+              has(
+                r'laptop|thinkpad|thinkbook|ideapad|zenbook|vivobook|elitebook|probook|xps|latitude|inspiron|笔记本',
+              ) =>
+        DeviceKind.laptop,
+      _ when iphone || has(r'pixel\d*|phone|手机|z[ -]?(?:flip|fold)\d*') =>
         DeviceKind.phone,
       _ when has(r'nas|synology|群晖') => DeviceKind.nas,
       _ when has(r'playstation[ -]?\d*|ps[345]|nintendo[ -]?switch|游戏主机') =>
@@ -114,7 +182,9 @@ class DeviceIdentity {
       _ when has(r'printer|打印机') => DeviceKind.printer,
       _ when has(r'camera|摄像头') => DeviceKind.camera,
       _ when has(r'router|路由器') => DeviceKind.router,
-      _ when has(r'pc|desktop|imac|mac|电脑') => DeviceKind.desktop,
+      _ when has(r'pc|desktop|imac|mac|surface|optiplex|电脑') =>
+        DeviceKind.desktop,
+      _ when has(r'iot|esp32|esp8266|tuya|aqara|智能设备|网关') => DeviceKind.iot,
       _ => DeviceKind.unknown,
     };
     return DeviceIdentity(kind, brand, slug);

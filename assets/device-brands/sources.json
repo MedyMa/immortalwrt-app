@@ -94,5 +94,53 @@
     "upstream": "xiaomi",
     "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
     "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "acer": {
+    "file": "acer.svg",
+    "application": "Acer",
+    "source": "simple-icons",
+    "upstream": "acer",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "msi": {
+    "file": "msi.svg",
+    "application": "MSI",
+    "source": "simple-icons",
+    "upstream": "msi",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "razer": {
+    "file": "razer.svg",
+    "application": "Razer",
+    "source": "simple-icons",
+    "upstream": "razer",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "microsoft": {
+    "file": "microsoft.svg",
+    "application": "Microsoft",
+    "source": "dashboard-icons",
+    "upstream": "microsoft",
+    "licence": "see upstream LICENSE",
+    "url": "https://raw.githubusercontent.com/homarr-labs/dashboard-icons/main/svg/microsoft.svg"
+  },
+  "sonos": {
+    "file": "sonos.svg",
+    "application": "Sonos",
+    "source": "simple-icons",
+    "upstream": "sonos",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/sonos.svg"
+  },
+  "espressif": {
+    "file": "espressif.svg",
+    "application": "Espressif",
+    "source": "simple-icons",
+    "upstream": "espressif",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/espressif.svg"
   }
 }

@@ -195,7 +195,7 @@ class _DeviceIdentityApi extends _HealthyApi {
           ]
         : const [
             DhcpDevice(
-              name: 'Alice-iPhone',
+              name: 'MZYtekiiPhone',
               ip: '192.168.2.114',
               mac: '02:11:22:33:44:55',
             ),
