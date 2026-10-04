@@ -1,0 +1,61 @@
+name: Build unsigned iOS IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-ipa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ipa:
+    name: Build iPhone IPA for later signing
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: stable
+          cache: true
+      - name: Verify device SDK
+        run: |
+          set -euo pipefail
+          xcodebuild -version | grep 'Xcode 27'
+          xcrun --sdk iphoneos --show-sdk-version | grep '^27\.'
+      - run: flutter pub get
+      - run: flutter analyze --fatal-infos
+      - run: flutter test
+      - name: Build unsigned device app
+        run: flutter build ios --release --no-codesign
+      - name: Package and verify unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=build/ios/iphoneos/Runner.app
+          test -f "$app/Info.plist"
+          executable=$(/usr/libexec/PlistBuddy -c 'Print CFBundleExecutable' "$app/Info.plist")
+          test -f "$app/$executable"
+          lipo -archs "$app/$executable" | grep -w arm64
+          /usr/libexec/PlistBuddy -c 'Print CFBundleSupportedPlatforms:0' "$app/Info.plist" | grep -x iPhoneOS
+          mkdir -p "$RUNNER_TEMP/unsigned-ipa/Payload"
+          ditto "$app" "$RUNNER_TEMP/unsigned-ipa/Payload/Runner.app"
+          cd "$RUNNER_TEMP/unsigned-ipa"
+          zip -qry "$GITHUB_WORKSPACE/immortalwrt-ios-unsigned.ipa" Payload
+          unzip -t "$GITHUB_WORKSPACE/immortalwrt-ios-unsigned.ipa"
+          printf '%s\n' 'Unsigned iPhone release build. Sign with an appropriate Apple identity and provisioning profile before installation. This is not a simulator build or a TestFlight upload.' > "$GITHUB_WORKSPACE/IPA-README.txt"
+          cd "$GITHUB_WORKSPACE"
+          shasum -a 256 immortalwrt-ios-unsigned.ipa > immortalwrt-ios-unsigned.ipa.sha256
+      - uses: actions/upload-artifact@v7
+        with:
+          name: immortalwrt-ios-unsigned-ipa
+          path: |
+            immortalwrt-ios-unsigned.ipa
+            immortalwrt-ios-unsigned.ipa.sha256
+            IPA-README.txt
+          if-no-files-found: error
+          retention-days: 7
