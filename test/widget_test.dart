@@ -147,6 +147,27 @@ class _HealthyApi extends _FakeRouterApi {
   );
 }
 
+class _ChangingLiveApi extends _FakeRouterApi {
+  int reads = 0;
+  @override
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async {
+    reads++;
+    sections.add(section);
+    return RouterSnapshot(
+      fetchedAt: DateTime.now(),
+      live: LiveRate(
+        ready: true,
+        downBytesPerSecond: reads * 1024,
+        upBytesPerSecond: 512,
+        at: null,
+      ),
+    );
+  }
+}
+
 class _DeviceIdentityApi extends _HealthyApi {
   _DeviceIdentityApi({this.longValues = false});
   final bool longValues;
@@ -481,11 +502,12 @@ void main() {
   });
   for (final accessible in [false, true]) {
     testWidgets(
-      'Android capsule hides at boundaries with accessible navigation $accessible',
+      'Android capsule keeps accessible navigation reachable $accessible',
       (tester) async {
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.reset);
+        final semantics = tester.ensureSemantics();
         await tester.pumpWidget(
           MaterialApp(
             builder: (context, child) => MediaQuery(
@@ -517,7 +539,10 @@ void main() {
         );
         await tester.drag(list, const Offset(0, -150));
         await tester.pumpAndSettle();
-        expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
+        expect(
+          tester.widget<AnimatedOpacity>(fade).opacity,
+          accessible ? 1 : 0,
+        );
         await tester.drag(list, const Offset(0, 150));
         await tester.pumpAndSettle();
         expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
@@ -538,11 +563,89 @@ void main() {
         expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
         await tester.drag(find.byType(ListView).first, const Offset(0, -150));
         await tester.pumpAndSettle();
-        expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
+        expect(
+          tester.widget<AnimatedOpacity>(fade).opacity,
+          accessible ? 1 : 0,
+        );
+        if (accessible) {
+          final destination = find.descendant(
+            of: nav,
+            matching: find.text('设备'),
+          );
+          expect(destination.hitTestable(), findsOneWidget);
+          expect(Focus.of(tester.element(destination)).canRequestFocus, isTrue);
+          expect(
+            tester.getSemantics(destination).getSemanticsData().label,
+            '设备',
+          );
+          await tester.tap(destination);
+          await tester.pump();
+          expect(find.text('设备记录'), findsOneWidget);
+        }
+        semantics.dispose();
         await tester.pumpWidget(const SizedBox.shrink());
       },
     );
   }
+  testWidgets(
+    'one-second live updates preserve static chrome and hardware widgets',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final api = _ChangingLiveApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+        ),
+      );
+      await tester.pump();
+      final nav = tester.widget(
+        find.byKey(const ValueKey('compact-navigation')),
+      );
+      final status = tester.widget(
+        find.byKey(const ValueKey('system-status-glass')),
+      );
+      final hardware = tester.widget(
+        find.byWidgetPredicate((w) => w.runtimeType.toString() == '_PpeCard'),
+      );
+      expect(find.text('1.0 KiB/s'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+      expect(api.sections.last, RouterSection.live);
+      expect(find.text('2.0 KiB/s'), findsOneWidget);
+      expect(
+        identical(
+          nav,
+          tester.widget(find.byKey(const ValueKey('compact-navigation'))),
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          status,
+          tester.widget(find.byKey(const ValueKey('system-status-glass'))),
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          hardware,
+          tester.widget(
+            find.byWidgetPredicate(
+              (w) => w.runtimeType.toString() == '_PpeCard',
+            ),
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('compact-navigation'))).height,
+        64,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   testWidgets('iOS connection actions use Cupertino host fallbacks', (
     tester,
   ) async {

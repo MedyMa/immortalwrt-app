@@ -52,7 +52,10 @@ class _GlassSurface extends StatelessWidget {
       child: opaque
           ? surface
           : BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              filter: ImageFilter.blur(
+                sigmaX: _NavigationGeometry.blurSigma,
+                sigmaY: _NavigationGeometry.blurSigma,
+              ),
               child: surface,
             ),
     );

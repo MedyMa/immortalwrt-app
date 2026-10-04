@@ -9,6 +9,7 @@ class _Overview extends StatelessWidget {
     required this.snapshot,
     required this.endpoint,
     required this.onOpen,
+    this.liveSnapshot,
     this.error,
   });
 
@@ -16,50 +17,12 @@ class _Overview extends StatelessWidget {
   final String endpoint;
   final ValueChanged<int> onOpen;
   final String? error;
+  final ValueListenable<RouterSnapshot?>? liveSnapshot;
 
   @override
   Widget build(BuildContext context) {
     final summary = snapshot.summary;
-    final collected = summary?.collectedAt;
-    final age = collected == null
-        ? null
-        : snapshot.fetchedAt.difference(collected);
-    final stale = age != null && age > const Duration(seconds: 60);
     final offline = error != null;
-    final remote = endpoint.startsWith('https://');
-    final clock =
-        '${snapshot.fetchedAt.hour.toString().padLeft(2, '0')}:${snapshot.fetchedAt.minute.toString().padLeft(2, '0')}';
-
-    final Color stateColor;
-    final String stateLabel;
-    final String headline;
-    final String detail;
-    final bool showTopology;
-    if (offline) {
-      stateColor = _red;
-      stateLabel = '连接中断';
-      headline = '连接已中断';
-      detail = '显示上次成功读取的数据';
-      showTopology = false;
-    } else if (stale) {
-      stateColor = _amber;
-      stateLabel = '数据延迟';
-      headline = '数据更新延迟';
-      detail = 'Traffic 采集已超过 60 秒未更新';
-      showTopology = false;
-    } else if (summary == null && snapshot.live == null) {
-      stateColor = _green;
-      stateLabel = '已连接';
-      headline = '路由器已连接';
-      detail = '未获取到 Traffic 采集数据';
-      showTopology = false;
-    } else {
-      stateColor = _green;
-      stateLabel = '已连接';
-      headline = '';
-      detail = '';
-      showTopology = true;
-    }
 
     final down = summary?.headlineDown;
     final up = summary?.headlineUp;
@@ -69,16 +32,23 @@ class _Overview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Lead('家中网络 · ${remote ? '远程' : '本地'}连接 · $clock 更新'),
-        _Hero(
-          identity: remote ? 'MT7988 · 远程连接' : 'MT7988 · 本地连接',
-          stateLabel: stateLabel,
-          stateColor: stateColor,
-          headline: headline,
-          detail: detail,
-          showTopology: showTopology,
-          onOpenDevices: () => onOpen(1),
-          live: snapshot.live,
+        RepaintBoundary(
+          child: liveSnapshot == null
+              ? _OverviewConnection(
+                  snapshot: snapshot,
+                  endpoint: endpoint,
+                  error: error,
+                  onOpen: onOpen,
+                )
+              : ValueListenableBuilder<RouterSnapshot?>(
+                  valueListenable: liveSnapshot!,
+                  builder: (context, value, _) => _OverviewConnection(
+                    snapshot: value ?? snapshot,
+                    endpoint: endpoint,
+                    error: error,
+                    onOpen: onOpen,
+                  ),
+                ),
         ),
         const SizedBox(height: 20),
         const _SectionHeader(title: '流量概览', trail: '本次采集会话'),
@@ -203,6 +173,70 @@ class _Overview extends StatelessWidget {
             Icons.info_outline_rounded,
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Only this area rebuilds for the one-second live poll. Hardware and chrome
+/// keep their last full-refresh widgets; error/recovery still rebuilds the page.
+class _OverviewConnection extends StatelessWidget {
+  const _OverviewConnection({
+    required this.snapshot,
+    required this.endpoint,
+    required this.onOpen,
+    this.error,
+  });
+  final RouterSnapshot snapshot;
+  final String endpoint;
+  final ValueChanged<int> onOpen;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    final collected = snapshot.summary?.collectedAt;
+    final stale =
+        collected != null &&
+        snapshot.fetchedAt.difference(collected) > const Duration(seconds: 60);
+    final offline = error != null;
+    final missing = snapshot.summary == null && snapshot.live == null;
+    final remote = endpoint.startsWith('https://');
+    final clock =
+        '${snapshot.fetchedAt.hour.toString().padLeft(2, '0')}:${snapshot.fetchedAt.minute.toString().padLeft(2, '0')}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Lead('家中网络 · ${remote ? '远程' : '本地'}连接 · $clock 更新'),
+        _Hero(
+          identity: remote ? 'MT7988 · 远程连接' : 'MT7988 · 本地连接',
+          stateLabel: offline
+              ? '连接中断'
+              : stale
+              ? '数据延迟'
+              : '已连接',
+          stateColor: offline
+              ? _red
+              : stale
+              ? _amber
+              : _green,
+          headline: offline
+              ? '连接已中断'
+              : stale
+              ? '数据更新延迟'
+              : missing
+              ? '路由器已连接'
+              : '',
+          detail: offline
+              ? '显示上次成功读取的数据'
+              : stale
+              ? 'Traffic 采集已超过 60 秒未更新'
+              : missing
+              ? '未获取到 Traffic 采集数据'
+              : '',
+          showTopology: !offline && !stale && !missing,
+          onOpenDevices: () => onOpen(1),
+          live: snapshot.live,
+        ),
       ],
     );
   }

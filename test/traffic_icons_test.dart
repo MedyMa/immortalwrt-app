@@ -2,6 +2,44 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:immortalwrt_app/services/traffic_icons.dart';
 
 void main() {
+  test('website cache chooses exact then closest safe parent', () {
+    final catalog = TrafficIcons.fromIndexes(
+      Uri.parse('https://router.example.com'),
+      'stripe\n',
+      'stripe.com\tstripe\n',
+      'example.com\texample.com.png\t1\n'
+          'api.example.com\tapi.example.com.ico\t2\n'
+          'example.co.uk\texample.co.uk.png\nco.uk\tco.uk.png\n'
+          'com.cn\tcom.cn.png\nexample.com.cn\texample.com.cn.png\n'
+          'unknown.xyz\tunknown.xyz.png\n'
+          'github.io\tgithub.io.png\nstripe.com\tstripe.com.png\n',
+    );
+    expect(
+      catalog.iconUri('api.example.com')?.path,
+      '/traffic-site-icons/api.example.com.ico',
+    );
+    expect(catalog.iconUri('v1.api.example.com')?.query, 'v=2');
+    expect(
+      catalog.iconUri('www.example.com')?.path,
+      '/traffic-site-icons/example.com.png',
+    );
+    expect(
+      catalog.iconUri('api.example.co.uk')?.path,
+      '/traffic-site-icons/example.co.uk.png',
+    );
+    expect(
+      catalog.iconUri('api.example.com.cn')?.path,
+      '/traffic-site-icons/example.com.cn.png',
+    );
+    expect(catalog.iconUri('api.unrelated.co.uk'), isNull);
+    expect(catalog.iconUri('api.unrelated.com.cn'), isNull);
+    expect(catalog.iconUri('api.unknown.xyz'), isNull);
+    expect(catalog.iconUri('tenant.github.io'), isNull);
+    expect(
+      catalog.iconUri('api.stripe.com')?.path,
+      '/luci-static/resources/traffic/icons/stripe.svg',
+    );
+  });
   test('website index covers all entries beyond the old 256 cutoff', () {
     final rows = List.generate(
       300,

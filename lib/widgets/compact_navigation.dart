@@ -1,5 +1,26 @@
 part of '../main.dart';
 
+/// Shared compact chrome dimensions; safe-area padding is added separately.
+abstract final class _NavigationGeometry {
+  static const radius = 28.0;
+  static const height = 72.0;
+  static const inset = 4.0;
+  static const horizontalMargin = 12.0;
+  static const bottomMargin = 8.0;
+  static const labelSize = 11.0;
+  static const hiddenSlide = 1.4;
+  static const dragThreshold = 12.0;
+  static const topTolerance = 0.5;
+  static const railBreakpoint = 700.0;
+  static const blurSigma = 18.0;
+  static const duration = Duration(milliseconds: 180);
+
+  static double contentHeight(TextScaler scaler) =>
+      height - 2 * inset + math.max(0, scaler.scale(labelSize) - labelSize) * 2;
+  static double bottomClearance(TextScaler scaler) =>
+      contentHeight(scaler) + 2 * inset + bottomMargin + 24;
+}
+
 class _CompactNavigation extends StatelessWidget {
   const _CompactNavigation({
     required this.selectedIndex,
@@ -14,10 +35,11 @@ class _CompactNavigation extends StatelessWidget {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: visible,
     builder: (context, _) {
-      final show = visible.value;
+      // TalkBack users must be able to switch pages without scrolling to top.
+      final show = MediaQuery.accessibleNavigationOf(context) || visible.value;
       final duration = MediaQuery.disableAnimationsOf(context)
           ? Duration.zero
-          : const Duration(milliseconds: 180);
+          : _NavigationGeometry.duration;
       const labels = ['总览', '设备', 'Wi-Fi', '流量'];
       const icons = [
         Icons.home_outlined,
@@ -39,7 +61,9 @@ class _CompactNavigation extends StatelessWidget {
           child: ExcludeSemantics(
             excluding: !show,
             child: AnimatedSlide(
-              offset: show ? Offset.zero : const Offset(0, 1.4),
+              offset: show
+                  ? Offset.zero
+                  : const Offset(0, _NavigationGeometry.hiddenSlide),
               duration: duration,
               curve: Curves.easeOutCubic,
               child: AnimatedOpacity(
@@ -48,13 +72,22 @@ class _CompactNavigation extends StatelessWidget {
                 child: SafeArea(
                   top: false,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                    padding: const EdgeInsets.fromLTRB(
+                      _NavigationGeometry.horizontalMargin,
+                      0,
+                      _NavigationGeometry.horizontalMargin,
+                      _NavigationGeometry.bottomMargin,
+                    ),
                     child: RepaintBoundary(
                       child: _GlassSurface(
                         border: false,
-                        radius: BorderRadius.circular(40),
+                        radius: BorderRadius.circular(
+                          _NavigationGeometry.radius,
+                        ),
                         child: Padding(
-                          padding: const EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(
+                            _NavigationGeometry.inset,
+                          ),
                           child: Row(
                             key: const ValueKey('compact-navigation'),
                             children: List.generate(4, (index) {
@@ -72,7 +105,10 @@ class _CompactNavigation extends StatelessWidget {
                                               alpha: 0.85,
                                             )
                                           : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(32),
+                                      borderRadius: BorderRadius.circular(
+                                        _NavigationGeometry.radius -
+                                            _NavigationGeometry.inset,
+                                      ),
                                     ),
                                     child: Material(
                                       color: Colors.transparent,
@@ -81,15 +117,11 @@ class _CompactNavigation extends StatelessWidget {
                                         onTap: () => onSelected(index),
                                         child: SizedBox(
                                           height:
-                                              52 +
-                                              math.max(
-                                                    0,
-                                                    MediaQuery.textScalerOf(
-                                                          context,
-                                                        ).scale(11) -
-                                                        11,
-                                                  ) *
-                                                  2,
+                                              _NavigationGeometry.contentHeight(
+                                                MediaQuery.textScalerOf(
+                                                  context,
+                                                ),
+                                              ),
                                           child: ExcludeSemantics(
                                             child: Column(
                                               mainAxisAlignment:
@@ -112,7 +144,9 @@ class _CompactNavigation extends StatelessWidget {
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: TextStyle(
-                                                    fontSize: 11,
+                                                    fontSize:
+                                                        _NavigationGeometry
+                                                            .labelSize,
                                                     fontWeight: selected
                                                         ? FontWeight.w700
                                                         : FontWeight.w500,

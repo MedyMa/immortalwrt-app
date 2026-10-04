@@ -30,3 +30,9 @@ API 密钥需要足够的应用访问权限。工作流不需要 Apple ID 登录
 4. 外部测试可能需要 Apple 测试版审核；工作流不会自动邀请测试者。
 
 上传成功仅表示 Apple 接收了构建，不表示已经可供测试。Windows 可检查配置，不能替代 macOS / Xcode 的签名上传验证。开发者资格或签名配置未完成时，继续使用常规 Android / iOS 模拟器构建。
+
+## 签名机密范围
+
+依赖安装、分析、测试和 Flutter/CocoaPods 构建均不注入签名或上传密钥。先生成无签名归档，再在独立步骤导入分发证书和描述文件，通过 `xcodebuild -exportArchive` 签名导出；导出阶段不再执行项目构建脚本。App Store Connect API 密钥只在上传步骤提供。
+
+已签名 IPA 不发布为 GitHub Actions artifact，只上传 App Store Connect。无论发布成功还是失败，最后一步清理临时钥匙串、描述文件、上传密钥和 IPA。P12 密码显式掩码；GitHub 机密变量自身也有日志掩码。
