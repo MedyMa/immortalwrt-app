@@ -43,11 +43,37 @@ jobs:
       - run: python3 tools/test-ios-signing.py
       - run: python3 tools/test-ios-preview.py
       - run: python3 tools/test-testflight-workflow.py
-      - run: flutter build apk --debug
+      - run: python3 tools/test-android-signing.py
+      - run: flutter build apk --release
+      - name: Sign Android APK
+        if: github.event_name != 'pull_request'
+        env:
+          ANDROID_SIGNING_BUNDLE: ${{ secrets.ANDROID_SIGNING_BUNDLE }}
+        run: |
+          python3 tools/prepare-android-signing.py "$RUNNER_TEMP/android-signing"
+          APKSIGNER=$(find "$ANDROID_SDK_ROOT/build-tools" -name apksigner -type f | sort -V | tail -n 1)
+          test -n "$APKSIGNER"
+          "$APKSIGNER" sign --ks "$RUNNER_TEMP/android-signing/key.jks" \
+            --ks-key-alias immortalwrt \
+            --ks-pass "file:$RUNNER_TEMP/android-signing/password.txt" \
+            --key-pass "file:$RUNNER_TEMP/android-signing/password.txt" \
+            --out build/app/outputs/flutter-apk/app-stable-release.apk \
+            build/app/outputs/flutter-apk/app-release.apk
+          "$APKSIGNER" verify --verbose --print-certs build/app/outputs/flutter-apk/app-stable-release.apk
+      - name: Remove Android signing material
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/android-signing"
       - uses: actions/upload-artifact@v7
+        if: success() && github.event_name != 'pull_request'
         with:
-          name: immortalwrt-android-debug
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: immortalwrt-android-release
+          path: build/app/outputs/flutter-apk/app-stable-release.apk
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: success() && github.event_name == 'pull_request'
+        with:
+          name: immortalwrt-android-unsigned-pr
+          path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
 
   ios:
