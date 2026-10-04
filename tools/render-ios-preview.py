@@ -173,7 +173,7 @@ def render(out=Path("ios-native-pages")):
                 pending = out / f"pending-{appearance}-{tab}.png"
                 try:
                     run(["xcrun", "simctl", "io", device, "screenshot", str(pending)],
-                        timeout=10, deadline=page_deadline)
+                        timeout=30, deadline=page_deadline)
                     validate_screenshot(pending)
                     pending.replace(out / f"ios-{appearance}-{tab}.png")
                 finally:

@@ -207,6 +207,22 @@ class RenderTests(unittest.TestCase):
             self.assertFalse(any(c[2] == "io" for c in calls))
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
 
+    def test_slow_screenshot_has_budget_but_keeps_page_deadline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            screenshots = []
+            def slow_capture(args, **kwargs):
+                if args[2] == "io":
+                    screenshots.append(kwargs)
+                    if kwargs['timeout'] < 30:
+                        raise subprocess.TimeoutExpired(args, kwargs['timeout'])
+                return fake(args, **kwargs)
+            with patch.object(render, "run", side_effect=slow_capture):
+                render.render(Path(directory) / "out")
+            self.assertEqual(len(screenshots), 8)
+            self.assertTrue(all('deadline' in s for s in screenshots))
+            self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
+
     def test_startup_timeout_stops_before_install_and_cleans_simulator(self):
         with tempfile.TemporaryDirectory() as directory:
             fake, calls = self.simulated(directory, "startup")
