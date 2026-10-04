@@ -37,6 +37,45 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
     super.dispose();
   }
 
+  Widget _field(
+    BuildContext context, {
+    required String label,
+    required TextEditingController controller,
+    String? hintText,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      ExcludeSemantics(
+        child: Text(
+          label,
+          style: _bodyStyle(
+            context,
+          ).copyWith(fontSize: 13, fontWeight: FontWeight.w500),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Semantics(
+        label: label,
+        child: TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          textAlignVertical: TextAlignVertical.center,
+          decoration: InputDecoration(
+            hintText: hintText,
+            constraints: const BoxConstraints(minHeight: 56),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 18,
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) => Padding(
     padding: EdgeInsets.fromLTRB(
@@ -70,24 +109,21 @@ class _ConnectionSheetState extends State<_ConnectionSheet> {
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            TextField(
+            _field(
+              context,
+              label: '远程 HTTPS / 本地 HTTP（明文）',
               controller: _url,
               keyboardType: TextInputType.url,
-              decoration: const InputDecoration(
-                labelText: '远程 HTTPS / 本地 HTTP（明文）',
-                hintText: 'https://bananapi.x.ddnsto.com',
-              ),
+              hintText: 'https://bananapi.x.ddnsto.com',
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _username,
-              decoration: const InputDecoration(labelText: '用户名'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
+            const SizedBox(height: 16),
+            _field(context, label: '用户名', controller: _username),
+            const SizedBox(height: 16),
+            _field(
+              context,
+              label: '密码',
               controller: _password,
               obscureText: true,
-              decoration: const InputDecoration(labelText: '密码'),
             ),
             const SizedBox(height: 20),
             if (Theme.of(context).platform == TargetPlatform.iOS)

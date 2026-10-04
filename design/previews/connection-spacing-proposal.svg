@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="568" viewBox="0 0 390 568">
+  <defs>
+    <linearGradient id="glass" x2="0.2" y2="1"><stop stop-color="#f4f5fa"/><stop offset="1" stop-color="#e7eaf1"/></linearGradient>
+  </defs>
+  <rect width="390" height="568" rx="28" fill="url(#glass)"/>
+  <rect x="177" y="14" width="36" height="4" rx="2" fill="#b6bec6"/>
+  <g font-family="Microsoft YaHei, sans-serif">
+    <text x="24" y="65" font-size="22" font-weight="700" fill="#17202e">连接路由器</text>
+    <text x="24" y="105" font-size="13" font-weight="600" fill="#465264">远程 HTTPS / 本地 HTTP（明文）</text>
+    <rect x="24" y="118" width="342" height="56" rx="16" fill="#f8f9fe"/>
+    <text x="40" y="152" font-size="15" fill="#17202e">https://bananapi.x.ddnsto.com</text>
+    <text x="24" y="239" font-size="13" font-weight="600" fill="#465264">用户名</text>
+    <rect x="24" y="252" width="342" height="56" rx="16" fill="#f8f9fe"/>
+    <text x="40" y="286" font-size="15" fill="#17202e">root</text>
+    <text x="24" y="346" font-size="13" font-weight="600" fill="#465264">密码</text>
+    <rect x="24" y="359" width="342" height="56" rx="16" fill="#f8f9fe"/>
+    <rect x="24" y="447" width="342" height="48" rx="24" fill="#4966a6"/>
+    <text x="195" y="477" font-size="15" text-anchor="middle" fill="white">连接</text>
+  </g>
+  <rect x="148" y="546" width="94" height="4" rx="2" fill="#9da5af"/>
+</svg>
