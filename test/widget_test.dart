@@ -445,7 +445,7 @@ void main() {
     },
   );
 
-  testWidgets('capsule hides upward and returns only at page top', (
+  testWidgets('capsule hides upward and returns on downward drag anywhere', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -490,6 +490,18 @@ void main() {
       findsNothing,
     );
     await tester.drag(find.byType(ListView).first, const Offset(0, 150));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
+    final scrollable = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byType(ListView).first,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(scrollable.position.pixels, greaterThan(0));
+    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
     await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
     await tester.drag(find.byType(ListView).first, const Offset(0, 1000));

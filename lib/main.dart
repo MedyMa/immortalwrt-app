@@ -300,17 +300,13 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       } else {
         return false;
       }
-      if (delta < 0 &&
-          notification.metrics.pixels <=
-              notification.metrics.minScrollExtent +
-                  _NavigationGeometry.topTolerance) {
-        _navigationVisible.value = true;
-      }
       if (userDrag && delta != 0) {
         if (delta.sign != _scrollGesture.sign) _scrollGesture = 0;
         _scrollGesture += delta;
         if (_scrollGesture > _NavigationGeometry.dragThreshold) {
           _navigationVisible.value = false;
+        } else if (_scrollGesture < -_NavigationGeometry.dragThreshold) {
+          _navigationVisible.value = true;
         }
       }
     }

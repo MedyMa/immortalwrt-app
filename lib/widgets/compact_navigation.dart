@@ -10,7 +10,6 @@ abstract final class _NavigationGeometry {
   static const labelSize = 11.0;
   static const hiddenSlide = 1.4;
   static const dragThreshold = 12.0;
-  static const topTolerance = 0.5;
   static const railBreakpoint = 700.0;
   static const blurSigma = 18.0;
   static const duration = Duration(milliseconds: 180);
