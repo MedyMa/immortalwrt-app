@@ -150,12 +150,91 @@ class TrafficIcons {
       if (key == null && root != null && slugs.contains(root)) key = root;
     }
     if (key == null) {
-      final file = websites[host];
+      final file = _websiteFile(host);
       return file == null ? null : baseUrl.resolve('/traffic-site-icons/$file');
     }
     return baseUrl.replace(
       path: '/luci-static/resources/traffic/icons/$key.svg',
     );
+  }
+
+  String? _websiteFile(String host) {
+    if (websites.containsKey(host)) return websites[host];
+    // Recognized suffixes only: this is deliberately not a public-suffix list.
+    // Unknown namespaces keep exact-host lookup; shared hosting is a boundary.
+    if (!RegExp(r'^[a-z0-9-]+(?:\.[a-z0-9-]+)+$').hasMatch(host)) {
+      return null;
+    }
+    const shared = <String>{
+      'github.io',
+      'pages.dev',
+      'workers.dev',
+      'vercel.app',
+      'netlify.app',
+      'appspot.com',
+      'blogspot.com',
+      'cloudfront.net',
+      'azurewebsites.net',
+      'herokuapp.com',
+    };
+    const compound = <String>{
+      'com.cn',
+      'net.cn',
+      'org.cn',
+      'gov.cn',
+      'edu.cn',
+      'co.uk',
+      'org.uk',
+      'ac.uk',
+      'gov.uk',
+      'net.uk',
+      'com.au',
+      'net.au',
+      'org.au',
+      'edu.au',
+      'gov.au',
+      'co.jp',
+      'ne.jp',
+      'or.jp',
+      'ac.jp',
+      'go.jp',
+      'co.nz',
+      'net.nz',
+      'org.nz',
+      'co.kr',
+      'com.tw',
+      'com.hk',
+      'com.sg',
+      'com.br',
+      'co.in',
+      'co.za',
+    };
+    const single = <String>{
+      'com',
+      'net',
+      'org',
+      'io',
+      'cn',
+      'ai',
+      'app',
+      'dev',
+      'co',
+      'tv',
+      'me',
+    };
+    final labels = host.split('.');
+    final lastTwo = labels.skip(labels.length - 2).join('.');
+    final suffixLabels = shared.contains(lastTwo) || compound.contains(lastTwo)
+        ? 2
+        : single.contains(labels.last)
+        ? 1
+        : 0;
+    if (suffixLabels == 0) return null;
+    for (var i = 1; i < labels.length - suffixLabels; i++) {
+      final file = websites[labels.skip(i).join('.')];
+      if (file != null) return file;
+    }
+    return null;
   }
 
   static String _slug(String name) => name

@@ -2,16 +2,26 @@ name: Render native iOS pages
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/ios-preview.yml', 'tools/prepare-ios-preview.py', 'tools/ios_preview_fixture.dart', 'tools/render-ios-preview.py']
+    paths:
+      - '.github/workflows/ios-preview.yml'
+      - 'tools/*ios-preview*.py'
+      - 'tools/ios_preview_fixture.dart'
+      - 'lib/**'
+      - 'ios/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   render:
     runs-on: xcode-27
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+      - name: Test preview tooling
+        run: python3 tools/test-ios-preview.py
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.5'
@@ -22,7 +32,8 @@ jobs:
         run: python3 tools/prepare-ios-preview.py
       - run: flutter build ios --simulator --debug
       - name: Render all pages in iOS 27
-        timeout-minutes: 10
+        # Script has a 540 second render deadline + at most 40 seconds cleanup.
+        timeout-minutes: 12
         run: python3 tools/render-ios-preview.py
       - uses: actions/upload-artifact@v7
         if: always()

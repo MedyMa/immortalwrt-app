@@ -302,13 +302,16 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       }
       if (delta < 0 &&
           notification.metrics.pixels <=
-              notification.metrics.minScrollExtent + 0.5) {
+              notification.metrics.minScrollExtent +
+                  _NavigationGeometry.topTolerance) {
         _navigationVisible.value = true;
       }
       if (userDrag && delta != 0) {
         if (delta.sign != _scrollGesture.sign) _scrollGesture = 0;
         _scrollGesture += delta;
-        if (_scrollGesture > 12) _navigationVisible.value = false;
+        if (_scrollGesture > _NavigationGeometry.dragThreshold) {
+          _navigationVisible.value = false;
+        }
       }
     }
     return false;
@@ -317,6 +320,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   FlutterSecureStorage get _storage => widget.storage;
   RouterApi? _api;
   RouterSnapshot? _snapshot;
+  final _liveSnapshot = ValueNotifier<RouterSnapshot?>(null);
   Timer? _timer;
   String? _error;
   bool _loading = false;
@@ -450,6 +454,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       _username = username;
       _requiresLogin = false;
       _lastFullRefresh = DateTime.now();
+      _liveSnapshot.value = first;
       setState(() {
         _snapshot = first;
         _loading = false;
@@ -489,12 +494,16 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
           _foreground &&
           version == _requestVersion &&
           identical(api, _api)) {
-        setState(() {
-          _snapshot = data;
-          _error = null;
-          _checking = false;
-          if (!liveOnly) _lastFullRefresh = DateTime.now();
-        });
+        final rebuildPage = !liveOnly || _error != null || _checking;
+        _snapshot = data;
+        _liveSnapshot.value = data;
+        if (rebuildPage) {
+          setState(() {
+            _error = null;
+            _checking = false;
+            if (!liveOnly) _lastFullRefresh = DateTime.now();
+          });
+        }
       }
     } catch (error) {
       if (mounted &&
@@ -540,6 +549,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       storageError = '连接已断开，但无法清除本机保存的凭据，请检查系统安全存储';
     }
     if (mounted) {
+      _liveSnapshot.value = null;
       setState(() {
         _snapshot = null;
         _error = storageError;
@@ -554,6 +564,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _navigationVisible.dispose();
+    _liveSnapshot.dispose();
     _timer?.cancel();
     _api?.close();
     super.dispose();
@@ -587,7 +598,9 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     const names = ['总览', '设备', 'Wi-Fi', '流量'];
     final snapshot = _snapshot;
     final isIos = Theme.of(context).platform == TargetPlatform.iOS;
-    final wide = !isIos && MediaQuery.sizeOf(context).width >= 700;
+    final wide =
+        !isIos &&
+        MediaQuery.sizeOf(context).width >= _NavigationGeometry.railBreakpoint;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -686,7 +699,9 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                                   MediaQuery.viewPaddingOf(context).top + 4,
                                   16,
                                   !isIos && !wide
-                                      ? 112 +
+                                      ? _NavigationGeometry.bottomClearance(
+                                              MediaQuery.textScalerOf(context),
+                                            ) +
                                             MediaQuery.viewPaddingOf(
                                               context,
                                             ).bottom
@@ -712,6 +727,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                                   if (_tab == 0)
                                     _Overview(
                                       snapshot: snapshot,
+                                      liveSnapshot: _liveSnapshot,
                                       endpoint: _url,
                                       error: _error,
                                       onOpen: _selectTab,

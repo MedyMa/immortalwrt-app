@@ -1,30 +1,168 @@
+"""Capture only acknowledged preview pages, within one bounded render deadline."""
 import json
 import os
 from pathlib import Path
+import struct
 import subprocess
 import time
+import uuid
+import zlib
+
+BUNDLE = "com.medyma.immortalwrtApp"
+RENDER_SECONDS = 540
+PAGE_SECONDS = 40
 
 
-def run(args, timeout=60, **kwargs):
-    print("Running:", " ".join(args), flush=True)
+def run(args, timeout=60, deadline=None, **kwargs):
+    if deadline is not None:
+        timeout = min(timeout, deadline - time.monotonic())
+    if timeout <= 0:
+        raise TimeoutError("iOS preview render deadline exceeded")
+    print("Running:", " ".join(map(str, args)), flush=True)
     return subprocess.run(args, check=True, timeout=timeout, **kwargs)
 
 
-data = json.loads(run(["xcrun", "simctl", "list", "devices", "available", "--json"], capture_output=True).stdout)["devices"]
-device = next(x["udid"] for runtime, devices in data.items() if "iOS-27" in runtime for x in devices if "iPhone" in x["name"])
-run(["xcrun", "simctl", "boot", device], timeout=180)
-run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=180)
-run(["xcrun", "simctl", "install", device, "build/ios/iphonesimulator/Runner.app"], timeout=120)
-run(["xcrun", "simctl", "status_bar", device, "override", "--time", "9:41", "--batteryState", "charged", "--batteryLevel", "100"])
-out = Path("ios-native-pages")
-out.mkdir(exist_ok=True)
-for appearance in ["light", "dark"]:
-    run(["xcrun", "simctl", "ui", device, "appearance", appearance])
-    for tab in range(4):
-        env = dict(os.environ, SIMCTL_CHILD_IOS_PREVIEW_TAB=str(tab))
+def wait_ready(marker, expected, deadline):
+    while time.monotonic() < deadline:
         try:
-            run(["xcrun", "simctl", "launch", "--terminate-running-process", device, "com.medyma.immortalwrtApp"], timeout=120, env=env)
-        except subprocess.TimeoutExpired:
-            print("Launch command timed out; checking rendered simulator frame", flush=True)
-        time.sleep(8)
-        run(["xcrun", "simctl", "io", device, "screenshot", str(out / f"ios-{appearance}-{tab}.png")])
+            value = json.loads(marker.read_text(encoding="utf-8"))
+            if value == expected:
+                return
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+        time.sleep(min(0.25, max(0, deadline - time.monotonic())))
+    raise TimeoutError(f"Preview page did not acknowledge readiness: {expected}")
+
+
+def validate_screenshot(path):
+    """Decode simulator RGB/RGBA PNGs using stdlib; reject black/blank content."""
+    data = path.read_bytes()
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise ValueError("Screenshot is not a PNG")
+    offset, compressed, header = 8, bytearray(), None
+    while offset < len(data):
+        length = struct.unpack_from(">I", data, offset)[0]
+        kind = data[offset + 4:offset + 8]
+        payload = data[offset + 8:offset + 8 + length]
+        if len(payload) != length or offset + 12 + length > len(data):
+            raise ValueError("Truncated PNG")
+        crc = struct.unpack_from(">I", data, offset + 8 + length)[0]
+        if zlib.crc32(kind + payload) & 0xffffffff != crc:
+            raise ValueError("Invalid PNG checksum")
+        if kind == b"IHDR":
+            header = struct.unpack(">IIBBBBB", payload)
+        elif kind == b"IDAT":
+            compressed.extend(payload)
+        offset += 12 + length
+        if kind == b"IEND":
+            break
+    if header is None:
+        raise ValueError("Missing PNG header")
+    width, height, depth, color, compression, filtering, interlace = header
+    if depth != 8 or color not in (2, 6) or compression or filtering or interlace:
+        raise ValueError(f"Unsupported simulator PNG format: {header}")
+    if width < 100 or height < 100:
+        raise ValueError("Screenshot dimensions are too small")
+    channels = 3 if color == 2 else 4
+    stride = width * channels
+    raw = zlib.decompress(compressed)
+    if len(raw) != (stride + 1) * height:
+        raise ValueError("Invalid PNG pixel data")
+    previous = bytearray(stride)
+    minimum, maximum, bright, count = 255, 0, 0, 0
+    # Exclude the status bar and navigation bar: they can render over black content.
+    for y in range(height):
+        start = y * (stride + 1)
+        method = raw[start]
+        row = bytearray(raw[start + 1:start + 1 + stride])
+        if method > 4:
+            raise ValueError("Invalid PNG filter")
+        for i in range(stride):
+            left = row[i - channels] if i >= channels else 0
+            up = previous[i]
+            upper_left = previous[i - channels] if i >= channels else 0
+            if method == 1:
+                predictor = left
+            elif method == 2:
+                predictor = up
+            elif method == 3:
+                predictor = (left + up) // 2
+            elif method == 4:
+                p = left + up - upper_left
+                distances = (abs(p - left), abs(p - up), abs(p - upper_left))
+                predictor = (left, up, upper_left)[distances.index(min(distances))]
+            else:
+                predictor = 0
+            row[i] = (row[i] + predictor) & 255
+        if height // 8 <= y < height * 7 // 8:
+            for x in range(width // 10, width * 9 // 10, 4):
+                i = x * channels
+                value = max(row[i:i + 3])
+                minimum = min(minimum, value)
+                maximum = max(maximum, value)
+                bright += value > 35
+                count += 1
+        previous = row
+    if not count or bright / count < 0.005 or maximum - minimum < 12:
+        raise ValueError(f"Screenshot has black or blank page content: {path}")
+
+
+def render(out=Path("ios-native-pages")):
+    deadline = time.monotonic() + RENDER_SECONDS
+    device = None
+    out.mkdir(exist_ok=True)
+    # Prevent artifacts from previous invocations being presented as fresh pages.
+    for path in out.glob("ios-*.png"):
+        path.unlink()
+    try:
+        listing = json.loads(run(["xcrun", "simctl", "list", "devices", "available", "--json"],
+                                 capture_output=True, deadline=deadline).stdout)["devices"]
+        candidates = [(runtime, item) for runtime, devices in listing.items()
+                      if "iOS-27" in runtime for item in devices if "iPhone" in item["name"]]
+        if not candidates:
+            raise RuntimeError("No available iOS 27 iPhone simulator")
+        runtime, template = candidates[0]
+        # Cloning isolates appearance/status changes from existing runner simulators.
+        device = run(["xcrun", "simctl", "clone", template["udid"], "ImmortalWrt preview " + uuid.uuid4().hex],
+                     capture_output=True, deadline=deadline).stdout.decode().strip()
+        run(["xcrun", "simctl", "boot", device], timeout=60, deadline=deadline)
+        run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=120, deadline=deadline)
+        run(["xcrun", "simctl", "install", device, "build/ios/iphonesimulator/Runner.app"],
+            timeout=60, deadline=deadline)
+        container = run(["xcrun", "simctl", "get_app_container", device, BUNDLE, "data"],
+                        capture_output=True, deadline=deadline).stdout.decode().strip()
+        marker = Path(container) / "Documents/ios-preview-ready.json"
+        run(["xcrun", "simctl", "status_bar", device, "override", "--time", "9:41",
+             "--batteryState", "charged", "--batteryLevel", "100"], deadline=deadline)
+        for appearance in ("light", "dark"):
+            run(["xcrun", "simctl", "ui", device, "appearance", appearance], deadline=deadline)
+            for tab in range(4):
+                expected = dict(nonce=uuid.uuid4().hex, tab=tab, appearance=appearance)
+                marker.unlink(missing_ok=True)
+                env = dict(os.environ, SIMCTL_CHILD_IOS_PREVIEW_TAB=str(tab),
+                           SIMCTL_CHILD_IOS_PREVIEW_NONCE=expected["nonce"],
+                           SIMCTL_CHILD_IOS_PREVIEW_APPEARANCE=appearance)
+                page_deadline = min(deadline, time.monotonic() + PAGE_SECONDS)
+                # A launch timeout is a failure: it never grants permission to capture.
+                run(["xcrun", "simctl", "launch", "--terminate-running-process", device, BUNDLE],
+                    timeout=20, deadline=page_deadline, env=env)
+                wait_ready(marker, expected, page_deadline)
+                pending = out / f"pending-{appearance}-{tab}.png"
+                try:
+                    run(["xcrun", "simctl", "io", device, "screenshot", str(pending)],
+                        timeout=10, deadline=page_deadline)
+                    validate_screenshot(pending)
+                    pending.replace(out / f"ios-{appearance}-{tab}.png")
+                finally:
+                    pending.unlink(missing_ok=True)
+    finally:
+        if device:
+            for action in ("shutdown", "delete"):
+                try:
+                    run(["xcrun", "simctl", action, device], timeout=20)
+                except (subprocess.SubprocessError, OSError) as error:
+                    print(f"Simulator cleanup {action} failed: {error}", flush=True)
+
+
+if __name__ == "__main__":
+    render()

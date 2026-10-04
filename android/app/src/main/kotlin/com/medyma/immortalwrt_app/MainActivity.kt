@@ -32,12 +32,8 @@ class MainActivity : FlutterActivity() {
         appearanceChannel?.setMethodCallHandler { call, result ->
             if (call.method == "getAppearance") {
                 result.success(appearance())
-            } else if (call.method != "accentColor") {
-                result.notImplemented()
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                result.success(resources.getColor(android.R.color.system_accent1_500, theme))
             } else {
-                result.success(null)
+                result.notImplemented()
             }
         }
     }
