@@ -813,6 +813,53 @@ void main() {
     },
   );
 
+  testWidgets('connection labels keep original copy and clear field spacing', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.5)),
+          child: child!,
+        ),
+        home: RouterHome(storage: _MemoryStorage()),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byTooltip('连接设置'));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    const labels = ['远程 HTTPS / 本地 HTTP（明文）', '用户名', '密码'];
+    for (var i = 0; i < labels.length; i++) {
+      final label = find.text(labels[i]);
+      expect(label, findsOneWidget);
+      expect(
+        tester.getRect(fields.at(i)).top - tester.getRect(label).bottom,
+        greaterThanOrEqualTo(8),
+      );
+      expect(tester.getSize(fields.at(i)).height, greaterThanOrEqualTo(56));
+      expect(
+        tester.getSemantics(fields.at(i)).getSemanticsData().label,
+        contains(labels[i]),
+      );
+    }
+    expect(
+      tester.widget<TextField>(fields.first).decoration!.hintText,
+      'https://bananapi.x.ddnsto.com',
+    );
+    expect(find.text('路由器地址'), findsNothing);
+    expect(find.text('输入路由器密码'), findsNothing);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('toolbar has one settings action and no refresh action', (
     tester,
   ) async {
