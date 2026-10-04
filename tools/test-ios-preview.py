@@ -216,6 +216,42 @@ class RenderTests(unittest.TestCase):
             self.assertFalse(any(c[2] in ("install", "launch", "io") for c in calls))
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
 
+    def test_install_timeout_rechecks_readiness_and_retries_once(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            installs = []
+            def slow_install(args, **kwargs):
+                if args[2] == "install":
+                    installs.append(kwargs)
+                    if len(installs) == 1:
+                        calls.append(args)
+                        raise subprocess.TimeoutExpired(args, kwargs["timeout"])
+                return fake(args, **kwargs)
+            out = Path(directory) / "out"
+            with patch.object(render, "run", side_effect=slow_install):
+                render.render(out)
+            self.assertEqual(len(installs), 2)
+            self.assertEqual(installs[0]["timeout"], 120)
+            self.assertEqual(len([c for c in calls if c[2] == "bootstatus"]), 2)
+            self.assertEqual(len(list(out.glob("ios-*.png"))), 8)
+
+    def test_persistent_install_timeout_stops_before_capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            installs = []
+            def failing_install(args, **kwargs):
+                if args[2] == "install":
+                    installs.append(kwargs); calls.append(args)
+                    raise subprocess.TimeoutExpired(args, kwargs["timeout"])
+                return fake(args, **kwargs)
+            with patch.object(render, "run", side_effect=failing_install):
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    render.render(Path(directory) / "out")
+            self.assertEqual(len(installs), 2)
+            self.assertEqual(installs[0]["deadline"], installs[1]["deadline"])
+            self.assertFalse(any(c[2] in ("launch", "io") for c in calls))
+            self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
+
     def test_black_capture_not_published(self):
         with tempfile.TemporaryDirectory() as directory:
             fake, calls = self.simulated(directory, "black")

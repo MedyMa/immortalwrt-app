@@ -107,6 +107,29 @@ def validate_screenshot(path):
         raise ValueError(f"Screenshot has black or blank page content: {path}")
 
 
+def install_preview(device, deadline):
+    """Allow cold simulator installation to settle, with one bounded retry.
+
+    bootstatus alone does not prove the installation service will answer. A
+    timed-out install may finish server-side; installing the same preview again
+    is safe. Persistent simulator hangs still fail before any capture.
+    """
+    install_deadline = min(deadline, time.monotonic() + 300)
+    for attempt in range(2):
+        try:
+            run(["xcrun", "simctl", "install", device,
+                 "build/ios/iphonesimulator/Runner.app"],
+                timeout=120, deadline=install_deadline)
+            return
+        except subprocess.TimeoutExpired:
+            if attempt == 1 or time.monotonic() >= install_deadline:
+                raise
+            print("Simulator installation timed out; rechecking boot readiness before one retry",
+                  flush=True)
+            run(["xcrun", "simctl", "bootstatus", device, "-b"],
+                timeout=60, deadline=install_deadline)
+
+
 def render(out=Path("ios-native-pages")):
     deadline = time.monotonic() + RENDER_SECONDS
     device = None
@@ -127,8 +150,7 @@ def render(out=Path("ios-native-pages")):
                      capture_output=True, deadline=deadline).stdout.decode().strip()
         run(["xcrun", "simctl", "boot", device], timeout=60, deadline=deadline)
         run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=120, deadline=deadline)
-        run(["xcrun", "simctl", "install", device, "build/ios/iphonesimulator/Runner.app"],
-            timeout=60, deadline=deadline)
+        install_preview(device, deadline)
         container = run(["xcrun", "simctl", "get_app_container", device, BUNDLE, "data"],
                         capture_output=True, deadline=deadline).stdout.decode().strip()
         marker = Path(container) / "Documents/ios-preview-ready.json"
