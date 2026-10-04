@@ -7,12 +7,29 @@ class _StatusBarGlass extends StatelessWidget {
   const _StatusBarGlass({super.key});
 
   @override
-  Widget build(BuildContext context) => _GlassSurface(
-    border: false,
-    radius: BorderRadius.zero,
-    surfaceColor: _pageOf(context),
-    child: const SizedBox.expand(),
-  );
+  Widget build(BuildContext context) {
+    final highContrast = MediaQuery.highContrastOf(context);
+    final surface = DecoratedBox(
+      decoration: BoxDecoration(
+        color: _pageOf(context).withValues(
+          alpha: highContrast ? 1 : (_isDark(context) ? 0.16 : 0.12),
+        ),
+      ),
+      child: const SizedBox.expand(),
+    );
+    // Reduce Motion affects transitions, not the transparency of static chrome.
+    return ClipRect(
+      child: highContrast
+          ? surface
+          : BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: _NavigationGeometry.blurSigma,
+                sigmaY: _NavigationGeometry.blurSigma,
+              ),
+              child: surface,
+            ),
+    );
+  }
 }
 
 /// Bounded chrome blur; live status cards remain opaque.
@@ -21,27 +38,23 @@ class _GlassSurface extends StatelessWidget {
     required this.child,
     this.radius = const BorderRadius.all(Radius.circular(28)),
     this.border = true,
-    this.surfaceColor,
   });
 
   final Widget child;
   final BorderRadius radius;
   final bool border;
-  final Color? surfaceColor;
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     final opaque = media.highContrast || media.disableAnimations;
     final dark = _isDark(context);
-    final tint =
-        surfaceColor ??
-        Color.alphaBlend(
-          Theme.of(
-            context,
-          ).colorScheme.primary.withValues(alpha: dark ? 0.055 : 0.025),
-          _cardOf(context),
-        );
+    final tint = Color.alphaBlend(
+      Theme.of(
+        context,
+      ).colorScheme.primary.withValues(alpha: dark ? 0.055 : 0.025),
+      _cardOf(context),
+    );
     final surface = DecoratedBox(
       decoration: BoxDecoration(
         color: tint.withValues(

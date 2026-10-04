@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -1189,44 +1191,124 @@ void main() {
     }
   });
 
-  for (final brightness in [Brightness.light, Brightness.dark]) {
-    testWidgets('iOS status blur shares page hue in $brightness', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      tester.view.viewPadding = const FakeViewPadding(top: 32, bottom: 34);
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(
-            platform: TargetPlatform.iOS,
-            brightness: brightness,
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    for (final brightness in [Brightness.light, Brightness.dark]) {
+      for (final reducedMotion in [false, true]) {
+        testWidgets(
+          '$platform scrolled blue content remains visible through status blur in $brightness motion=$reducedMotion',
+          (tester) async {
+            tester.view.physicalSize = const Size(390, 844);
+            tester.view.devicePixelRatio = 1;
+            tester.view.viewPadding = const FakeViewPadding(
+              top: 64,
+              bottom: 34,
+            );
+            addTearDown(tester.view.reset);
+            final boundaryKey = GlobalKey();
+            await tester.pumpWidget(
+              RepaintBoundary(
+                key: boundaryKey,
+                child: MaterialApp(
+                  theme: ThemeData(platform: platform, brightness: brightness),
+                  builder: (context, child) => MediaQuery(
+                    data: MediaQuery.of(
+                      context,
+                    ).copyWith(disableAnimations: reducedMotion),
+                    child: child!,
+                  ),
+                  home: RouterHome(
+                    storage: _MemoryStorage(),
+                    apiFactory: (_) => _HealthyApi(),
+                  ),
+                ),
+              ),
+            );
+            await tester.pumpAndSettle();
+            final rect = tester.getRect(find.text('1.0 KiB/s'));
+            final scroll = tester.state<ScrollableState>(
+              find
+                  .descendant(
+                    of: find.byType(ListView).first,
+                    matching: find.byType(Scrollable),
+                  )
+                  .first,
+            );
+            scroll.position.jumpTo(rect.center.dy - 32);
+            await tester.pumpAndSettle();
+            final status = find.byKey(const ValueKey('system-status-glass'));
+            expect(
+              find.descendant(
+                of: status,
+                matching: find.byType(BackdropFilter),
+              ),
+              findsOneWidget,
+            );
+            final boundary =
+                boundaryKey.currentContext!.findRenderObject()!
+                    as RenderRepaintBoundary;
+            final bytes = await tester.runAsync(() async {
+              final image = await boundary.toImage(pixelRatio: 1);
+              try {
+                return await image.toByteData(
+                  format: ui.ImageByteFormat.rawRgba,
+                );
+              } finally {
+                image.dispose();
+              }
+            });
+            var blueContrast = 0;
+            for (var y = 12; y < 52; y++) {
+              for (var x = rect.left.ceil(); x < rect.right.floor(); x++) {
+                final offset = (y * 390 + x) * 4;
+                final contrast =
+                    bytes!.getUint8(offset + 2) - bytes.getUint8(offset);
+                if (contrast > blueContrast) blueContrast = contrast;
+              }
+            }
+            expect(
+              blueContrast,
+              greaterThan(30),
+              reason:
+                  'Status glass must reveal blurred blue content even with Reduce Motion enabled',
+            );
+            await tester.pumpWidget(const SizedBox.shrink());
+          },
+        );
+      }
+      testWidgets('$platform status blur shares page hue in $brightness', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        tester.view.viewPadding = const FakeViewPadding(top: 32, bottom: 34);
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(platform: platform, brightness: brightness),
+            home: RouterHome(
+              storage: _MemoryStorage(),
+              apiFactory: (_) => _HealthyApi(),
+            ),
           ),
-          home: RouterHome(
-            storage: _MemoryStorage(),
-            apiFactory: (_) => _HealthyApi(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final status = find.byKey(const ValueKey('system-status-glass'));
-      expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
-      expect(
-        find.descendant(of: status, matching: find.byType(BackdropFilter)),
-        findsOneWidget,
-      );
-      final surface = tester.widget<DecoratedBox>(
-        find.descendant(of: status, matching: find.byType(DecoratedBox)),
-      );
-      final tint = (surface.decoration as BoxDecoration).color!;
-      final page = tester.widget<Scaffold>(find.byType(Scaffold).first);
-      expect(tint.withValues(alpha: 1), page.backgroundColor);
-      expect(page.extendBody, isTrue);
-      await tester.pumpWidget(const SizedBox.shrink());
-    });
+        );
+        await tester.pumpAndSettle();
+        final status = find.byKey(const ValueKey('system-status-glass'));
+        expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
+        expect(
+          find.descendant(of: status, matching: find.byType(BackdropFilter)),
+          findsOneWidget,
+        );
+        final surface = tester.widget<DecoratedBox>(
+          find.descendant(of: status, matching: find.byType(DecoratedBox)),
+        );
+        final tint = (surface.decoration as BoxDecoration).color!;
+        final page = tester.widget<Scaffold>(find.byType(Scaffold).first);
+        expect(tint.withValues(alpha: 1), page.backgroundColor);
+        expect(page.extendBody, isTrue);
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
+    }
   }
-
   testWidgets(
     'iOS extends behind chrome and hides on up drag, restores on down drag',
     (tester) async {
