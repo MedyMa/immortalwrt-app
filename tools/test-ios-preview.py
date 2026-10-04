@@ -71,6 +71,8 @@ class PreparationTests(unittest.TestCase):
             self.assertEqual(dart.count("Future<void> _loadPreview()"), 1)
             self.assertIn("await WidgetsBinding.instance.endOfFrame", dart)
             self.assertIn("'nonce': config['nonce']", dart)
+            self.assertIn("if (tab == 4)", dart)
+            self.assertIn("_showDeviceDetails(context, row,", dart)
 
     def test_missing_swift_anchor_fails_before_any_writes(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -187,14 +189,14 @@ class RenderTests(unittest.TestCase):
             return subprocess.CompletedProcess(args, 0)
         return fake, calls
 
-    def test_eight_pages_acknowledged_captured_and_cleaned(self):
+    def test_pages_and_device_sheet_acknowledged_captured_and_cleaned(self):
         with tempfile.TemporaryDirectory() as directory:
             fake, calls = self.simulated(directory)
             out = Path(directory) / "out"
             with patch.object(render, "run", side_effect=fake):
                 render.render(out)
-            self.assertEqual(len(list(out.glob("ios-*.png"))), 8)
-            self.assertEqual(len([c for c in calls if c[2] == "launch"]), 8)
+            self.assertEqual(len(list(out.glob("ios-*.png"))), 10)
+            self.assertEqual(len([c for c in calls if c[2] == "launch"]), 10)
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
 
     def test_launch_timeout_never_captures_and_cleans_simulator(self):
@@ -219,7 +221,7 @@ class RenderTests(unittest.TestCase):
                 return fake(args, **kwargs)
             with patch.object(render, "run", side_effect=slow_capture):
                 render.render(Path(directory) / "out")
-            self.assertEqual(len(screenshots), 8)
+            self.assertEqual(len(screenshots), 10)
             self.assertTrue(all('deadline' in s for s in screenshots))
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
 
@@ -249,7 +251,7 @@ class RenderTests(unittest.TestCase):
             self.assertEqual(len(installs), 2)
             self.assertEqual(installs[0]["timeout"], 120)
             self.assertEqual(len([c for c in calls if c[2] == "bootstatus"]), 2)
-            self.assertEqual(len(list(out.glob("ios-*.png"))), 8)
+            self.assertEqual(len(list(out.glob("ios-*.png"))), 10)
 
     def test_cold_container_lookup_has_startup_budget(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -277,7 +279,7 @@ class RenderTests(unittest.TestCase):
                 return fake(args, **kwargs)
             with patch.object(render, "run", side_effect=cold_launch):
                 render.render(Path(directory) / "out")
-            self.assertEqual(timeouts, [60] + [20] * 7)
+            self.assertEqual(timeouts, [60] + [20] * 9)
 
     def test_persistent_install_timeout_stops_before_capture(self):
         with tempfile.TemporaryDirectory() as directory:

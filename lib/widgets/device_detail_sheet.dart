@@ -70,7 +70,7 @@ class _DeviceDetailSheetState extends State<_DeviceDetailSheet> {
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * .85,
       ),
-      child: _GlassSurface(
+      child: _IosGlassSurface(
         radius: const BorderRadius.vertical(top: Radius.circular(30)),
         child: SafeArea(
           top: false,

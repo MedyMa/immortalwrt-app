@@ -158,7 +158,7 @@ def render(out=Path("ios-native-pages")):
              "--batteryState", "charged", "--batteryLevel", "100"], deadline=deadline)
         for appearance in ("light", "dark"):
             run(["xcrun", "simctl", "ui", device, "appearance", appearance], deadline=deadline)
-            for tab in range(4):
+            for tab in range(5):
                 expected = dict(nonce=uuid.uuid4().hex, tab=tab, appearance=appearance)
                 marker.unlink(missing_ok=True)
                 env = dict(os.environ, SIMCTL_CHILD_IOS_PREVIEW_TAB=str(tab),
