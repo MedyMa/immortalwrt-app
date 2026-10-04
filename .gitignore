@@ -2,6 +2,10 @@
 *.class
 *.log
 *.pyc
+*.jks
+*.keystore
+**/signing-bundle.json
+**/key.properties
 *.swp
 .DS_Store
 .atom/

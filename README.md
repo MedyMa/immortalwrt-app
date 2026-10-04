@@ -75,7 +75,7 @@ CI 使用 Flutter 3.47.5、Android 17 SDK（API 37）以及 Xcode 27 / iOS 27 SD
 
 [GitHub Actions](https://github.com/MedyMa/immortalwrt-app/actions) 的常规构建提供：
 
-- `immortalwrt-android-debug`：可安装的 Android 调试 APK。
+- `immortalwrt-android-release`：固定签名的 Android release APK，可供后续覆盖升级。旧调试版首次迁移需先记录连接配置，卸载旧版后安装固定签名版本；后续可覆盖更新。
 - `immortalwrt-ios-simulator`：未签名模拟器 App，不能安装到真实 iPhone，也不能上传 TestFlight。
 
 真实 iPhone / TestFlight 需要有效的 Apple Developer Program、签名证书、描述文件和 App Store Connect 记录，详见 [TestFlight 发布说明](docs/testflight.md)。
