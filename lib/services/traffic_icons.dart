@@ -76,7 +76,11 @@ class TrafficIcons {
           host.contains('..')) {
         continue;
       }
-      if (fields[1] != '$host.png' && fields[1] != '$host.ico') continue;
+      if (fields[1] != '$host.png' &&
+          fields[1] != '$host.ico' &&
+          fields[1] != '$host.svg') {
+        continue;
+      }
       if (fields.length == 3 && !RegExp(r'^\d+$').hasMatch(fields[2])) continue;
       result[host] = fields[1] + (fields.length == 3 ? '?v=${fields[2]}' : '');
     }

@@ -16,6 +16,9 @@ class TrafficIcon extends StatefulWidget {
 }
 
 class _TrafficIconState extends State<TrafficIcon> {
+  bool get _cachedSvg =>
+      widget.uri?.path.startsWith('/traffic-site-icons/') == true &&
+      widget.uri?.path.endsWith('.svg') == true;
   ScrollPosition? _position;
   Uint8List? _bytes;
   bool _started = false;
@@ -51,7 +54,7 @@ class _TrafficIconState extends State<TrafficIcon> {
     if (!mounted ||
         _started ||
         widget.uri == null ||
-        widget.uri!.path.endsWith('.svg')) {
+        (widget.uri!.path.endsWith('.svg') && !_cachedSvg)) {
       return;
     }
     final box = context.findRenderObject();
@@ -63,7 +66,13 @@ class _TrafficIconState extends State<TrafficIcon> {
     _started = true;
     _attemptedAt = DateTime.now();
     final uri = widget.uri!;
-    final bytes = await (widget.load ?? _loadRaster)(uri);
+    Uint8List? bytes;
+    try {
+      bytes = await (widget.load ?? _loadCachedIcon)(uri);
+      if (bytes != null && bytes.length > 65536) bytes = null;
+    } catch (_) {
+      bytes = null;
+    }
     if (mounted && widget.uri == uri) setState(() => _bytes = bytes);
   }
 
@@ -151,7 +160,16 @@ class _TrafficIconState extends State<TrafficIcon> {
         ),
       );
     }
-    Widget svg = uri?.path.endsWith('.svg') == true
+    Widget svg = _cachedSvg
+        ? _bytes == null
+              ? fallback
+              : SvgPicture.memory(
+                  _bytes!,
+                  fit: BoxFit.contain,
+                  placeholderBuilder: (_) => fallback,
+                  errorBuilder: (_, __, ___) => fallback,
+                )
+        : uri?.path.endsWith('.svg') == true
         ? SvgPicture.network(
             uri.toString(),
             fit: BoxFit.contain,
@@ -199,13 +217,13 @@ class _TrafficIconState extends State<TrafficIcon> {
   }
 }
 
-final _rasterCache = <String, Future<Uint8List?>>{};
-Future<Uint8List?> _loadRaster(Uri uri) {
-  // At most 64 small decoded icons in the phone's session cache.
-  if (_rasterCache.length >= 64 && !_rasterCache.containsKey(uri.toString())) {
-    _rasterCache.remove(_rasterCache.keys.first);
+final _iconCache = <String, Future<Uint8List?>>{};
+Future<Uint8List?> _loadCachedIcon(Uri uri) {
+  // At most 64 bounded icons in the phone's session cache.
+  if (_iconCache.length >= 64 && !_iconCache.containsKey(uri.toString())) {
+    _iconCache.remove(_iconCache.keys.first);
   }
-  return _rasterCache
+  return _iconCache
       .putIfAbsent(uri.toString(), () async {
         final client = http.Client();
         try {
@@ -222,7 +240,12 @@ Future<Uint8List?> _loadRaster(Uri uri) {
               if (bytes.length + chunk.length > 65536) return null;
               bytes.add(chunk);
             }
-            return compute(decodeTrafficIcon, bytes.takeBytes());
+            final data = bytes.takeBytes();
+            if (uri.path.startsWith('/traffic-site-icons/') &&
+                uri.path.endsWith('.svg')) {
+              return data;
+            }
+            return compute(decodeTrafficIcon, data);
           })().timeout(const Duration(seconds: 3));
         } catch (_) {
           return null;
@@ -231,7 +254,7 @@ Future<Uint8List?> _loadRaster(Uri uri) {
         }
       })
       .then((bytes) {
-        if (bytes == null) _rasterCache.remove(uri.toString());
+        if (bytes == null) _iconCache.remove(uri.toString());
         return bytes;
       });
 }

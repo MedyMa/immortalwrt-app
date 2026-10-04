@@ -2,6 +2,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:immortalwrt_app/services/traffic_icons.dart';
 
 void main() {
+  test(
+    'static SVG cache stays same-origin with version and rejects other files',
+    () {
+      final icons = TrafficIcons.fromIndexes(
+        Uri.parse('https://router.example.com'),
+        '',
+        '',
+        'vector.com\tvector.com.svg\t123\nwrong.com\tvector.com.svg\n'
+            'evil.com\tevil.com.html\n',
+      );
+      expect(
+        icons.iconUri('vector.com')?.toString(),
+        'https://router.example.com/traffic-site-icons/vector.com.svg?v=123',
+      );
+      expect(icons.iconUri('wrong.com'), isNull);
+      expect(icons.iconUri('evil.com'), isNull);
+    },
+  );
   test('website cache chooses exact then closest safe parent', () {
     final catalog = TrafficIcons.fromIndexes(
       Uri.parse('https://router.example.com'),
