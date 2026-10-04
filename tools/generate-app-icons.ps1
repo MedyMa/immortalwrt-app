@@ -1,7 +1,7 @@
 param([string]$Chrome = 'C:/Program Files/Google/Chrome/Application/chrome.exe')
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$sourceDirectory = Join-Path $projectRoot 'design/app-icons'
+$sourceDirectory = Join-Path $projectRoot 'assets/app-icon-sources'
 $temporaryDirectory = Join-Path $projectRoot '.dart_tool/icon-render'
 New-Item -ItemType Directory -Force -Path $temporaryDirectory | Out-Null
 Add-Type -AssemblyName System.Drawing

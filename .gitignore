@@ -50,3 +50,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local drafts live in the workspace Test directory, outside this repository.
+/docs/
+/design/

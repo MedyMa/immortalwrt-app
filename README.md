@@ -15,7 +15,7 @@
 
 以上组件分工独立。Wi-Fi 和 CPU 不通过 Traffic App 读取；缺少某一组件时，相应区域显示不可用，其他数据仍可读取。
 
-**固件选择、软件包格式、安装步骤及接口检查见 [配套固件与安装说明](docs/firmware.md)。** 小米 AX9000 是设备列表中的下游设备，不是手机 App 必须搭配的固件，也不接入 MiWiFi 管理接口。
+**固件选择、软件包格式、安装步骤及接口检查见 [配套固件与安装说明](#配套固件与安装详情)。** 小米 AX9000 是设备列表中的下游设备，不是手机 App 必须搭配的固件，也不接入 MiWiFi 管理接口。
 
 ## 页面功能
 
@@ -30,17 +30,17 @@
 
 <table>
   <tr>
-    <td align="center"><b>总览（未连接）</b><br><img src="docs/images/android-app-screenshots/01-overview-empty.jpg" width="140" alt="总览未连接状态"></td>
-    <td align="center"><b>总览</b><br><img src="docs/images/android-app-screenshots/02-overview.jpg" width="140" alt="总览连接状态与硬件加速"></td>
-    <td align="center"><b>设备</b><br><img src="docs/images/android-app-screenshots/03-devices.jpg" width="140" alt="设备列表"></td>
-    <td align="center"><b>Wi-Fi</b><br><img src="docs/images/android-app-screenshots/04-wifi.jpg" width="140" alt="Wi-Fi 状态与图表"></td>
-    <td align="center"><b>流量</b><br><img src="docs/images/android-app-screenshots/05-traffic.jpg" width="140" alt="流量统计"></td>
+    <td align="center"><b>总览（未连接）</b><br><img src="screenshots/01-overview-empty.jpg" width="140" alt="总览未连接状态"></td>
+    <td align="center"><b>总览</b><br><img src="screenshots/02-overview.jpg" width="140" alt="总览连接状态与硬件加速"></td>
+    <td align="center"><b>设备</b><br><img src="screenshots/03-devices.jpg" width="140" alt="设备列表"></td>
+    <td align="center"><b>Wi-Fi</b><br><img src="screenshots/04-wifi.jpg" width="140" alt="Wi-Fi 状态与图表"></td>
+    <td align="center"><b>流量</b><br><img src="screenshots/05-traffic.jpg" width="140" alt="流量统计"></td>
   </tr>
 </table>
 
 ## 连接方式
 
-1. 先安装或确认路由器组件，检查 [只读接口](docs/firmware.md#接口检查)。
+1. 先安装或确认路由器组件，检查 [只读接口](#接口检查)。
 2. 在 App 的连接页填写路由器地址和 LuCI / ubus 账号。HTTPS 地址可自行替换；代码中的默认地址为 `https://bananapi.x.ddnsto.com`。
 3. 在家可使用 `http://192.168.2.1`。当前 App 和平台策略只允许这个 IP 使用明文 HTTP。
 4. 在家外使用自己的 HTTPS 域名，并用手机蜂窝网络检查连接。隧道需要支持 App 直接访问 `/ubus`；浏览器登录 Cookie 不会自动带入 App。
@@ -78,7 +78,7 @@ CI 使用 Flutter 3.47.5、Android 17 SDK（API 37）以及 Xcode 27 / iOS 27 SD
 - `immortalwrt-android-release`：固定签名的 Android release APK，可供后续覆盖升级。旧调试版首次迁移需先记录连接配置，卸载旧版后安装固定签名版本；后续可覆盖更新。
 - `immortalwrt-ios-simulator`：未签名模拟器 App，不能安装到真实 iPhone，也不能上传 TestFlight。
 
-真实 iPhone / TestFlight 需要有效的 Apple Developer Program、签名证书、描述文件和 App Store Connect 记录，详见 [TestFlight 发布说明](docs/testflight.md)。
+真实 iPhone / TestFlight 需要有效的 Apple Developer Program、签名证书、描述文件和 App Store Connect 记录，详见 [TestFlight 发布说明](#testflight-发布详情)。
 
 原生页面截图由 **Render native iOS pages** 单独构建，覆盖浅色、深色各四页。每页必须通过渲染就绪确认和图片有效性检查才发布截图；应用代码、iOS 工程、资源和依赖变化均会触发预览。
 
@@ -90,4 +90,132 @@ flutter test
 flutter run
 ```
 
-桌面图标源文件位于 `design/app-icons`，可使用 `tools/generate-app-icons.ps1` 重新生成。设备识别与详情设计见 [设备图标说明](design/device-icons.md)。`design/`、`docs/` 中较早的设计与计划保留演进记录；当前使用方式以本文和配套固件说明为准。
+桌面图标源文件位于 `assets/app-icon-sources`，可使用 `tools/generate-app-icons.ps1` 重新生成。设计、草稿和计划统一保存在本地工作区 `Test/immortalwrt-app/`，不提交仓库。
+
+
+## 配套固件与安装详情
+
+### 适用对象
+
+主要对象为 BPI-R4 / MT7988 路由器及 BE14（MT7990）无线模组，配合 [MedyMa/BananaPi-BPI-R4 固件构建项目](https://github.com/MedyMa/BananaPi-BPI-R4) 使用。
+
+该 App 读取 MT7988 上的状态接口。小米 AX9000 可作为下游设备显示，不要求给 AX9000 刷入此固件，也不通过 MiWiFi 读取 BE14。
+
+### 固件构建路线
+
+| 构建工作流 | 固件源码及分支 | 与手机 App 的关系 |
+| --- | --- | --- |
+| `MT7988-Action.yml` | `MedyMa/immortalwrt-mt798x-6.6`，`mt798x-mt799x-6.6-mtwifi` | MT7988 厂商无线驱动路线；BE14 私有统计以此类驱动的数据为依据 |
+| `immortalwrt_25.12_wifi7.yml` | `amhelibrary/immortalwrt`，`openwrt-25.12-mtk-hqos` | Wi-Fi7 / mt76 路线；不能直接假设具有厂商 `iwpriv stat` 字段 |
+| `immortalwrt-25.12.yml` | `immortalwrt/immortalwrt`，`openwrt-25.12` | 通过独立组件提供状态接口；射频和传感器指标依驱动支持而定 |
+
+构建路线依据 [厂商路线工作流](https://github.com/MedyMa/BananaPi-BPI-R4/blob/main/.github/workflows/MT7988-Action.yml) 和 [Wi-Fi7 工作流](https://github.com/MedyMa/BananaPi-BPI-R4/blob/main/.github/workflows/immortalwrt_25.12_wifi7.yml)。本地构建配置已加入独立状态组件的合入与选中检查；旧版固件、下载到的具体镜像和硬件运行情况仍须通过下面的命令确认。配置选中不等于所有硬件指标已经实测。
+
+手机 App 不依赖某个固定固件发布日期。决定功能是否可用的是软件包版本、只读 RPC、账号权限和传感器/驱动能力。
+
+### 需要哪些软件包
+
+| 软件包 / 服务 | 最低约束或接口 | 数据 |
+| --- | --- | --- |
+| `rpcd-mod-router-status` | 温度需要 0.1.2 或更新版本 | CPU 计数器、CPU/无线/硬盘温度、BE14 状态及历史 |
+| `luci-app-traffic` | 推荐 1.1.7 或更新版本 | 下载/上传速率、会话总量、24 小时统计、应用/站点记录及图标 |
+| `luci-app-sfp-status` | `getStatuses` | SFP 插槽、链路、协商速率、模块温度 |
+| turboacc | `getMTKPPEStat` | PPE 已绑定流表和容量 |
+| 固件自带 rpcd / LuCI 读取接口 | `system.info`、`luci-rpc.getDHCPLeases` | 运行时间、内存、DHCP 租约 |
+
+状态组件与 Traffic 完全独立。安装旧版状态组件可能有 CPU 数据却没有温度字段。安装 Traffic 不能替代安装状态组件。
+
+### 安装
+
+从 [路由器组件构建页](https://github.com/MedyMa/luci-app/actions) 下载与固件版本、架构和包管理器匹配的软件包。组件源码与检查说明见 [rpcd-mod-router-status](https://github.com/MedyMa/luci-app/tree/main/Luci-app/rpcd-mod-router-status)。
+
+先确认设备信息和包管理器：
+
+```sh
+ubus call system board '{}'
+command -v opkg
+command -v apk
+```
+
+使用 `opkg` 的固件安装 `.ipk`；使用 `apk` 的固件安装路由器 `.apk`。常见 24.10 固件使用 `opkg`，25.12 路线常见 `apk`，但定制固件以实际命令输出为准。**路由器 `.apk` 不是 Android 手机安装包。** 不要只按文件后缀或固件名称猜测兼容性。
+
+以已下载到 `/tmp` 的状态组件为例，选择与设备一致的一条命令执行：
+
+```sh
+opkg install /tmp/rpcd-mod-router-status_实际版本_实际架构.ipk
+# 或在 apk 固件上：
+apk add /tmp/rpcd-mod-router-status-实际版本.apk
+```
+
+示例文件名需替换为实际下载文件名，不要强制忽略架构、依赖或签名校验。安装会注册 `router.status` 并启动采样服务，rpcd 重启后旧会话可能失效，请重新连接 App / LuCI。
+
+专用只读账号需包含 `router-status` 读取 ACL，并按使用功能授予 Traffic、SFP、turboacc 与 DHCP 的读取权限；不需要授予写权限。
+
+### 接口检查
+
+```sh
+ubus -v list router.status
+ubus call router.status getSystemMetrics '{}'
+ubus call router.status getWirelessStatus '{}'
+ubus call router.status getWirelessHistory '{}'
+/etc/init.d/router-status status
+ubus -v list luci.traffic
+ubus call luci.sfp-status getStatuses '{}'
+ubus call luci.turboacc getMTKPPEStat '{}'
+```
+
+- `Not found`：对象未注册，检查包是否安装及 rpcd 注册状态。
+- `Method not found`：对象存在但该方法缺失，检查组件版本与接口。
+- `Access denied`：检查手机账号读取 ACL；root 在 SSH 中读取成功不证明手机账号有权限。
+- 无线历史为空：首次运行至少等待两次采样；不要用示意曲线填充。
+- CPU 使用率需要两次计数器采样；温度缺失可能是组件版本、采样缓存或传感器不支持。
+
+厂商 BE14 已确认能提供 TX 成功/失败、RX 成功/CRC 与温度字段，但未取得可用的空中占用率或客户端信号分布。TX FAL 与 RX CRC 是不同的质量指标，不作为重试率或干扰率显示。
+
+历史保存在 `/tmp/router-status`，每分钟采样，按 5 分钟桶保留最近 24 小时。路由器重启清空；普通服务重启和升级保留。缺失与计数器重置保留为空值，不编造为零。
+
+### 家外访问
+
+App 通过普通 HTTPS 请求访问路由器 `/ubus`，认证使用路由器账号。路由器负责配置 DDnsto 客户端令牌和隧道映射；手机端不含该令牌。
+
+需要确认自己的域名能直接返回 ubus JSON，而不是隧道网页登录页面。安装后在手机蜂窝网络下验证登录及授权读取；局域网测试不能证明家外链路可用。
+
+
+## TestFlight 发布详情
+
+手动工作流 **Publish iOS to TestFlight** 构建已签名真机 IPA 并上传 App Store Connect。普通 CI 的模拟器 App 不能用于 TestFlight。
+
+### 前置条件
+
+Apple Developer Program 已生效，并能创建分发证书和描述文件。在同一团队创建 App Store Connect 应用记录和明确 App ID：`com.medyma.immortalwrtApp`。导出包含私钥、受密码保护的 Apple Distribution P12，并创建匹配 App ID 和证书的 App Store 分发描述文件。
+
+### GitHub 机密变量
+
+在仓库或 `testflight` 环境中配置：
+
+| 变量 | 内容 |
+| --- | --- |
+| `IOS_TEAM_ID` | Apple 开发者团队 ID |
+| `IOS_DISTRIBUTION_P12_BASE64` | 分发证书 P12 的 Base64 |
+| `IOS_DISTRIBUTION_P12_PASSWORD` | P12 导出密码 |
+| `IOS_PROVISION_PROFILE_BASE64` | 分发描述文件的 Base64 |
+| `ASC_KEY_ID` | App Store Connect 团队 API 密钥 ID |
+| `ASC_ISSUER_ID` | API 密钥签发者 ID |
+| `ASC_PRIVATE_KEY_BASE64` | API 密钥 P8 的 Base64 |
+
+API 密钥需要足够的应用访问权限。工作流不需要 Apple ID 登录密码，不要将证书、私钥、密码或验证码提交仓库。
+
+### 发布步骤
+
+1. 在 `main` 手动运行工作流，输入未使用过的构建号；每次上传递增，不固定沿用工作流默认值。
+2. 检查签名、真机构建和上传步骤是否成功。
+3. 在 App Store Connect → TestFlight 等待处理，按要求填写出口合规信息，再分配测试组。
+4. 外部测试可能需要 Apple 测试版审核；工作流不会自动邀请测试者。
+
+上传成功仅表示 Apple 接收了构建，不表示已经可供测试。Windows 可检查配置，不能替代 macOS / Xcode 的签名上传验证。开发者资格或签名配置未完成时，继续使用常规 Android / iOS 模拟器构建。
+
+### 签名机密范围
+
+依赖安装、分析、测试和 Flutter/CocoaPods 构建均不注入签名或上传密钥。先生成无签名归档，再在独立步骤导入分发证书和描述文件，通过 `xcodebuild -exportArchive` 签名导出；导出阶段不再执行项目构建脚本。App Store Connect API 密钥只在上传步骤提供。
+
+已签名 IPA 不发布为 GitHub Actions artifact，只上传 App Store Connect。无论发布成功还是失败，最后一步清理临时钥匙串、描述文件、上传密钥和 IPA。P12 密码显式掩码；GitHub 机密变量自身也有日志掩码。
