@@ -151,8 +151,8 @@ class _CompactNavigationState extends State<_CompactNavigation>
                       _NavigationGeometry.bottomMargin,
                     ),
                     child: RepaintBoundary(
-                      child: _GlassSurface(
-                        border: false,
+                      child: _StatusBarGlass(
+                        key: const ValueKey('android-navigation-glass'),
                         radius: BorderRadius.circular(
                           _NavigationGeometry.radius,
                         ),
@@ -174,7 +174,12 @@ class _CompactNavigationState extends State<_CompactNavigation>
                                     decoration: BoxDecoration(
                                       color: selected
                                           ? scheme.primaryContainer.withValues(
-                                              alpha: 0.85,
+                                              alpha:
+                                                  MediaQuery.highContrastOf(
+                                                    context,
+                                                  )
+                                                  ? 1
+                                                  : 0.32,
                                             )
                                           : Colors.transparent,
                                       borderRadius: BorderRadius.circular(

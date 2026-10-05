@@ -2,9 +2,16 @@ part of '../main.dart';
 
 /// Keep the status area in the page's color space. UIKit's systemMaterial
 /// supplies an independent tint which makes a strip above the Flutter page.
-/// Blur only the page beneath the transparent system status text/icons.
+/// Shared page blur beneath the system status area and Android navigation.
 class _StatusBarGlass extends StatelessWidget {
-  const _StatusBarGlass({super.key});
+  const _StatusBarGlass({
+    super.key,
+    this.child = const SizedBox.expand(),
+    this.radius,
+  });
+
+  final Widget child;
+  final BorderRadius? radius;
 
   @override
   Widget build(BuildContext context) {
@@ -15,20 +22,21 @@ class _StatusBarGlass extends StatelessWidget {
           alpha: highContrast ? 1 : (_isDark(context) ? 0.16 : 0.12),
         ),
       ),
-      child: const SizedBox.expand(),
+      child: child,
     );
     // Reduce Motion affects transitions, not the transparency of static chrome.
-    return ClipRect(
-      child: highContrast
-          ? surface
-          : BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: _NavigationGeometry.blurSigma,
-                sigmaY: _NavigationGeometry.blurSigma,
-              ),
-              child: surface,
+    final glass = highContrast
+        ? surface
+        : BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: _NavigationGeometry.blurSigma,
+              sigmaY: _NavigationGeometry.blurSigma,
             ),
-    );
+            child: surface,
+          );
+    return radius == null
+        ? ClipRect(child: glass)
+        : ClipRRect(borderRadius: radius!, child: glass);
   }
 }
 
@@ -37,12 +45,10 @@ class _GlassSurface extends StatelessWidget {
   const _GlassSurface({
     required this.child,
     this.radius = const BorderRadius.all(Radius.circular(28)),
-    this.border = true,
   });
 
   final Widget child;
   final BorderRadius radius;
-  final bool border;
 
   @override
   Widget build(BuildContext context) {
@@ -65,12 +71,10 @@ class _GlassSurface extends StatelessWidget {
               : 0.82,
         ),
         borderRadius: radius,
-        border: border
-            ? Border.all(
-                color: dark ? const Color(0xFF424854) : const Color(0xEEFFFFFF),
-                width: 0.8,
-              )
-            : null,
+        border: Border.all(
+          color: dark ? const Color(0xFF424854) : const Color(0xEEFFFFFF),
+          width: 0.8,
+        ),
       ),
       child: child,
     );

@@ -338,6 +338,69 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  for (final brightness in [Brightness.light, Brightness.dark]) {
+    for (final reducedMotion in [false, true]) {
+      testWidgets(
+        'Android navigation matches status glass in $brightness motion=$reducedMotion',
+        (tester) async {
+          tester.view.physicalSize = const Size(390, 844);
+          tester.view.devicePixelRatio = 1;
+          tester.view.viewPadding = const FakeViewPadding(top: 32, bottom: 34);
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: ThemeData(
+                platform: TargetPlatform.android,
+                brightness: brightness,
+              ),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(disableAnimations: reducedMotion),
+                child: child!,
+              ),
+              home: RouterHome(
+                storage: _MemoryStorage(),
+                apiFactory: (_) => _HealthyApi(),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          final navigation = find.byKey(
+            const ValueKey('android-navigation-glass'),
+          );
+          final status = find.byKey(const ValueKey('system-status-glass'));
+          Color tint(Finder root) =>
+              (tester
+                          .widget<DecoratedBox>(
+                            find
+                                .descendant(
+                                  of: root,
+                                  matching: find.byType(DecoratedBox),
+                                )
+                                .first,
+                          )
+                          .decoration
+                      as BoxDecoration)
+                  .color!;
+          final navFilter = tester.widget<BackdropFilter>(
+            find.descendant(
+              of: navigation,
+              matching: find.byType(BackdropFilter),
+            ),
+          );
+          final statusFilter = tester.widget<BackdropFilter>(
+            find.descendant(of: status, matching: find.byType(BackdropFilter)),
+          );
+          expect(tint(navigation), tint(status));
+          expect(tint(navigation).a, lessThan(0.2));
+          expect(navFilter.filter, statusFilter.filter);
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox.shrink());
+        },
+      );
+    }
+  }
   for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
     testWidgets('dual stack device addresses wrap and copy on $platform', (
       tester,
