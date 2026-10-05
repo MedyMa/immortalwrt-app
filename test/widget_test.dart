@@ -171,7 +171,8 @@ class _ChangingLiveApi extends _FakeRouterApi {
 }
 
 class _DeviceIdentityApi extends _HealthyApi {
-  _DeviceIdentityApi({this.longValues = false});
+  _DeviceIdentityApi({this.longValues = false, this.dualStack = false});
+  final bool dualStack;
   final bool longValues;
   @override
   Future<RouterSnapshot> fetch({
@@ -185,6 +186,27 @@ class _DeviceIdentityApi extends _HealthyApi {
       upBytesPerSecond: 0,
       at: null,
     ),
+    hostHints: dualStack
+        ? const [
+            HostHint(
+              mac: '02:11:22:33:44:55',
+              name: '',
+              addresses: [
+                '192.168.2.114',
+                '240e:1234:5678:9abc:1111:2222:3333:4444',
+                'fd00::1',
+              ],
+            ),
+          ]
+        : const [],
+    summary: dualStack
+        ? TrafficSummary.fromJson({
+            'clients': [
+              {'ip': '192.168.2.114', 'bytes': 100},
+              {'ip': '240e:1234:5678:9abc:1111:2222:3333:4444', 'bytes': 200},
+            ],
+          })
+        : null,
     dhcpDevices: longValues
         ? const [
             DhcpDevice(
@@ -316,6 +338,75 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets('dual stack device addresses wrap and copy on $platform', (
+      tester,
+    ) async {
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: platform, brightness: Brightness.dark),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(1.5)),
+            child: child!,
+          ),
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _DeviceIdentityApi(dualStack: true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('topology-devices')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey('device-240e:1234:5678:9abc:1111:2222:3333:4444'),
+        ),
+        findsNothing,
+      );
+      final tile = find.byKey(const ValueKey('device-192.168.2.114'));
+      await tester.ensureVisible(tile);
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      expect(find.text('300 B'), findsWidgets);
+      final copy = find.byKey(
+        const ValueKey('copy-address-240e:1234:5678:9abc:1111:2222:3333:4444'),
+      );
+      await tester.ensureVisible(copy);
+      await tester.pumpAndSettle();
+      await tester.tap(copy);
+      await tester.pumpAndSettle();
+      expect(copied, '240e:1234:5678:9abc:1111:2222:3333:4444');
+      expect(
+        find.text('240e:1234:5678:9abc:1111:2222:3333:4444'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
   testWidgets(
     'device sheet scrolls with large text and full IPv6 on a small phone',
     (tester) async {

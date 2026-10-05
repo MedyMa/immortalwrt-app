@@ -34,20 +34,55 @@ class DhcpDevice {
   final String name;
   final String mac;
 
-  static List<DhcpDevice> parseAll(Object? value) =>
-      _list(_map(value)['dhcp_leases'])
-          .map((raw) {
-            final item = _map(raw);
-            final ip = '${item['ipaddr'] ?? ''}';
-            final hostname = '${item['hostname'] ?? ''}';
-            return DhcpDevice(
-              ip: ip,
-              name: hostname.isEmpty || hostname == '*' ? ip : hostname,
-              mac: '${item['macaddr'] ?? ''}',
-            );
-          })
-          .where((device) => device.ip.isNotEmpty)
-          .toList();
+  static List<DhcpDevice> parseAll(Object? value) {
+    final json = _map(value);
+    final result = <DhcpDevice>[];
+    for (final raw in [
+      ..._list(json['dhcp_leases']),
+      ..._list(json['dhcp6_leases']),
+    ]) {
+      final item = _map(raw);
+      final addresses = <String>{
+        if (item['ipaddr'] is String) item['ipaddr'] as String,
+        if (item['ip6addr'] is String) item['ip6addr'] as String,
+        ..._list(item['ip6addrs']).whereType<String>(),
+      }.map((ip) => ip.split('/').first).where((ip) => ip.isNotEmpty).toSet();
+      for (final ip in addresses) {
+        final hostname = '${item['hostname'] ?? ''}';
+        result.add(
+          DhcpDevice(
+            ip: ip,
+            name: hostname.isEmpty || hostname == '*' ? ip : hostname,
+            mac: '${item['macaddr'] ?? ''}',
+          ),
+        );
+      }
+    }
+    return result;
+  }
+}
+
+class HostHint {
+  const HostHint({
+    required this.mac,
+    required this.name,
+    required this.addresses,
+  });
+  final String mac;
+  final String name;
+  final List<String> addresses;
+  static List<HostHint> parseAll(Object? value) =>
+      _map(value).entries.map((entry) {
+        final item = _map(entry.value);
+        return HostHint(
+          mac: entry.key,
+          name: '${item['name'] ?? ''}',
+          addresses: [
+            ..._list(item['ipaddrs']),
+            ..._list(item['ip6addrs']),
+          ].whereType<String>().toList(),
+        );
+      }).toList();
 }
 
 class TrafficApp {
@@ -570,6 +605,8 @@ class RouterSnapshot {
     this.wifiHistoryFetchedAt,
     this.wifiHistoryError,
     this.dhcpDevices = const [],
+    this.hostHints = const [],
+    this.hostHintsError,
     this.uptimeSeconds,
     this.memory,
     this.cpuCounters,
@@ -599,6 +636,8 @@ class RouterSnapshot {
   final DateTime? wifiHistoryFetchedAt;
   final String? wifiHistoryError;
   final List<DhcpDevice> dhcpDevices;
+  final List<HostHint> hostHints;
+  final String? hostHintsError;
   final int? uptimeSeconds;
   final RouterMemory? memory;
   final CpuCounters? cpuCounters;

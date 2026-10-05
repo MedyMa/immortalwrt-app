@@ -301,6 +301,7 @@ class _AppleSymbol extends StatelessWidget {
     }
     final icon = switch (name) {
       'xmark' => CupertinoIcons.xmark,
+      'doc.on.doc' => CupertinoIcons.doc_on_doc,
       'chevron.up' => CupertinoIcons.chevron_up,
       'chevron.down' => CupertinoIcons.chevron_down,
       'iphone' => CupertinoIcons.device_phone_portrait,

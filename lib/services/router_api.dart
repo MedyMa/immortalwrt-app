@@ -211,6 +211,7 @@ class RouterApi {
     const sfp = _ReadSpec('sfp', 'luci.sfp-status', 'getStatuses');
     const ppe = _ReadSpec('ppe', 'luci.turboacc', 'getMTKPPEStat');
     const devices = _ReadSpec('devices', 'luci-rpc', 'getDHCPLeases');
+    const hints = _ReadSpec('hostHints', 'luci-rpc', 'getHostHints');
     final readHistory =
         section == RouterSection.wifi &&
         (previous?.wifiHistoryFetchedAt == null ||
@@ -226,7 +227,7 @@ class RouterApi {
         sfp,
         ppe,
       ],
-      RouterSection.devices => [summary, devices],
+      RouterSection.devices => [summary, devices, hints],
       RouterSection.wifi => [wifi, if (readHistory) wifiHistory],
       RouterSection.traffic => [window, series],
       RouterSection.live => [live],
@@ -240,6 +241,7 @@ class RouterApi {
         sfp,
         ppe,
         devices,
+        hints,
       ],
     };
     Future<_ReadResult> safe(_ReadSpec spec) async {
@@ -348,6 +350,12 @@ class RouterApi {
           ? DateTime.now()
           : previous?.wifiHistoryFetchedAt,
       wifiHistoryError: error('wifiHistory'),
+      hostHints: byKey.containsKey('hostHints')
+          ? HostHint.parseAll(data('hostHints'))
+          : previous?.hostHints ?? const [],
+      hostHintsError: byKey.containsKey('hostHints')
+          ? error('hostHints')
+          : previous?.hostHintsError,
       dhcpDevices: devicesData == null
           ? previous?.dhcpDevices ?? const []
           : DhcpDevice.parseAll(devicesData),

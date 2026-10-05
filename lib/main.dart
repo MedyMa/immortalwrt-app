@@ -12,6 +12,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'models/router_models.dart';
 import 'models/device_identity.dart';
+import 'models/device_record.dart';
 import 'services/router_api.dart';
 import 'services/router_session.dart';
 import 'services/traffic_icons.dart';

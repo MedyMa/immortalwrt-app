@@ -9,6 +9,61 @@ import 'package:immortalwrt_app/services/router_api.dart';
 
 void main() {
   test(
+    'device hints parse MAC groups and discard stale mappings on failure',
+    () async {
+      var denied = false;
+      final api = RouterApi(
+        Uri.parse('https://router.example.com'),
+        client: MockClient((request) async {
+          final p = (jsonDecode(request.body) as Map)['params'] as List;
+          if (p[2] == 'login') {
+            return http.Response(
+              '{"result":[0,{"ubus_rpc_session":"s"}]}',
+              200,
+            );
+          }
+          if (p[2] == 'getHostHints') {
+            return http.Response(
+              jsonEncode({
+                'result': denied
+                    ? [6]
+                    : [
+                        0,
+                        {
+                          '02:11:22:33:44:55': {
+                            'name': 'phone',
+                            'ipaddrs': ['192.168.2.114'],
+                            'ip6addrs': ['fd00::1'],
+                          },
+                        },
+                      ],
+              }),
+              200,
+            );
+          }
+          return http.Response('{"result":[0,{}]}', 200);
+        }),
+      );
+      await api.login('u', 'p');
+      final first = await api.fetch(section: RouterSection.devices);
+      expect(first.hostHints.single.addresses, ['192.168.2.114', 'fd00::1']);
+      final live = await api.fetch(
+        section: RouterSection.live,
+        previous: first,
+      );
+      expect(live.hostHints, first.hostHints);
+      denied = true;
+      final failed = await api.fetch(
+        section: RouterSection.devices,
+        previous: live,
+      );
+      expect(failed.hostHints, isEmpty);
+      expect(failed.hostHintsError, isNotNull);
+      expect(failed.summary, isNotNull);
+    },
+  );
+
+  test(
     'metrics temperatures persist through live and clear on fresh missing values',
     () async {
       var withTemperature = true;
@@ -273,9 +328,13 @@ void main() {
     await api.fetch(section: RouterSection.devices);
     expect(
       methods,
-      containsAll(['luci.traffic.getSummary', 'luci-rpc.getDHCPLeases']),
+      containsAll([
+        'luci.traffic.getSummary',
+        'luci-rpc.getDHCPLeases',
+        'luci-rpc.getHostHints',
+      ]),
     );
-    expect(methods, hasLength(2));
+    expect(methods, hasLength(3));
   });
 
   test('expired session is distinguishable from missing method', () async {

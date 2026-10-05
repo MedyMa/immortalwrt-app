@@ -4,6 +4,17 @@ RouterSnapshot previewSnapshot() {
   final now = DateTime(2026, 10, 1, 10, 41);
   return RouterSnapshot(
     fetchedAt: now,
+    hostHints: const [
+      HostHint(
+        mac: 'aa:bb:cc:00:01:14',
+        name: 'iPhone 17 Pro',
+        addresses: [
+          '192.168.2.114',
+          '240e:abcd:1234:2::72a1',
+          'fdc8:64ed:f962::72a1',
+        ],
+      ),
+    ],
     uptimeSeconds: 2 * 86400 + 14 * 3600 + 7 * 60,
     summary: TrafficSummary(
       collectedAt: now.subtract(const Duration(seconds: 20)),

@@ -138,13 +138,21 @@ class _DeviceDetailSheetState extends State<_DeviceDetailSheet> {
                   ),
                 ),
                 const SizedBox(height: 18),
+                for (final address in row.addresses) ...[
+                  _DeviceDetailLine(
+                    label: address.contains(':') ? 'IPv6 地址' : 'IPv4 地址',
+                    value: address,
+                    copyValue: true,
+                  ),
+                  const _Hairline(),
+                ],
                 for (final entry in <(String, String)>[
-                  ('IP 地址', row.ip),
                   ('MAC 地址', row.mac.isEmpty ? '未提供' : row.mac),
                   (
                     '记录来源',
                     [
                       if (row.hasLease) 'DHCP 租约',
+                      if (row.hasHint) '地址归属提示',
                       if (row.hasTraffic) '流量记录',
                     ].join(' · '),
                   ),
@@ -169,9 +177,14 @@ class _DeviceDetailSheetState extends State<_DeviceDetailSheet> {
 }
 
 class _DeviceDetailLine extends StatelessWidget {
-  const _DeviceDetailLine({required this.label, required this.value});
+  const _DeviceDetailLine({
+    required this.label,
+    required this.value,
+    this.copyValue = false,
+  });
   final String label;
   final String value;
+  final bool copyValue;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -192,16 +205,37 @@ class _DeviceDetailLine extends StatelessWidget {
             color: _inkOf(context),
           ),
         );
+        final copy = IconButton(
+          key: ValueKey('copy-address-$value'),
+          tooltip: '复制 $label',
+          onPressed: () => Clipboard.setData(ClipboardData(text: value)),
+          icon: _AppleSymbol(
+            'doc.on.doc',
+            fallback: Icons.copy_rounded,
+            size: 17,
+            color: _mutedOf(context),
+          ),
+        );
         return stacked
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [title, const SizedBox(height: 6), content],
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: title),
+                      if (copyValue) copy,
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  content,
+                ],
               )
             : Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(width: 84, child: title),
                   Expanded(child: content),
+                  if (copyValue) copy,
                 ],
               );
       },

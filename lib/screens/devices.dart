@@ -4,64 +4,13 @@ part of '../main.dart';
 // 设备
 // ---------------------------------------------------------------------------
 
-/// One row in the device list: a DHCP lease, a traffic record, or both.
-class _DeviceRow {
-  const _DeviceRow({
-    required this.name,
-    required this.ip,
-    required this.mac,
-    required this.bytes,
-    required this.hasLease,
-    required this.hasTraffic,
-  });
+typedef _DeviceRow = DeviceRecord;
 
-  final String name;
-  final String ip;
-  final String mac;
-  final int? bytes;
-  final bool hasLease;
-  final bool hasTraffic;
-}
-
-/// Devices merged by IP.
 class _DeviceIndex {
   const _DeviceIndex({required this.rows});
-
-  final List<_DeviceRow> rows;
-
-  factory _DeviceIndex.of(RouterSnapshot snapshot) {
-    final clients = <String, TrafficClient>{
-      for (final client in snapshot.summary?.clients ?? const <TrafficClient>[])
-        client.ip: client,
-    };
-    final rows = <_DeviceRow>[];
-    for (final lease in snapshot.dhcpDevices) {
-      final client = clients.remove(lease.ip);
-      rows.add(
-        _DeviceRow(
-          name: lease.name,
-          ip: lease.ip,
-          mac: lease.mac,
-          bytes: client?.bytes,
-          hasLease: true,
-          hasTraffic: client != null,
-        ),
-      );
-    }
-    for (final client in clients.values) {
-      rows.add(
-        _DeviceRow(
-          name: client.name,
-          ip: client.ip,
-          mac: '',
-          bytes: client.bytes,
-          hasLease: false,
-          hasTraffic: true,
-        ),
-      );
-    }
-    return _DeviceIndex(rows: rows);
-  }
+  final List<DeviceRecord> rows;
+  factory _DeviceIndex.of(RouterSnapshot snapshot) =>
+      _DeviceIndex(rows: DeviceRecord.fromSnapshot(snapshot));
 }
 
 class _Devices extends StatelessWidget {
@@ -73,7 +22,7 @@ class _Devices extends StatelessWidget {
   Widget build(BuildContext context) {
     final index = _DeviceIndex.of(snapshot);
     final rows = index.rows;
-    final leaseCount = snapshot.dhcpDevices.length;
+    final leaseCount = rows.where((row) => row.hasLease).length;
     final trafficCount = snapshot.summary?.clients.length ?? 0;
 
     return Column(
@@ -133,6 +82,10 @@ class _Devices extends StatelessWidget {
               ],
             ),
           ),
+        if (snapshot.hostHintsError != null) ...[
+          const SizedBox(height: 10),
+          _Notice('地址归属信息暂不可用，未确认的地址单独显示。', Icons.info_outline_rounded),
+        ],
         if (snapshot.devicesError != null) ...[
           const SizedBox(height: 10),
           _Notice(
@@ -182,12 +135,17 @@ class _DeviceTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    '${identity.typeLabel} · ${row.ip}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: _mutedOf(context)),
-                  ),
+                  for (final address in [
+                    if (row.ipv4.isNotEmpty)
+                      '${identity.typeLabel} · IPv4 ${row.ipv4.first}',
+                    if (row.ipv6.isNotEmpty) 'IPv6 ${row.ipv6.first}',
+                  ])
+                    Text(
+                      address,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: _mutedOf(context)),
+                    ),
                 ],
               ),
             ),
