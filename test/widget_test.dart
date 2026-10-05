@@ -338,6 +338,76 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    for (final brightness in [Brightness.light, Brightness.dark]) {
+      testWidgets(
+        '$platform modal glass preserves page appearance in $brightness',
+        (tester) async {
+          tester.view.physicalSize = const Size(390, 844);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: ThemeData(platform: platform, brightness: brightness),
+              home: RouterHome(
+                storage: _MemoryStorage(),
+                apiFactory: (_) => _DeviceIdentityApi(dualStack: true),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(
+            find.byIcon(
+              platform == TargetPlatform.iOS
+                  ? CupertinoIcons.gear
+                  : Icons.settings_outlined,
+            ),
+          );
+          await tester.pumpAndSettle();
+          final sheet = find.byType(BottomSheet);
+          if (platform == TargetPlatform.android) {
+            final glass = find.descendant(
+              of: sheet,
+              matching: find.byType(BackdropFilter),
+            );
+            expect(glass, findsOneWidget);
+            final surface = tester.widget<DecoratedBox>(
+              find
+                  .descendant(of: glass, matching: find.byType(DecoratedBox))
+                  .first,
+            );
+            expect(
+              (surface.decoration as BoxDecoration).color!.a,
+              lessThan(0.2),
+            );
+          } else {
+            final route = ModalRoute.of(tester.element(find.text('连接路由器')))!;
+            expect(route.barrierColor?.a ?? 0, 0);
+          }
+          await tester.tapAt(const Offset(8, 80));
+          await tester.pumpAndSettle();
+          expect(find.byType(BottomSheet), findsNothing);
+          if (platform == TargetPlatform.iOS) {
+            await tester.tap(find.byKey(const ValueKey('topology-devices')));
+            await tester.pumpAndSettle();
+            final tile = find.byKey(const ValueKey('device-192.168.2.114'));
+            await tester.ensureVisible(tile);
+            await tester.tap(tile);
+            await tester.pumpAndSettle();
+            final route = ModalRoute.of(
+              tester.element(find.byKey(const ValueKey('device-detail-close'))),
+            )!;
+            expect(route.barrierColor?.a ?? 0, 0);
+            await tester.tapAt(const Offset(8, 80));
+            await tester.pumpAndSettle();
+            expect(find.byType(BottomSheet), findsNothing);
+          }
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox.shrink());
+        },
+      );
+    }
+  }
   for (final brightness in [Brightness.light, Brightness.dark]) {
     testWidgets(
       'Android device sheet uses transparent page glass in $brightness',

@@ -574,11 +574,15 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      barrierColor: Theme.of(context).platform == TargetPlatform.iOS
+          ? Colors.transparent
+          : null,
       showDragHandle: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => _IosGlassSurface(
+        pageGlassOnAndroid: true,
         radius: const BorderRadius.vertical(top: Radius.circular(28)),
         child: _ConnectionSheet(
           url: _url,

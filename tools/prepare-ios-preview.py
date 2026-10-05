@@ -25,9 +25,9 @@ DART_LOADER = """  Future<void> _loadPreview() async {
     const channel = MethodChannel('com.medyma.immortalwrt/preview');
     final config = await channel.invokeMapMethod<String, dynamic>('configuration');
     final tab = config!['tab'] as int;
-    if (tab < 0 || tab > 5) throw StateError('Invalid preview tab');
+    if (tab < 0 || tab > 6) throw StateError('Invalid preview tab');
     if (!mounted) return;
-    setState(() { _snapshot = previewSnapshot(); _tab = tab == 4 ? 1 : tab == 5 ? 0 : tab; });
+    setState(() { _snapshot = previewSnapshot(); _tab = tab == 4 ? 1 : tab >= 5 ? 0 : tab; });
     // Wait for the fixture page to be painted, including its native views.
     await WidgetsBinding.instance.endOfFrame;
     await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -54,6 +54,11 @@ DART_LOADER = """  Future<void> _loadPreview() async {
     if (tab == 4) {
       final row = _DeviceIndex.of(_snapshot!).rows.first;
       _showDeviceDetails(context, row, DeviceIdentity.fromName(row.name));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await WidgetsBinding.instance.endOfFrame;
+    }
+    if (tab == 6) {
+      _showConnection();
       await Future<void>.delayed(const Duration(milliseconds: 500));
       await WidgetsBinding.instance.endOfFrame;
     }

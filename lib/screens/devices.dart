@@ -250,6 +250,9 @@ void _showDeviceDetails(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    barrierColor: Theme.of(context).platform == TargetPlatform.iOS
+        ? Colors.transparent
+        : null,
     builder: (context) => _DeviceDetailSheet(row: row, identity: identity),
   );
 }
