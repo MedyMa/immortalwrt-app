@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// Status-area blur fades into unobstructed scrolling content below it.
@@ -20,9 +21,12 @@ class ScrollEdgeGlass extends StatelessWidget {
       alpha: Theme.of(context).brightness == Brightness.dark ? 0.08 : 0.06,
     );
     Widget surface() => DecoratedBox(decoration: BoxDecoration(color: tint));
-    final solidHeight = (statusHeight - fadeHeight / 2).clamp(
-      0.0,
+    // Finish before the toolbar's UIKit views. Filtering across their frames
+    // creates rectangular composition seams on the native iOS embedder.
+    // Keep a nonempty capture strip even on short Android status bars.
+    final solidHeight = math.min(
       statusHeight,
+      math.max(1.0, statusHeight - fadeHeight),
     );
     final filter = ImageFilter.blur(sigmaX: 18, sigmaY: 18);
     // Skia cannot reuse a backdrop captured outside ShaderMask's saveLayer.

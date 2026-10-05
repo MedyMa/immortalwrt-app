@@ -749,7 +749,7 @@ void main() {
       tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
     );
     final status = find.byKey(const ValueKey('system-status-glass'));
-    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 46));
+    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
     final nav = find.byKey(const ValueKey('compact-navigation'));
     final fade = find.ancestor(of: nav, matching: find.byType(AnimatedOpacity));
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
@@ -757,7 +757,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
     expect(header.hitTestable(), findsNothing);
-    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 46));
+    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
     expect(
       Focus.of(
         tester.element(find.descendant(of: nav, matching: find.text('总览'))),
@@ -1570,7 +1570,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         final status = find.byKey(const ValueKey('system-status-glass'));
-        expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 46));
+        expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
         expect(
           find.descendant(of: status, matching: find.byType(BackdropFilter)),
           findsAtLeastNWidgets(2),

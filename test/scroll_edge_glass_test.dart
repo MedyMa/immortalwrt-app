@@ -26,77 +26,81 @@ class _Stripes extends CustomPainter {
 void main() {
   for (final brightness in [Brightness.light, Brightness.dark]) {
     for (final reducedMotion in [false, true]) {
-      testWidgets(
-        'actual backdrop stripes recover smoothly in $brightness motion=$reducedMotion',
-        (tester) async {
-          tester.view.physicalSize = const Size(200, 140);
-          tester.view.devicePixelRatio = 1;
-          addTearDown(tester.view.reset);
-          final key = GlobalKey();
-          await tester.pumpWidget(
-            MaterialApp(
-              theme: ThemeData(brightness: brightness),
-              builder: (context, child) => MediaQuery(
-                data: MediaQuery.of(
-                  context,
-                ).copyWith(disableAnimations: reducedMotion),
-                child: child!,
-              ),
-              home: RepaintBoundary(
-                key: key,
-                child: Stack(
-                  children: [
-                    Positioned.fill(child: CustomPaint(painter: _Stripes())),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: 74,
-                      child: ScrollEdgeGlass(
-                        color: brightness == Brightness.dark
-                            ? Colors.black
-                            : Colors.white,
-                        statusHeight: 60,
+      for (final height in [24, 60]) {
+        testWidgets(
+          'actual backdrop stripes recover smoothly in $brightness motion=$reducedMotion height=$height',
+          (tester) async {
+            tester.view.physicalSize = const Size(200, 140);
+            tester.view.devicePixelRatio = 1;
+            addTearDown(tester.view.reset);
+            final key = GlobalKey();
+            await tester.pumpWidget(
+              MaterialApp(
+                theme: ThemeData(brightness: brightness),
+                builder: (context, child) => MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(disableAnimations: reducedMotion),
+                  child: child!,
+                ),
+                home: RepaintBoundary(
+                  key: key,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(child: CustomPaint(painter: _Stripes())),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: height.toDouble(),
+                        child: ScrollEdgeGlass(
+                          color: brightness == Brightness.dark
+                              ? Colors.black
+                              : Colors.white,
+                          statusHeight: height.toDouble(),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-          await tester.pumpAndSettle();
-          final render =
-              key.currentContext!.findRenderObject() as RenderRepaintBoundary;
-          final bytes = await tester.runAsync(() async {
-            final image = await render.toImage(pixelRatio: 1);
-            try {
-              return await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-            } finally {
-              image.dispose();
-            }
-          });
-          int contrast(int y) =>
-              (bytes!.getUint8((y * 200 + 80) * 4) -
-                      bytes.getUint8((y * 200 + 84) * 4))
-                  .abs();
-          expect(
-            contrast(30),
-            lessThan(40),
-            reason:
-                'Underlying stripes must really blur, not merely receive tint',
-          );
-          expect(contrast(60), greaterThan(contrast(48)));
-          expect(contrast(73), greaterThan(220));
-          expect(contrast(80), 255);
-          for (var y = 40; y < 80; y++) {
-            expect(
-              (contrast(y + 1) - contrast(y)).abs(),
-              lessThan(25),
-              reason: 'No sharp seam at y=$y',
             );
-          }
-        },
-      );
+            await tester.pumpAndSettle();
+            final render =
+                key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+            final bytes = await tester.runAsync(() async {
+              final image = await render.toImage(pixelRatio: 1);
+              try {
+                return await image.toByteData(
+                  format: ui.ImageByteFormat.rawRgba,
+                );
+              } finally {
+                image.dispose();
+              }
+            });
+            int contrast(int y) =>
+                (bytes!.getUint8((y * 200 + 80) * 4) -
+                        bytes.getUint8((y * 200 + 84) * 4))
+                    .abs();
+            expect(
+              contrast(0),
+              lessThan(40),
+              reason:
+                  'Underlying stripes must really blur, not merely receive tint',
+            );
+            expect(contrast(height - 6), greaterThan(contrast(height - 20)));
+            expect(contrast(height - 1), greaterThan(220));
+            expect(contrast(height), 255);
+            for (var y = 0; y < height + 4; y++) {
+              expect(
+                (contrast(y + 1) - contrast(y)).abs(),
+                lessThan(25),
+                reason: 'No sharp seam at y=$y',
+              );
+            }
+          },
+        );
+      }
     }
   }
   testWidgets('high contrast top has no blur or opacity mask', (tester) async {

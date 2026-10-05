@@ -3,12 +3,6 @@ part of '../main.dart';
 class _TopScrollEdgeGlass extends StatelessWidget {
   const _TopScrollEdgeGlass({super.key});
 
-  static double extraHeight(BuildContext context) =>
-      MediaQuery.viewPaddingOf(context).top > 0 &&
-          !MediaQuery.highContrastOf(context)
-      ? ScrollEdgeGlass.fadeHeight / 2
-      : 0;
-
   @override
   Widget build(BuildContext context) => ScrollEdgeGlass(
     color: _pageOf(context),

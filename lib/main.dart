@@ -753,9 +753,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
               top: 0,
               left: 0,
               right: 0,
-              height:
-                  MediaQuery.viewPaddingOf(context).top +
-                  _TopScrollEdgeGlass.extraHeight(context),
+              height: MediaQuery.viewPaddingOf(context).top,
               child: IgnorePointer(
                 child: _TopScrollEdgeGlass(
                   key: const ValueKey('system-status-glass'),
