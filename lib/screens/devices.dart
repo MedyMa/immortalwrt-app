@@ -23,7 +23,7 @@ class _Devices extends StatelessWidget {
     final index = _DeviceIndex.of(snapshot);
     final rows = index.rows;
     final leaseCount = rows.where((row) => row.hasLease).length;
-    final trafficCount = snapshot.summary?.clients.length ?? 0;
+    final trafficCount = rows.where((row) => row.hasTraffic).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

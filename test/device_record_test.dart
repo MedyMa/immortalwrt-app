@@ -3,6 +3,59 @@ import 'package:immortalwrt_app/models/router_models.dart';
 import 'package:immortalwrt_app/models/device_record.dart';
 
 void main() {
+  test('MT7988 AX9000 DHCPv4 DHCPv6 and host hints form one MAC record', () {
+    const routerMac = '64:64:4A:5A:75:25';
+    final rows = DeviceRecord.fromSnapshot(
+      RouterSnapshot(
+        fetchedAt: DateTime.now(),
+        dhcpDevices: DhcpDevice.parseAll({
+          'dhcp_leases': [
+            {
+              'hostname': 'XiaoQiang',
+              'macaddr': routerMac,
+              'ipaddr': '192.168.2.138',
+            },
+          ],
+          'dhcp6_leases': [
+            {
+              'hostname': 'XiaoQiang',
+              'macaddr': routerMac,
+              'ip6addr': 'fdc8:64ed:f962::d1c',
+              'ip6addrs': ['fdc8:64ed:f962::d1c/128'],
+            },
+            {
+              'hostname': 'XiaoQiang',
+              'macaddr': routerMac,
+              'ip6addr': 'fdc8:64ed:f962:4::',
+              'ip6addrs': ['fdc8:64ed:f962:4::/62'],
+            },
+          ],
+        }),
+        hostHints: HostHint.parseAll({
+          routerMac: {
+            'name': 'XiaoQiang.lan',
+            'ipaddrs': ['192.168.2.138'],
+            'ip6addrs': [
+              'fdc8:64ed:f962::d1c',
+              'fdc8:64ed:f962:4::',
+              'fe80::6664:4aff:fe5a:7525',
+            ],
+          },
+        }),
+        summary: TrafficSummary.fromJson({
+          'clients': [
+            {'ip': '192.168.2.138', 'bytes': 100},
+            {'ip': 'fdc8:64ed:f962:0000:0000:0000:0000:0d1c', 'bytes': 200},
+            {'ip': 'fdc8:64ed:f962:0004:0000:0000:0000:0000', 'bytes': 300},
+          ],
+        }),
+      ),
+    );
+    expect(rows, hasLength(1));
+    expect(rows.single.mac, routerMac.toLowerCase());
+    expect(rows.single.addresses, hasLength(4));
+    expect(rows.single.bytes, 600);
+  });
   test(
     'stale DHCP cannot merge freshly reported traffic after a read failure',
     () {

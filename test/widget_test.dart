@@ -339,6 +339,53 @@ class _WifiApi extends _FakeRouterApi {
 
 void main() {
   for (final brightness in [Brightness.light, Brightness.dark]) {
+    testWidgets(
+      'Android device sheet uses transparent page glass in $brightness',
+      (tester) async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(
+              platform: TargetPlatform.android,
+              brightness: brightness,
+            ),
+            home: RouterHome(
+              storage: _MemoryStorage(),
+              apiFactory: (_) => _DeviceIdentityApi(dualStack: true),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('topology-devices')));
+        await tester.pumpAndSettle();
+        expect(find.text('DHCP 2 · 流量记录 1'), findsOneWidget);
+        final tile = find.byKey(const ValueKey('device-192.168.2.114'));
+        await tester.ensureVisible(tile);
+        await tester.tap(tile);
+        await tester.pumpAndSettle();
+        final sheet = find.byType(BottomSheet);
+        final glass = find.descendant(
+          of: sheet,
+          matching: find.byType(BackdropFilter),
+        );
+        expect(glass, findsOneWidget);
+        final surface = tester.widget<DecoratedBox>(
+          find.descendant(of: glass, matching: find.byType(DecoratedBox)).first,
+        );
+        final color = (surface.decoration as BoxDecoration).color!;
+        expect(color.a, lessThan(0.2));
+        expect(find.text('300 B'), findsWidgets);
+        await tester.tap(find.byKey(const ValueKey('device-detail-close')));
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsNothing);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
+  for (final brightness in [Brightness.light, Brightness.dark]) {
     for (final reducedMotion in [false, true]) {
       testWidgets(
         'Android navigation matches status glass in $brightness motion=$reducedMotion',

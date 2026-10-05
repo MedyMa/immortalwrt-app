@@ -187,13 +187,19 @@ class _IosGlassSurface extends StatelessWidget {
   const _IosGlassSurface({
     required this.child,
     this.radius = const BorderRadius.all(Radius.circular(28)),
+    this.pageGlassOnAndroid = false,
   });
   final Widget child;
   final BorderRadius radius;
+  final bool pageGlassOnAndroid;
 
   @override
   Widget build(BuildContext context) {
     if (kIsWeb || !Platform.isIOS) {
+      if (pageGlassOnAndroid &&
+          Theme.of(context).platform == TargetPlatform.android) {
+        return _StatusBarGlass(radius: radius, child: child);
+      }
       return _GlassSurface(radius: radius, child: child);
     }
     return ClipRRect(

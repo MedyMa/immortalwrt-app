@@ -71,6 +71,7 @@ class _DeviceDetailSheetState extends State<_DeviceDetailSheet> {
         maxHeight: MediaQuery.sizeOf(context).height * .85,
       ),
       child: _IosGlassSurface(
+        pageGlassOnAndroid: true,
         radius: const BorderRadius.vertical(top: Radius.circular(30)),
         child: SafeArea(
           top: false,
