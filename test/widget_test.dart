@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' as ui;
 
@@ -147,6 +148,25 @@ class _HealthyApi extends _FakeRouterApi {
       at: null,
     ),
   );
+}
+
+class _PullRefreshApi extends _HealthyApi {
+  Completer<RouterSnapshot>? gate;
+  @override
+  Future<RouterSnapshot> fetch({
+    RouterSection section = RouterSection.all,
+    RouterSnapshot? previous,
+  }) async {
+    sections.add(section);
+    if (section != RouterSection.live && gate != null) return gate!.future;
+    return super.fetch(section: section, previous: previous);
+  }
+
+  Future<void> release() async {
+    final pending = gate!;
+    gate = null;
+    pending.complete(await super.fetch());
+  }
 }
 
 class _ChangingLiveApi extends _FakeRouterApi {
@@ -342,6 +362,86 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  for (final page in ['总览', '设备', 'Wi-Fi', '流量']) {
+    testWidgets(
+      'iOS $page uses native pull refresh and completes the gesture',
+      (tester) async {
+        final api = _PullRefreshApi();
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(platform: TargetPlatform.iOS),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(viewPadding: const EdgeInsets.only(top: 60)),
+              child: child!,
+            ),
+            home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+          ),
+        );
+        await tester.pumpAndSettle();
+        if (page != '总览') {
+          await tester.tap(find.text(page).last);
+          await tester.pumpAndSettle();
+        }
+        expect(
+          find.byType(CupertinoSliverRefreshControl, skipOffstage: false),
+          findsOneWidget,
+        );
+        expect(find.byType(RefreshIndicator), findsNothing);
+        final scroll = find.byKey(const ValueKey('router-page-scroll'));
+        expect(
+          tester.widget<CustomScrollView>(scroll).physics,
+          isA<BouncingScrollPhysics>(),
+        );
+        final before = api.sections
+            .where((section) => section != RouterSection.live)
+            .length;
+        api.gate = Completer<RouterSnapshot>();
+        await tester.timedDrag(
+          scroll,
+          const Offset(0, 400),
+          const Duration(milliseconds: 500),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(
+          api.sections.where((section) => section != RouterSection.live).length,
+          before + 1,
+        );
+        final indicator = find.descendant(
+          of: find.byType(CupertinoSliverRefreshControl, skipOffstage: false),
+          matching: find.byType(CupertinoActivityIndicator),
+        );
+        expect(indicator, findsOneWidget);
+        for (var frame = 0; frame < 20; frame++) {
+          if (CupertinoSliverRefreshControl.state(tester.element(indicator)) ==
+              RefreshIndicatorMode.refresh) {
+            break;
+          }
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(
+          CupertinoSliverRefreshControl.state(tester.element(indicator)),
+          RefreshIndicatorMode.refresh,
+        );
+        expect(tester.getCenter(indicator).dy, greaterThan(60));
+        await api.release();
+        await tester.pumpAndSettle();
+        final position = tester
+            .state<ScrollableState>(
+              find
+                  .descendant(of: scroll, matching: find.byType(Scrollable))
+                  .first,
+            )
+            .position;
+        expect(position.pixels, closeTo(0, 0.1));
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
+
   testWidgets('iOS settings keeps a 44 point target with a smaller gear', (
     tester,
   ) async {
@@ -846,7 +946,10 @@ void main() {
     final nav = find.byKey(const ValueKey('compact-navigation'));
     final fade = find.ancestor(of: nav, matching: find.byType(AnimatedOpacity));
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
-    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+    await tester.drag(
+      find.byKey(const ValueKey('router-page-scroll')),
+      const Offset(0, -400),
+    );
     await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
     expect(header.hitTestable(), findsNothing);
@@ -861,22 +964,31 @@ void main() {
       find.descendant(of: nav, matching: find.text('总览')).hitTestable(),
       findsNothing,
     );
-    await tester.drag(find.byType(ListView).first, const Offset(0, 150));
+    await tester.drag(
+      find.byKey(const ValueKey('router-page-scroll')),
+      const Offset(0, 150),
+    );
     await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
     final scrollable = tester.state<ScrollableState>(
       find
           .descendant(
-            of: find.byType(ListView).first,
+            of: find.byKey(const ValueKey('router-page-scroll')),
             matching: find.byType(Scrollable),
           )
           .first,
     );
     expect(scrollable.position.pixels, greaterThan(0));
-    await tester.drag(find.byType(ListView).first, const Offset(0, -150));
+    await tester.drag(
+      find.byKey(const ValueKey('router-page-scroll')),
+      const Offset(0, -150),
+    );
     await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
-    await tester.drag(find.byType(ListView).first, const Offset(0, 1000));
+    await tester.drag(
+      find.byKey(const ValueKey('router-page-scroll')),
+      const Offset(0, 1000),
+    );
     await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
     await tester.tap(find.descendant(of: nav, matching: find.text('总览')));
@@ -929,7 +1041,7 @@ void main() {
         await tester.pump();
         await tester.tap(find.text('设备').last);
         await tester.pump();
-        final list = find.byType(ListView).first;
+        final list = find.byKey(const ValueKey('router-page-scroll'));
         final scrollable = find
             .descendant(of: list, matching: find.byType(Scrollable))
             .first;
@@ -955,7 +1067,7 @@ void main() {
             .state<ScrollableState>(
               find
                   .descendant(
-                    of: find.byType(ListView).first,
+                    of: find.byKey(const ValueKey('router-page-scroll')),
                     matching: find.byType(Scrollable),
                   )
                   .first,
@@ -964,7 +1076,10 @@ void main() {
         overviewPosition.jumpTo(overviewPosition.maxScrollExtent);
         await tester.pump();
         expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
-        await tester.drag(find.byType(ListView).first, const Offset(0, -150));
+        await tester.drag(
+          find.byKey(const ValueKey('router-page-scroll')),
+          const Offset(0, -150),
+        );
         await tester.pumpAndSettle();
         expect(
           tester.widget<AnimatedOpacity>(fade).opacity,
@@ -1738,7 +1853,7 @@ void main() {
             final scroll = tester.state<ScrollableState>(
               find
                   .descendant(
-                    of: find.byType(ListView).first,
+                    of: find.byKey(const ValueKey('router-page-scroll')),
                     matching: find.byType(Scrollable),
                   )
                   .first,
@@ -1847,11 +1962,17 @@ void main() {
         matching: find.byType(AnimatedOpacity),
       );
       expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
-      await tester.drag(find.byType(ListView).first, const Offset(0, -400));
+      await tester.drag(
+        find.byKey(const ValueKey('router-page-scroll')),
+        const Offset(0, -400),
+      );
       await tester.pumpAndSettle();
       expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
       expect(find.byType(CupertinoTabBar).hitTestable(), findsNothing);
-      await tester.drag(find.byType(ListView).first, const Offset(0, 120));
+      await tester.drag(
+        find.byKey(const ValueKey('router-page-scroll')),
+        const Offset(0, 120),
+      );
       await tester.pumpAndSettle();
       expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
       expect(find.byType(CupertinoTabBar).hitTestable(), findsOneWidget);

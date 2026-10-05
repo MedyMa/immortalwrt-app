@@ -23,6 +23,7 @@ part 'widgets/shared.dart';
 part 'widgets/glass.dart';
 part 'widgets/compact_navigation.dart';
 part 'widgets/platform_navigation.dart';
+part 'widgets/platform_refresh.dart';
 part 'widgets/device_detail_sheet.dart';
 part 'screens/overview.dart';
 part 'screens/devices.dart';
@@ -691,59 +692,51 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                           )
                         : NotificationListener<ScrollNotification>(
                             onNotification: _onScroll,
-                            child: RefreshIndicator(
-                              edgeOffset: MediaQuery.viewPaddingOf(context).top,
+                            child: _PlatformRefreshable(
                               onRefresh: _refresh,
-                              color: _blue,
-                              child: ListView(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                padding: EdgeInsets.fromLTRB(
-                                  16,
-                                  MediaQuery.viewPaddingOf(context).top + 4,
-                                  16,
-                                  !wide
-                                      ? _NavigationGeometry.bottomClearance(
-                                              MediaQuery.textScalerOf(context),
-                                            ) +
-                                            MediaQuery.viewPaddingOf(
-                                              context,
-                                            ).bottom
-                                      : 32,
-                                ),
-                                children: [
-                                  _ScrollingToolbar(
-                                    title: names[_tab],
-                                    onSettings: _showConnection,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  if (_error != null)
-                                    _Notice(
-                                      '连接中断 · 显示上次成功读取的数据\n$_error',
-                                      Icons.wifi_off_rounded,
-                                      tone: _red,
-                                    ),
-                                  if (_checking && _error == null)
-                                    const _Notice(
-                                      '正在核对数据 · 下方是上次成功读取的状态',
-                                      Icons.sync_rounded,
-                                    ),
-                                  if (_tab == 0)
-                                    _Overview(
-                                      snapshot: snapshot,
-                                      liveSnapshot: _liveSnapshot,
-                                      endpoint: _url,
-                                      error: _error,
-                                      onOpen: _selectTab,
-                                    ),
-                                  if (_tab == 1) _Devices(snapshot: snapshot),
-                                  if (_tab == 2) _Wifi(snapshot: snapshot),
-                                  if (_tab == 3)
-                                    _Traffic(
-                                      snapshot: snapshot,
-                                      endpoint: _url,
-                                    ),
-                                ],
+                              padding: EdgeInsets.fromLTRB(
+                                16,
+                                MediaQuery.viewPaddingOf(context).top + 4,
+                                16,
+                                !wide
+                                    ? _NavigationGeometry.bottomClearance(
+                                            MediaQuery.textScalerOf(context),
+                                          ) +
+                                          MediaQuery.viewPaddingOf(
+                                            context,
+                                          ).bottom
+                                    : 32,
                               ),
+                              children: [
+                                _ScrollingToolbar(
+                                  title: names[_tab],
+                                  onSettings: _showConnection,
+                                ),
+                                const SizedBox(height: 12),
+                                if (_error != null)
+                                  _Notice(
+                                    '连接中断 · 显示上次成功读取的数据\n$_error',
+                                    Icons.wifi_off_rounded,
+                                    tone: _red,
+                                  ),
+                                if (_checking && _error == null)
+                                  const _Notice(
+                                    '正在核对数据 · 下方是上次成功读取的状态',
+                                    Icons.sync_rounded,
+                                  ),
+                                if (_tab == 0)
+                                  _Overview(
+                                    snapshot: snapshot,
+                                    liveSnapshot: _liveSnapshot,
+                                    endpoint: _url,
+                                    error: _error,
+                                    onOpen: _selectTab,
+                                  ),
+                                if (_tab == 1) _Devices(snapshot: snapshot),
+                                if (_tab == 2) _Wifi(snapshot: snapshot),
+                                if (_tab == 3)
+                                  _Traffic(snapshot: snapshot, endpoint: _url),
+                              ],
                             ),
                           ),
                   ),
