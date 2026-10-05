@@ -25,15 +25,32 @@ DART_LOADER = """  Future<void> _loadPreview() async {
     const channel = MethodChannel('com.medyma.immortalwrt/preview');
     final config = await channel.invokeMapMethod<String, dynamic>('configuration');
     final tab = config!['tab'] as int;
-    if (tab < 0 || tab > 4) throw StateError('Invalid preview tab');
+    if (tab < 0 || tab > 5) throw StateError('Invalid preview tab');
     if (!mounted) return;
-    setState(() { _snapshot = previewSnapshot(); _tab = tab == 4 ? 1 : tab; });
+    setState(() { _snapshot = previewSnapshot(); _tab = tab == 4 ? 1 : tab == 5 ? 0 : tab; });
     // Wait for the fixture page to be painted, including its native views.
     await WidgetsBinding.instance.endOfFrame;
     await Future<void>.delayed(const Duration(milliseconds: 500));
     WidgetsBinding.instance.scheduleFrame();
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted) return;
+    if (tab == 5) {
+      ScrollableState? scroll;
+      void visit(Element element) {
+        if (scroll != null) return;
+        if (element is StatefulElement && element.state is ScrollableState) {
+          scroll = element.state as ScrollableState;
+          return;
+        }
+        element.visitChildren(visit);
+      }
+      (context as Element).visitChildren(visit);
+      if (scroll == null || !scroll!.position.hasContentDimensions) {
+        throw StateError('Preview scrollable is unavailable');
+      }
+      scroll!.position.jumpTo(300.0.clamp(0.0, scroll!.position.maxScrollExtent));
+      await WidgetsBinding.instance.endOfFrame;
+    }
     if (tab == 4) {
       final row = _DeviceIndex.of(_snapshot!).rows.first;
       _showDeviceDetails(context, row, DeviceIdentity.fromName(row.name));

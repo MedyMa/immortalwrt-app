@@ -437,9 +437,15 @@ void main() {
             ),
           );
           final statusFilter = tester.widget<BackdropFilter>(
-            find.descendant(of: status, matching: find.byType(BackdropFilter)),
+            find
+                .descendant(of: status, matching: find.byType(BackdropFilter))
+                .first,
           );
-          expect(tint(navigation), tint(status));
+          expect(
+            tint(navigation).withValues(alpha: 1),
+            tint(status).withValues(alpha: 1),
+          );
+          expect(tint(status).a, lessThan(tint(navigation).a));
           expect(tint(navigation).a, lessThan(0.2));
           expect(navFilter.filter, statusFilter.filter);
           expect(tester.takeException(), isNull);
@@ -673,7 +679,7 @@ void main() {
       tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor,
     );
     final status = find.byKey(const ValueKey('system-status-glass'));
-    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
+    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 46));
     final nav = find.byKey(const ValueKey('compact-navigation'));
     final fade = find.ancestor(of: nav, matching: find.byType(AnimatedOpacity));
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 1);
@@ -681,7 +687,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<AnimatedOpacity>(fade).opacity, 0);
     expect(header.hitTestable(), findsNothing);
-    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
+    expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 46));
     expect(
       Focus.of(
         tester.element(find.descendant(of: nav, matching: find.text('总览'))),
@@ -1442,7 +1448,7 @@ void main() {
                 of: status,
                 matching: find.byType(BackdropFilter),
               ),
-              findsOneWidget,
+              findsAtLeastNWidgets(2),
             );
             final boundary =
                 boundaryKey.currentContext!.findRenderObject()!
@@ -1494,13 +1500,15 @@ void main() {
         );
         await tester.pumpAndSettle();
         final status = find.byKey(const ValueKey('system-status-glass'));
-        expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 32));
+        expect(tester.getRect(status), const Rect.fromLTWH(0, 0, 390, 46));
         expect(
           find.descendant(of: status, matching: find.byType(BackdropFilter)),
-          findsOneWidget,
+          findsAtLeastNWidgets(2),
         );
         final surface = tester.widget<DecoratedBox>(
-          find.descendant(of: status, matching: find.byType(DecoratedBox)),
+          find
+              .descendant(of: status, matching: find.byType(DecoratedBox))
+              .first,
         );
         final tint = (surface.decoration as BoxDecoration).color!;
         final page = tester.widget<Scaffold>(find.byType(Scaffold).first);

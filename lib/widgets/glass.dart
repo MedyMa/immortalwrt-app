@@ -1,5 +1,21 @@
 part of '../main.dart';
 
+class _TopScrollEdgeGlass extends StatelessWidget {
+  const _TopScrollEdgeGlass({super.key});
+
+  static double extraHeight(BuildContext context) =>
+      MediaQuery.viewPaddingOf(context).top > 0 &&
+          !MediaQuery.highContrastOf(context)
+      ? ScrollEdgeGlass.fadeHeight / 2
+      : 0;
+
+  @override
+  Widget build(BuildContext context) => ScrollEdgeGlass(
+    color: _pageOf(context),
+    statusHeight: MediaQuery.viewPaddingOf(context).top,
+  );
+}
+
 /// Keep the status area in the page's color space. UIKit's systemMaterial
 /// supplies an independent tint which makes a strip above the Flutter page.
 /// Shared page blur beneath the system status area and Android navigation.

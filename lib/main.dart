@@ -17,6 +17,7 @@ import 'services/router_api.dart';
 import 'services/router_session.dart';
 import 'services/traffic_icons.dart';
 import 'widgets/traffic_icon.dart';
+import 'widgets/scroll_edge_glass.dart';
 
 part 'widgets/shared.dart';
 part 'widgets/glass.dart';
@@ -748,9 +749,11 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
               top: 0,
               left: 0,
               right: 0,
-              height: MediaQuery.viewPaddingOf(context).top,
+              height:
+                  MediaQuery.viewPaddingOf(context).top +
+                  _TopScrollEdgeGlass.extraHeight(context),
               child: IgnorePointer(
-                child: _StatusBarGlass(
+                child: _TopScrollEdgeGlass(
                   key: const ValueKey('system-status-glass'),
                 ),
               ),
