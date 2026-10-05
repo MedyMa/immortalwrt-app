@@ -342,6 +342,95 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  testWidgets('iOS settings keeps a 44 point target with a smaller gear', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.iOS),
+        home: RouterHome(
+          storage: _MemoryStorage(),
+          apiFactory: (_) => _HealthyApi(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final gear = find.byIcon(CupertinoIcons.gear);
+    final button = find.ancestor(
+      of: gear,
+      matching: find.byType(CupertinoButton),
+    );
+    expect(tester.getSize(button), const Size(44, 44));
+    expect(tester.widget<Icon>(gear).size, 20);
+    await tester.tapAt(tester.getTopLeft(button) + const Offset(2, 22));
+    await tester.pumpAndSettle();
+    expect(find.text('连接路由器'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  for (final reducedMotion in [false, true]) {
+    testWidgets(
+      'iOS sheets move smoothly and respect reduced motion=$reducedMotion',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(platform: TargetPlatform.iOS),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(disableAnimations: reducedMotion),
+              child: child!,
+            ),
+            home: RouterHome(
+              storage: _MemoryStorage(),
+              apiFactory: (_) => _HealthyApi(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(CupertinoIcons.gear));
+        await tester.pump();
+        final route = ModalRoute.of(tester.element(find.text('连接路由器')))!;
+        expect(
+          route.transitionDuration,
+          reducedMotion ? Duration.zero : const Duration(milliseconds: 400),
+        );
+        expect(
+          route.reverseTransitionDuration,
+          reducedMotion ? Duration.zero : const Duration(milliseconds: 300),
+        );
+        expect(route.barrierColor?.a ?? 0, 0);
+        if (!reducedMotion) {
+          final start = tester.getTopLeft(find.byType(BottomSheet)).dy;
+          await tester.pump(const Duration(milliseconds: 100));
+          final early = tester.getTopLeft(find.byType(BottomSheet)).dy;
+          await tester.pump(const Duration(milliseconds: 100));
+          final middle = tester.getTopLeft(find.byType(BottomSheet)).dy;
+          await tester.pumpAndSettle();
+          final end = tester.getTopLeft(find.byType(BottomSheet)).dy;
+          expect(start, greaterThan(early));
+          expect(early, greaterThan(middle));
+          expect(middle, greaterThan(end));
+          // Grab the settled sheet, then release a short downward drag.
+          final drag = await tester.startGesture(
+            tester.getTopLeft(find.byType(BottomSheet)) + const Offset(120, 25),
+          );
+          await drag.moveBy(const Offset(0, 35));
+          await tester.pump();
+          await drag.up();
+          await tester.pumpAndSettle();
+          expect(find.byType(BottomSheet), findsOneWidget);
+        } else {
+          await tester.pumpAndSettle();
+        }
+        await tester.tapAt(const Offset(8, 80));
+        await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsNothing);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
   for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
     for (final brightness in [Brightness.light, Brightness.dark]) {
       testWidgets(

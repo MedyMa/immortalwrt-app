@@ -36,14 +36,30 @@ private class SystemSettingsFactory: NSObject, FlutterPlatformViewFactory {
   }
 }
 
+private final class SettingsHitAreaButton: UIButton {
+  override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+    bounds.insetBy(dx: -4, dy: -4).contains(point)
+  }
+}
+
 private class SystemSettingsView: NSObject, FlutterPlatformView {
+  private let container: UIView
   private let button: UIButton
   private let channel: FlutterMethodChannel
   init(frame: CGRect, viewId: Int64, messenger: FlutterBinaryMessenger) {
-    button = UIButton(frame: frame)
+    container = UIView(frame: frame)
+    button = SettingsHitAreaButton(type: .system)
     channel = FlutterMethodChannel(name: "com.medyma.immortalwrt/settings/\(viewId)",
                                    binaryMessenger: messenger)
     super.init()
+    button.translatesAutoresizingMaskIntoConstraints = false
+    container.addSubview(button)
+    NSLayoutConstraint.activate([
+      button.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+      button.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+      button.widthAnchor.constraint(equalToConstant: 36),
+      button.heightAnchor.constraint(equalToConstant: 36)
+    ])
     var configuration: UIButton.Configuration
     if #available(iOS 26.0, *) {
       configuration = .glass()
@@ -51,14 +67,15 @@ private class SystemSettingsView: NSObject, FlutterPlatformView {
       configuration = .plain()
     }
     configuration.image = UIImage(systemName: "gearshape")
-    configuration.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 22)
+    configuration.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(pointSize: 20)
     configuration.baseForegroundColor = .label
     configuration.cornerStyle = .capsule
+    configuration.contentInsets = .zero
     button.configuration = configuration
     button.accessibilityLabel = "连接设置"
     button.addTarget(self, action: #selector(openSettings), for: .touchUpInside)
   }
-  func view() -> UIView { button }
+  func view() -> UIView { container }
   @objc private func openSettings() {
     channel.invokeMethod("openSettings", arguments: nil)
   }

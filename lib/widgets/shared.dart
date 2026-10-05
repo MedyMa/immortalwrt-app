@@ -1,5 +1,18 @@
 part of '../main.dart';
 
+AnimationStyle? _sheetAnimationStyle(BuildContext context) {
+  if (Theme.of(context).platform != TargetPlatform.iOS) return null;
+  if (MediaQuery.disableAnimationsOf(context)) {
+    return AnimationStyle.noAnimation;
+  }
+  return AnimationStyle(
+    duration: const Duration(milliseconds: 400),
+    reverseDuration: const Duration(milliseconds: 300),
+    curve: Curves.fastEaseInToSlowEaseOut,
+    reverseCurve: Curves.fastEaseInToSlowEaseOut.flipped,
+  );
+}
+
 class _ConnectionSheet extends StatefulWidget {
   const _ConnectionSheet({
     required this.url,
@@ -294,7 +307,7 @@ class _SettingsAction extends StatelessWidget {
         child: CupertinoButton(
           onPressed: onPressed,
           padding: const EdgeInsets.all(12),
-          child: Icon(CupertinoIcons.gear, size: 24, color: _inkOf(context)),
+          child: Icon(CupertinoIcons.gear, size: 20, color: _inkOf(context)),
         ),
       );
     }

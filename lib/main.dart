@@ -572,6 +572,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
     _navigationVisible.value = true;
     final request = await showModalBottomSheet<(String, String, String)>(
       context: context,
+      sheetAnimationStyle: _sheetAnimationStyle(context),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Theme.of(context).platform == TargetPlatform.iOS

@@ -248,6 +248,7 @@ void _showDeviceDetails(
 ) {
   showModalBottomSheet<void>(
     context: context,
+    sheetAnimationStyle: _sheetAnimationStyle(context),
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: Theme.of(context).platform == TargetPlatform.iOS

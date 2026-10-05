@@ -18,8 +18,8 @@ class _IosSettingsButtonState extends State<_IosSettingsButton> {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     child: UiKitView(
       viewType: 'com.medyma.immortalwrt/settings-button',
       onPlatformViewCreated: (id) {
