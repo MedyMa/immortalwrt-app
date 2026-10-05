@@ -312,8 +312,7 @@ class _TemperatureStrip extends StatelessWidget {
 }
 
 String _ppePercentLabel(double percent) {
-  if (percent > 0 && percent < 0.0001) return '<0.0001%';
-  return '${percent.toStringAsFixed(percent > 0 && percent < 0.1 ? 4 : 1)}%';
+  return '${percent.toStringAsFixed(4)}%';
 }
 
 class _PpeCard extends StatelessWidget {
@@ -372,19 +371,34 @@ class _PpeCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  '${table.bound ?? '—'} / ${table.capacity ?? '—'}',
-                  style: TextStyle(fontSize: 12, color: _mutedOf(context)),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '${table.bound ?? '—'} / ${table.capacity ?? '—'}',
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      color: _mutedOf(context),
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  table.usedPercent == null
-                      ? '—'
-                      : _ppePercentLabel(table.usedPercent!),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: offline || unavailable ? _mutedOf(context) : _blue,
+                SizedBox(
+                  width: 84 * MediaQuery.textScalerOf(context).scale(12) / 12,
+                  child: Text(
+                    table.usedPercent == null
+                        ? '—'
+                        : _ppePercentLabel(table.usedPercent!),
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      color: offline || unavailable ? _mutedOf(context) : _blue,
+                    ),
                   ),
                 ),
               ],

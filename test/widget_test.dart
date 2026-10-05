@@ -1267,6 +1267,8 @@ void main() {
           .toList();
       expect(bars, hasLength(3));
       expect(bars[0].value, 0);
+      expect(bars[0].semanticsValue, '0.0000%');
+      expect(find.text('0.0000%'), findsOneWidget);
       final width = tester
           .getSize(find.byType(LinearProgressIndicator).at(1))
           .width;
@@ -1274,10 +1276,73 @@ void main() {
       expect(bars[1].semanticsValue, '0.0061%');
       expect(find.text('0.0061%'), findsOneWidget);
       expect(bars[2].value, 1);
+      expect(bars[2].semanticsValue, '100.0000%');
+      expect(find.text('100.0000%'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+  for (final width in [320.0, 430.0]) {
+    testWidgets('PPE percentage columns stay aligned at width $width', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(430, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _PpeApi(
+              tables: const [
+                PpeTable(index: 0, bound: 0, capacity: 1000000),
+                PpeTable(index: 1, bound: 204993, capacity: 1000000),
+                PpeTable(index: 2, bound: 1000000, capacity: 1000000),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      // Isolate the card from unrelated overview widgets on narrow screens.
+      final card = tester.widget(
+        find.byWidgetPredicate(
+          (widget) => widget.runtimeType.toString() == '_PpeCard',
+        ),
+      );
+      tester.view.physicalSize = Size(width, 900);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Padding(padding: const EdgeInsets.all(18), child: card),
+          ),
+        ),
+      );
+      await tester.pump();
+      final labels = ['0.0000%', '20.4993%', '100.0000%'];
+      final first = tester.getRect(find.text(labels.first));
+      for (final label in labels) {
+        final finder = find.text(label);
+        final rect = tester.getRect(finder);
+        expect(rect.right, closeTo(first.right, 0.01));
+        expect(rect.width, closeTo(first.width, 0.01));
+        final text = tester.widget<Text>(finder);
+        expect(text.textAlign, TextAlign.right);
+        expect(text.style?.fontSize, 12);
+        expect(text.style?.fontWeight, FontWeight.w600);
+        expect(text.style?.fontFeatures?.single.feature, 'tnum');
+      }
+      final bars = tester
+          .widgetList<LinearProgressIndicator>(
+            find.byType(LinearProgressIndicator),
+          )
+          .toList();
+      expect(bars[1].value, closeTo(0.204993, 0.0000001));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
   testWidgets('HNAT card keeps PPE bars without aggregate or footer', (
     tester,
   ) async {
@@ -1293,7 +1358,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('HNAT'), 350);
     expect(find.text('PPE 0'), findsOneWidget);
     expect(find.text('1024 / 8192'), findsOneWidget);
-    expect(find.text('12.5%'), findsOneWidget);
+    expect(find.text('12.5000%'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     expect(find.text('已绑定流表'), findsNothing);
     expect(find.text('流表占用率'), findsNothing);
