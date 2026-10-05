@@ -323,6 +323,29 @@ class _PpeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unavailable = snapshot.ppeError != null || snapshot.ppeTables.isEmpty;
+    final percentageStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      fontFeatures: const [FontFeature.tabularFigures()],
+      color: offline || unavailable ? _mutedOf(context) : _blue,
+    );
+    // Reserve only the widest current percentage, so small values stay compact.
+    var percentageWidth = 0.0;
+    for (final table in snapshot.ppeTables) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: table.usedPercent == null
+              ? '—'
+              : _ppePercentLabel(table.usedPercent!),
+          style: DefaultTextStyle.of(context).style.merge(percentageStyle),
+        ),
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+        locale: Localizations.maybeLocaleOf(context),
+      )..layout();
+      percentageWidth = math.max(percentageWidth, painter.width.ceilToDouble());
+      painter.dispose();
+    }
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -385,20 +408,15 @@ class _PpeCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 SizedBox(
-                  width: 84 * MediaQuery.textScalerOf(context).scale(12) / 12,
+                  width: percentageWidth,
                   child: Text(
                     table.usedPercent == null
                         ? '—'
                         : _ppePercentLabel(table.usedPercent!),
                     textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                      color: offline || unavailable ? _mutedOf(context) : _blue,
-                    ),
+                    style: percentageStyle,
                   ),
                 ),
               ],

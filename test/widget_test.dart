@@ -1320,8 +1320,21 @@ void main() {
         ),
       );
       await tester.pump();
+      final count = tester.getRect(find.text('204993 / 1000000'));
+      final percentage = tester.getRect(find.text('20.4993%'));
+      expect(percentage.left - count.right, closeTo(8, 0.01));
       final labels = ['0.0000%', '20.4993%', '100.0000%'];
       final first = tester.getRect(find.text(labels.first));
+      final longest = tester.renderObject<RenderParagraph>(
+        find.text('100.0000%'),
+      );
+      expect(
+        first.width,
+        closeTo(
+          longest.getMaxIntrinsicWidth(double.infinity).ceilToDouble(),
+          0.01,
+        ),
+      );
       for (final label in labels) {
         final finder = find.text(label);
         final rect = tester.getRect(finder);
