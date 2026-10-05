@@ -145,7 +145,9 @@ class _Overview extends StatelessWidget {
               _InfoRow(
                 icon: Icons.devices_rounded,
                 label: '有流量记录的设备',
-                value: summary == null ? '—' : '${summary.clientCount}',
+                value: summary == null
+                    ? '—'
+                    : '${_DeviceIndex.of(snapshot).rows.where((row) => row.hasTraffic).length}',
                 onTap: () => onOpen(1),
               ),
               const _Hairline(),
@@ -309,6 +311,11 @@ class _TemperatureStrip extends StatelessWidget {
   }
 }
 
+String _ppePercentLabel(double percent) {
+  if (percent > 0 && percent < 0.0001) return '<0.0001%';
+  return '${percent.toStringAsFixed(percent > 0 && percent < 0.1 ? 4 : 1)}%';
+}
+
 class _PpeCard extends StatelessWidget {
   const _PpeCard({required this.snapshot, required this.offline});
   final RouterSnapshot snapshot;
@@ -373,7 +380,7 @@ class _PpeCard extends StatelessWidget {
                 Text(
                   table.usedPercent == null
                       ? '—'
-                      : '${table.usedPercent!.toStringAsFixed(1)}%',
+                      : _ppePercentLabel(table.usedPercent!),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -386,13 +393,26 @@ class _PpeCard extends StatelessWidget {
             if (table.usedPercent != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: table.usedPercent! / 100,
-                  minHeight: 6,
-                  color: offline || unavailable
-                      ? _mutedOf(context)
-                      : _blue.withValues(alpha: 0.65),
-                  backgroundColor: _mutedOf(context).withValues(alpha: 0.1),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final ratio = table.usedPercent! / 100;
+                    // A two-pixel marker distinguishes positive usage from zero.
+                    // Labels and accessibility retain the measured percentage.
+                    final visibleRatio = ratio > 0 && constraints.maxWidth > 0
+                        ? math
+                              .max(ratio, 2 / constraints.maxWidth)
+                              .clamp(0.0, 1.0)
+                        : ratio;
+                    return LinearProgressIndicator(
+                      value: visibleRatio,
+                      semanticsValue: _ppePercentLabel(table.usedPercent!),
+                      minHeight: 6,
+                      color: offline || unavailable
+                          ? _mutedOf(context)
+                          : _blue.withValues(alpha: 0.65),
+                      backgroundColor: _mutedOf(context).withValues(alpha: 0.1),
+                    );
+                  },
                 ),
               ),
           ],

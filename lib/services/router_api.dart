@@ -221,6 +221,9 @@ class RouterApi {
     final specs = switch (section) {
       RouterSection.overview => [
         summary,
+        devices,
+        hints,
+        interfaces,
         live,
         wifi,
         system,

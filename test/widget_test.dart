@@ -227,13 +227,17 @@ class _DeviceIdentityApi extends _HealthyApi {
 }
 
 class _PpeApi extends _FakeRouterApi {
+  _PpeApi({
+    this.tables = const [PpeTable(index: 0, bound: 1024, capacity: 8192)],
+  });
+  final List<PpeTable> tables;
   @override
   Future<RouterSnapshot> fetch({
     RouterSection section = RouterSection.all,
     RouterSnapshot? previous,
   }) async => RouterSnapshot(
     fetchedAt: DateTime.now(),
-    ppeTables: const [PpeTable(index: 0, bound: 1024, capacity: 8192)],
+    ppeTables: tables,
     temperatures: [
       RouterTemperature(
         kind: 'cpu',
@@ -1209,6 +1213,68 @@ void main() {
           findsOneWidget,
         );
       }
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+  testWidgets(
+    'overview counts merged traffic devices and excludes lease-only rows',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _DeviceIdentityApi(dualStack: true),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.scrollUntilVisible(find.text('有流量记录的设备'), 350);
+      final row = find
+          .ancestor(of: find.text('有流量记录的设备'), matching: find.byType(Row))
+          .first;
+      expect(
+        find.descendant(of: row, matching: find.text('1')),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'tiny positive PPE usage is visible but keeps precise actual percentage',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RouterHome(
+            storage: _MemoryStorage(),
+            apiFactory: (_) => _PpeApi(
+              tables: const [
+                PpeTable(index: 0, bound: 0, capacity: 32768),
+                PpeTable(index: 1, bound: 2, capacity: 32768),
+                PpeTable(index: 2, bound: 32768, capacity: 32768),
+                PpeTable(index: 3, bound: 2),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.scrollUntilVisible(find.text('PPE 2'), 200);
+      final bars = tester
+          .widgetList<LinearProgressIndicator>(
+            find.byType(LinearProgressIndicator),
+          )
+          .toList();
+      expect(bars, hasLength(3));
+      expect(bars[0].value, 0);
+      final width = tester
+          .getSize(find.byType(LinearProgressIndicator).at(1))
+          .width;
+      expect(bars[1].value! * width, closeTo(2, 0.001));
+      expect(bars[1].semanticsValue, '0.0061%');
+      expect(find.text('0.0061%'), findsOneWidget);
+      expect(bars[2].value, 1);
+      expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );

@@ -607,6 +607,9 @@ void main() {
       await api.login('u', 'p');
       final first = await api.fetch(section: RouterSection.overview);
       expect(methods, isNot(contains('luci.traffic.getSeries')));
+      expect(methods, contains('luci-rpc.getHostHints'));
+      expect(methods, contains('luci-rpc.getDHCPLeases'));
+      expect(methods, contains('network.interface.dump'));
       expect(first.memory?.usedPercent, 70);
       expect(first.cpuUsagePercent, 70);
       expect(first.sfpPorts.single.speedMbps, 10000);
