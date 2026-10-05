@@ -3,6 +3,94 @@ import 'package:immortalwrt_app/models/router_models.dart';
 import 'package:immortalwrt_app/models/device_record.dart';
 
 void main() {
+  test('failed own-address refresh cannot exclude a reassigned client', () {
+    final rows = DeviceRecord.fromSnapshot(
+      RouterSnapshot(
+        fetchedAt: DateTime.now(),
+        localAddressesError: 'denied',
+        localAddresses: const ['fd00::1'],
+        summary: TrafficSummary.fromJson({
+          'clients': [
+            {'ip': 'fd00::1', 'bytes': 100},
+          ],
+        }),
+      ),
+    );
+    expect(rows, hasLength(1));
+    expect(rows.single.bytes, 100);
+  });
+  test(
+    'router own addresses are excluded exactly without hiding delegated clients',
+    () {
+      final local = RouterAddresses.parseAll({
+        'interface': [
+          {
+            'up': true,
+            'ipv4-address': [
+              {'address': '192.168.2.1'},
+            ],
+            'ipv6-address': [
+              {'address': 'fdc8:64ed:f962:10::1'},
+            ],
+            'ipv6-prefix-assignment': [
+              {
+                'address': 'fdc8:64ed:f962:11::',
+                'local-address': {'address': 'fdc8:64ed:f962:11::1'},
+              },
+            ],
+            'inactive': {
+              'ipv6-address': [
+                {'address': 'fdc8:64ed:f962::d1c'},
+              ],
+            },
+          },
+          {
+            'up': false,
+            'ipv6-address': [
+              {'address': 'fdc8:64ed:f962:4::'},
+            ],
+          },
+        ],
+      });
+      expect(local, [
+        '192.168.2.1',
+        'fdc8:64ed:f962:10::1',
+        'fdc8:64ed:f962:11::1',
+      ]);
+      final rows = DeviceRecord.fromSnapshot(
+        RouterSnapshot(
+          fetchedAt: DateTime.now(),
+          localAddresses: local,
+          hostHints: const [
+            HostHint(
+              mac: '16:E5:78:5C:98:86',
+              name: 'ImmortalWrt',
+              addresses: ['192.168.2.1'],
+            ),
+          ],
+          dhcpDevices: const [
+            DhcpDevice(
+              ip: '192.168.2.1',
+              name: 'self',
+              mac: '16:E5:78:5C:98:86',
+            ),
+          ],
+          summary: TrafficSummary.fromJson({
+            'clients': [
+              {'ip': '192.168.2.1', 'bytes': 5},
+              {'ip': 'fdc8:64ed:f962:0010:0000:0000:0000:0001', 'bytes': 7247},
+              {'ip': 'fdc8:64ed:f962:0011:0000:0000:0000:0001', 'bytes': 184},
+              {'ip': 'fdc8:64ed:f962:10::2', 'bytes': 10},
+              {'ip': 'fdc8:64ed:f962:4::', 'bytes': 20},
+              {'ip': 'fdc8:64ed:f962::d1c', 'bytes': 30},
+            ],
+          }),
+        ),
+      );
+      expect(rows, hasLength(3));
+      expect(rows.map((r) => r.bytes).reduce((a, b) => a! + b!), 60);
+    },
+  );
   test('MT7988 AX9000 DHCPv4 DHCPv6 and host hints form one MAC record', () {
     const routerMac = '64:64:4A:5A:75:25';
     final rows = DeviceRecord.fromSnapshot(

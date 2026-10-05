@@ -86,6 +86,10 @@ class _Devices extends StatelessWidget {
           const SizedBox(height: 10),
           _Notice('地址归属信息暂不可用，未确认的地址单独显示。', Icons.info_outline_rounded),
         ],
+        if (snapshot.localAddressesError != null) ...[
+          const SizedBox(height: 10),
+          _Notice('路由器自身地址暂不可用，设备记录可能包含路由器流量。', Icons.info_outline_rounded),
+        ],
         if (snapshot.devicesError != null) ...[
           const SizedBox(height: 10),
           _Notice(

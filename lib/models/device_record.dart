@@ -39,6 +39,13 @@ class DeviceRecord {
   List<String> get ipv6 => addresses.where((a) => a.contains(':')).toList();
 
   static List<DeviceRecord> fromSnapshot(RouterSnapshot snapshot) {
+    final local =
+        (snapshot.localAddressesError == null
+                ? snapshot.localAddresses
+                : <String>[])
+            .map(_addressKey)
+            .whereType<String>()
+            .toSet();
     final leases = snapshot.devicesError == null
         ? snapshot.dhcpDevices
         : <DhcpDevice>[];
@@ -70,7 +77,10 @@ class DeviceRecord {
     }
 
     for (final lease in leases) {
-      if (_addressKey(lease.ip) == null) continue;
+      if (_addressKey(lease.ip) == null ||
+          local.contains(_addressKey(lease.ip))) {
+        continue;
+      }
       final builder = record(lease.ip, lease.mac);
       builder.add(lease.ip);
       builder.setName(lease.name);
@@ -80,7 +90,7 @@ class DeviceRecord {
     final clients = <String, TrafficClient>{};
     for (final client in snapshot.summary?.clients ?? <TrafficClient>[]) {
       final key = _addressKey(client.ip);
-      if (key == null) continue;
+      if (key == null || local.contains(key)) continue;
       final old = clients[key];
       if (old == null || client.bytes > old.bytes) clients[key] = client;
     }
@@ -99,7 +109,7 @@ class DeviceRecord {
       builder.setName(hint.name);
       for (final ip in hint.addresses) {
         final key = _addressKey(ip);
-        if (key != null && owners[key]?.length == 1) {
+        if (key != null && !local.contains(key) && owners[key]?.length == 1) {
           builder.add(ip);
           builder.hasHint = true;
         }

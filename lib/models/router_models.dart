@@ -62,6 +62,32 @@ class DhcpDevice {
   }
 }
 
+/// Exact, currently assigned router addresses; delegated prefixes are not IPs.
+abstract final class RouterAddresses {
+  static List<String> parseAll(Object? value) {
+    final addresses = <String>{};
+    void add(Object? value) {
+      if (value is String && value.isNotEmpty) {
+        addresses.add(value.split('/').first);
+      }
+    }
+
+    for (final raw in _list(_map(value)['interface'])) {
+      final item = _map(raw);
+      if (item['up'] != true) continue;
+      for (final key in ['ipv4-address', 'ipv6-address']) {
+        for (final address in _list(item[key])) {
+          add(_map(address)['address']);
+        }
+      }
+      for (final prefix in _list(item['ipv6-prefix-assignment'])) {
+        add(_map(_map(prefix)['local-address'])['address']);
+      }
+    }
+    return addresses.toList();
+  }
+}
+
 class HostHint {
   const HostHint({
     required this.mac,
@@ -607,6 +633,8 @@ class RouterSnapshot {
     this.dhcpDevices = const [],
     this.hostHints = const [],
     this.hostHintsError,
+    this.localAddresses = const [],
+    this.localAddressesError,
     this.uptimeSeconds,
     this.memory,
     this.cpuCounters,
@@ -638,6 +666,8 @@ class RouterSnapshot {
   final List<DhcpDevice> dhcpDevices;
   final List<HostHint> hostHints;
   final String? hostHintsError;
+  final List<String> localAddresses;
+  final String? localAddressesError;
   final int? uptimeSeconds;
   final RouterMemory? memory;
   final CpuCounters? cpuCounters;

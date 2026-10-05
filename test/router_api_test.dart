@@ -9,6 +9,67 @@ import 'package:immortalwrt_app/services/router_api.dart';
 
 void main() {
   test(
+    'own addresses are device-only and discarded after optional read denial',
+    () async {
+      var denied = false;
+      final methods = <String>[];
+      final api = RouterApi(
+        Uri.parse('https://router.example.com'),
+        client: MockClient((request) async {
+          final p = (jsonDecode(request.body) as Map)['params'] as List;
+          methods.add('${p[1]}.${p[2]}');
+          if (p[2] == 'login') {
+            return http.Response(
+              '{"result":[0,{"ubus_rpc_session":"s"}]}',
+              200,
+            );
+          }
+          if (p[1] == 'network.interface') {
+            return http.Response(
+              jsonEncode({
+                'result': denied
+                    ? [6]
+                    : [
+                        0,
+                        {
+                          'interface': [
+                            {
+                              'up': true,
+                              'ipv6-address': [
+                                {'address': 'fdc8:64ed:f962:10::1'},
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+              }),
+              200,
+            );
+          }
+          return http.Response('{"result":[0,{}]}', 200);
+        }),
+      );
+      await api.login('u', 'p');
+      final devices = await api.fetch(section: RouterSection.devices);
+      expect(devices.localAddresses, ['fdc8:64ed:f962:10::1']);
+      methods.clear();
+      final live = await api.fetch(
+        section: RouterSection.live,
+        previous: devices,
+      );
+      expect(methods, ['luci.traffic.getLive']);
+      expect(live.localAddresses, devices.localAddresses);
+      denied = true;
+      final failed = await api.fetch(
+        section: RouterSection.devices,
+        previous: live,
+      );
+      expect(failed.localAddresses, isEmpty);
+      expect(failed.localAddressesError, isNotNull);
+      expect(failed.summary, isNotNull);
+    },
+  );
+  test(
     'device hints parse MAC groups and discard stale mappings on failure',
     () async {
       var denied = false;
@@ -332,9 +393,10 @@ void main() {
         'luci.traffic.getSummary',
         'luci-rpc.getDHCPLeases',
         'luci-rpc.getHostHints',
+        'network.interface.dump',
       ]),
     );
-    expect(methods, hasLength(3));
+    expect(methods, hasLength(4));
   });
 
   test('expired session is distinguishable from missing method', () async {
