@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -181,6 +182,80 @@ class RouterApi {
     _lastSessionActivity = _clock();
   }
 
+  Future<Map<String, dynamic>> _readHistory(int hours) async {
+    var cursor = '';
+    var offset = 0;
+    int? total;
+    final bytes = BytesBuilder(copy: false);
+    while (true) {
+      Map<String, dynamic> part;
+      try {
+        part = await _call('luci.traffic', 'getHourlyChunk', {
+          'hours': hours,
+          'cursor': cursor,
+          'offset': offset,
+        });
+      } on RouterApiException catch (error) {
+        if (offset == 0 &&
+            (error is RouterMethodUnavailableException ||
+                error is RouterPermissionException)) {
+          final legacy = await _call('luci.traffic', 'getHourly', {
+            'hours': hours,
+          });
+          if (legacy['error'] is String) {
+            throw RouterApiException('历史读取失败：${legacy['error']}');
+          }
+          return legacy;
+        }
+        rethrow;
+      }
+      if (part['error'] is String) {
+        throw RouterApiException('历史分块读取失败：${part['error']}');
+      }
+      final nextCursor = part['cursor'];
+      final length = part['total'];
+      final encoded = part['data'];
+      if (nextCursor is! String ||
+          nextCursor.isEmpty ||
+          (cursor.isNotEmpty && nextCursor != cursor) ||
+          part['offset'] != offset ||
+          length is! int ||
+          length < 1 ||
+          length > 67108864 ||
+          (total != null && length != total) ||
+          encoded is! String ||
+          encoded.length > 43692 ||
+          part['done'] is! bool) {
+        throw const RouterApiException('历史分块响应无效');
+      }
+      try {
+        final chunk = base64Decode(encoded);
+        final end = offset + chunk.length;
+        if (chunk.isEmpty ||
+            chunk.length > 32768 ||
+            part['next'] != end ||
+            end > length ||
+            part['done'] != (end == length) ||
+            (part['done'] == false && chunk.length != 32768)) {
+          throw const RouterApiException('历史分块数据不完整');
+        }
+        bytes.add(chunk);
+        cursor = nextCursor;
+        total = length;
+        offset = end;
+        if (part['done'] == true) {
+          final result = jsonDecode(utf8.decode(bytes.takeBytes()));
+          if (result is! Map || result['hours'] is! List) {
+            throw const RouterApiException('历史分块快照无效');
+          }
+          return result.map((key, value) => MapEntry('$key', value));
+        }
+      } on FormatException {
+        throw const RouterApiException('历史分块编码无效');
+      }
+    }
+  }
+
   Future<RouterSnapshot> fetch({
     RouterSection section = RouterSection.all,
     RouterSnapshot? previous,
@@ -251,7 +326,10 @@ class RouterApi {
     };
     Future<_ReadResult> safe(_ReadSpec spec) async {
       try {
-        final result = await _call(spec.object, spec.method, spec.args);
+        final result =
+            spec.object == 'luci.traffic' && spec.method == 'getHourly'
+            ? await _readHistory(spec.args['hours'] as int)
+            : await _call(spec.object, spec.method, spec.args);
         if (result['error'] is String) {
           throw RouterApiException(
             '${spec.object}.${spec.method}: ${result['error']}',

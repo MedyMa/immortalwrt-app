@@ -109,6 +109,14 @@ void main() {
         client: MockClient((request) async {
           final params = (jsonDecode(request.body) as Map)['params'] as List;
           calls.add(params);
+          if (params[2] == 'getHourlyChunk') {
+            return http.Response(
+              jsonEncode({
+                'result': [4],
+              }),
+              200,
+            );
+          }
           return http.Response(
             jsonEncode({
               'result': [

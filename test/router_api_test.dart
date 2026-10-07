@@ -8,6 +8,68 @@ import 'package:immortalwrt_app/models/router_models.dart';
 import 'package:immortalwrt_app/services/router_api.dart';
 
 void main() {
+  for (final broken in [false, true]) {
+    test(
+      'history chunks preserve UTF-8 and reject missing bytes: $broken',
+      () async {
+        final name = List.filled(10000, '网站').join();
+        final at = DateTime.now().toIso8601String().substring(0, 13);
+        final bytes = utf8.encode(
+          jsonEncode({
+            'hours': [
+              {
+                'hour': at,
+                'apps': [
+                  {'name': name, 'down': 1024, 'up': 0},
+                ],
+                'iface': {'down': 2048, 'up': 0},
+                'clients': [],
+              },
+            ],
+          }),
+        );
+        var chunks = 0;
+        final api = RouterApi(
+          Uri.parse('https://router.example.com'),
+          client: MockClient((request) async {
+            final p = (jsonDecode(request.body) as Map)['params'] as List;
+            Map<String, dynamic> data = {};
+            if (p[2] == 'login') data = {'ubus_rpc_session': 's'};
+            if (p[2] == 'getHourlyChunk') {
+              chunks++;
+              final args = p[3] as Map;
+              final offset = args['offset'] as int;
+              final end = (offset + 32768).clamp(0, bytes.length);
+              data = {
+                'cursor': 'token',
+                'offset': offset,
+                'next': broken ? end + 1 : end,
+                'total': bytes.length,
+                'done': end == bytes.length,
+                'data': base64Encode(bytes.sublist(offset, end)),
+              };
+            }
+            return http.Response(
+              jsonEncode({
+                'result': [0, data],
+              }),
+              200,
+            );
+          }),
+        );
+        await api.login('root', 'p');
+        final snapshot = await api.fetch(section: RouterSection.traffic);
+        if (broken) {
+          expect(snapshot.windowError, contains('分块'));
+        } else {
+          expect(chunks, greaterThan(1));
+          expect(snapshot.windowError, isNull);
+          expect(snapshot.trafficWindow!.apps.single.name, name);
+          expect(snapshot.trafficWindow!.headlineDown, 2048);
+        }
+      },
+    );
+  }
   test(
     'own addresses are device-only and discarded after optional read denial',
     () async {
@@ -446,6 +508,14 @@ void main() {
             200,
           );
         }
+        if (params[2] == 'getHourlyChunk') {
+          return http.Response(
+            jsonEncode({
+              'result': [4],
+            }),
+            200,
+          );
+        }
         if (params[2] == 'getSeries') {
           return http.Response(
             jsonEncode({
@@ -516,6 +586,14 @@ void main() {
                 0,
                 {'ubus_rpc_session': 's'},
               ],
+            }),
+            200,
+          );
+        }
+        if (params[2] == 'getHourlyChunk') {
+          return http.Response(
+            jsonEncode({
+              'result': [4],
             }),
             200,
           );
