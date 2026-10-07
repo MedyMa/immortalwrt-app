@@ -723,6 +723,7 @@ class _RouterHomeState extends State<RouterHome> with WidgetsBindingObserver {
                                   const _Notice(
                                     '正在核对数据 · 下方是上次成功读取的状态',
                                     Icons.sync_rounded,
+                                    loading: true,
                                   ),
                                 if (_tab == 0)
                                   _Overview(

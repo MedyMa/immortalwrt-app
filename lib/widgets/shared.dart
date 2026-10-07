@@ -488,11 +488,17 @@ class _InfoRow extends StatelessWidget {
 
 /// Explicit warning / unavailable banner. Never silently hides a failure.
 class _Notice extends StatelessWidget {
-  const _Notice(this.message, this.icon, {this.tone = _amber});
+  const _Notice(
+    this.message,
+    this.icon, {
+    this.tone = _amber,
+    this.loading = false,
+  });
 
   final String message;
   final IconData icon;
   final Color tone;
+  final bool loading;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -510,7 +516,9 @@ class _Notice extends StatelessWidget {
               color: tone.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 17, color: tone),
+            child: loading && Theme.of(context).platform == TargetPlatform.iOS
+                ? const CupertinoActivityIndicator(radius: 8.5)
+                : Icon(icon, size: 17, color: tone),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -631,7 +639,10 @@ class _EmptyConnection extends StatelessWidget {
             if (loading)
               Column(
                 children: [
-                  const CircularProgressIndicator(),
+                  if (Theme.of(context).platform == TargetPlatform.iOS)
+                    const CupertinoActivityIndicator(radius: 14)
+                  else
+                    const CircularProgressIndicator(),
                   const SizedBox(height: 12),
                   Text('正在读取路由器状态…', style: _bodyStyle(context)),
                 ],

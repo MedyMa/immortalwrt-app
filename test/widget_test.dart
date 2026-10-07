@@ -362,6 +362,69 @@ class _WifiApi extends _FakeRouterApi {
 }
 
 void main() {
+  for (final brightness in Brightness.values) {
+    testWidgets('iOS $brightness initial loading uses Apple indicator', (
+      tester,
+    ) async {
+      final api = _PullRefreshApi()..gate = Completer<RouterSnapshot>();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(
+            platform: TargetPlatform.iOS,
+            brightness: brightness,
+          ),
+          home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+        ),
+      );
+      await tester.pump();
+      expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      await api.release();
+      await tester.pumpAndSettle();
+      expect(find.byType(CupertinoActivityIndicator), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+  testWidgets('Android initial loading retains Material indicator', (
+    tester,
+  ) async {
+    final api = _PullRefreshApi()..gate = Completer<RouterSnapshot>();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.android),
+        home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(CupertinoActivityIndicator), findsNothing);
+    await api.release();
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+  for (final page in ['设备', 'Wi-Fi', '流量']) {
+    testWidgets('iOS $page data recheck uses Apple indicator', (tester) async {
+      final api = _PullRefreshApi();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.iOS),
+          home: RouterHome(storage: _MemoryStorage(), apiFactory: (_) => api),
+        ),
+      );
+      await tester.pumpAndSettle();
+      api.gate = Completer<RouterSnapshot>();
+      await tester.tap(find.text(page).last);
+      await tester.pump();
+      expect(find.text('正在核对数据 · 下方是上次成功读取的状态'), findsOneWidget);
+      expect(find.byType(CupertinoActivityIndicator), findsOneWidget);
+      expect(find.byIcon(Icons.sync_rounded), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      await api.release();
+      await tester.pumpAndSettle();
+      expect(find.byType(CupertinoActivityIndicator), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
   for (final page in ['总览', '设备', 'Wi-Fi', '流量']) {
     testWidgets(
       'iOS $page uses native pull refresh and completes the gesture',
