@@ -24,7 +24,49 @@ Map<String, Object?> statusData() => {
   },
 };
 
+Map<String, Object?> usageData() => {
+  'schema': 1,
+  'available': true,
+  'unit': 'mean_core_busy_percent',
+  'coverage': 'complete',
+  'percent_milli': 12400,
+  'core_count': 5,
+};
+
 void main() {
+  test('firmware usage is bounded and never inferred from readiness', () {
+    expect(NpuStatus.tryParse(usageData())!.utilizationPercent, 12.4);
+    expect(
+      NpuStatus.tryParse({
+        ...usageData(),
+        'percent_milli': 0,
+      })!.utilizationPercent,
+      0,
+    );
+    expect(
+      NpuStatus.tryParse({
+        ...usageData(),
+        'percent_milli': 100000,
+      })!.utilizationPercent,
+      100,
+    );
+    expect(NpuStatus.tryParse(statusData())!.utilizationPercent, isNull);
+    for (final invalid in [
+      {'percent_milli': -1},
+      {'percent_milli': 100001},
+      {'percent_milli': '12400'},
+      {'percent_milli': 12400.0},
+      {'percent_milli': double.nan},
+      {'schema': 1.0},
+      {'unit': 'tunnel_occupancy'},
+      {'available': false},
+      {'core_count': 4},
+      {'core_count': 5.0},
+      {'coverage': 'partial'},
+    ]) {
+      expect(NpuStatus.tryParse({...usageData(), ...invalid}), isNull);
+    }
+  });
   test('readiness does not prove hardware forwarding', () {
     final status = NpuStatus.tryParse(statusData())!;
     expect(status.ready, true);
@@ -69,8 +111,8 @@ void main() {
           methods.add('${params[1]}.${params[2]}');
           final data = params[2] == 'login'
               ? {'ubus_rpc_session': 'token', 'timeout': 0}
-              : params[2] == 'getNpuStatus'
-              ? statusData()
+              : params[2] == 'getNpuUsage'
+              ? usageData()
               : <String, Object?>{};
           return http.Response(
             jsonEncode({
@@ -82,9 +124,9 @@ void main() {
       );
       await api.login('u', 'p');
       final first = await api.fetch(section: RouterSection.overview);
-      expect(first.npu!.ready, true);
-      expect(methods.where((s) => s.endsWith('.getNpuStatus')), [
-        'router.status.getNpuStatus',
+      expect(first.npu!.utilizationPercent, 12.4);
+      expect(methods.where((s) => s.endsWith('.getNpuUsage')), [
+        'router.status.getNpuUsage',
       ]);
       methods.clear();
       now = now.add(const Duration(seconds: 5));
@@ -92,7 +134,7 @@ void main() {
         section: RouterSection.overview,
         previous: first,
       );
-      expect(methods.any((s) => s.endsWith('.getNpuStatus')), false);
+      expect(methods.any((s) => s.endsWith('.getNpuUsage')), false);
       expect(second.npu, same(first.npu));
       methods.clear();
       await api.fetch(section: RouterSection.live, previous: second);
@@ -100,7 +142,7 @@ void main() {
       methods.clear();
       now = now.add(const Duration(seconds: 30));
       await api.fetch(section: RouterSection.overview, previous: second);
-      expect(methods.where((s) => s.endsWith('.getNpuStatus')).length, 1);
+      expect(methods.where((s) => s.endsWith('.getNpuUsage')).length, 1);
       api.close();
     },
   );
@@ -112,12 +154,12 @@ void main() {
           Uri.parse('http://192.168.2.1'),
           client: MockClient((r) async {
             final p = (jsonDecode(r.body) as Map)['params'] as List;
-            if (p[2] == 'getNpuStatus' && missingMethod) {
+            if (p[2] == 'getNpuUsage' && missingMethod) {
               return http.Response('{"result":[4]}', 200);
             }
             final data = p[2] == 'login'
                 ? {'ubus_rpc_session': 'token'}
-                : p[2] == 'getNpuStatus'
+                : p[2] == 'getNpuUsage'
                 ? {'available': false, 'coverage': 'provider_missing'}
                 : p[2] == 'info'
                 ? {'uptime': 123}
@@ -142,13 +184,13 @@ void main() {
   test(
     'failed refresh retains a stale snapshot without claiming a new observation',
     () async {
-      final old = NpuStatus.tryParse(statusData())!;
+      final old = NpuStatus.tryParse(usageData())!;
       final lastRead = DateTime(2026, 10, 26);
       final api = RouterApi(
         Uri.parse('http://192.168.2.1'),
         client: MockClient((r) async {
           final p = (jsonDecode(r.body) as Map)['params'] as List;
-          if (p[2] == 'getNpuStatus') {
+          if (p[2] == 'getNpuUsage') {
             return http.Response('{"result":[6]}', 200);
           }
           return http.Response(

@@ -125,7 +125,7 @@ class _Overview extends StatelessWidget {
               const _Hairline(),
               _InfoRow(
                 icon: Icons.hub_outlined,
-                label: 'NPU 使用状态',
+                label: 'NPU 使用率',
                 value: _npuUsageLabel(snapshot, offline),
               ),
               const _Hairline(),
@@ -322,15 +322,15 @@ String _ppePercentLabel(double percent) {
 }
 
 String _npuUsageLabel(RouterSnapshot snapshot, bool offline) {
-  final status = snapshot.npu;
-  if (offline || snapshot.npuError != null) {
-    return status == null ? '不可用' : '状态已过期';
-  }
-  if (status == null) return '未提供';
-  if (!status.present) return '未加载';
-  if (!status.readable) return '读取失败';
-  if (!status.ready) return '未就绪';
-  return status.packetForwardingVerified ? '收发已验证' : '已就绪 · 待验证';
+  final percent = snapshot.npu?.utilizationPercent;
+  if (offline ||
+      snapshot.npuError != null ||
+      percent == null ||
+      !percent.isFinite ||
+      percent < 0 ||
+      percent > 100)
+    return '—';
+  return '${percent.toStringAsFixed(1)}%';
 }
 
 class _PpeCard extends StatelessWidget {

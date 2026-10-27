@@ -285,7 +285,7 @@ class RouterApi {
     const metrics = _ReadSpec('metrics', 'router.status', 'getSystemMetrics');
     const sfp = _ReadSpec('sfp', 'luci.sfp-status', 'getStatuses');
     const ppe = _ReadSpec('ppe', 'luci.turboacc', 'getMTKPPEStat');
-    const npu = _ReadSpec('npu', 'router.status', 'getNpuStatus');
+    const npu = _ReadSpec('npu', 'router.status', 'getNpuUsage');
     final lastNpuAttempt = previous?.npuAttemptedAt ?? previous?.npuFetchedAt;
     final readNpu =
         lastNpuAttempt == null ||
@@ -342,11 +342,12 @@ class RouterApi {
             '${spec.object}.${spec.method}: ${result['error']}',
           );
         }
-        if (spec.key == 'npu' && NpuStatus.tryParse(result) == null) {
+        if (spec.key == 'npu' &&
+            NpuStatus.tryParse(result)?.utilizationPercent == null) {
           throw RouterApiException(
             result['coverage'] == 'provider_missing'
-                ? '未安装 NPU 状态组件 mtk-tops-accounting'
-                : 'NPU 状态暂时不可用，请检查状态组件或读取权限',
+                ? '未安装 NPU 使用率组件 mtk-tops-accounting'
+                : 'NPU 使用率暂时不可用',
           );
         }
         return _ReadResult(spec.key, result, null);

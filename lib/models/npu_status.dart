@@ -1,4 +1,5 @@
-/// Passive NPU state only. Readiness does not prove hardware traffic activity.
+/// Firmware core-busy utilization plus legacy state parsing for older callers.
+/// Readiness and tunnel occupancy are never substituted for utilization.
 class NpuStatus {
   const NpuStatus({
     required this.present,
@@ -6,6 +7,7 @@ class NpuStatus {
     required this.firmwareReady,
     required this.mcuAlive,
     this.packetForwardingVerified = false,
+    this.utilizationPercent,
   });
 
   final bool present;
@@ -13,10 +15,31 @@ class NpuStatus {
   final bool firmwareReady;
   final bool mcuAlive;
   final bool packetForwardingVerified;
+  final double? utilizationPercent;
 
   bool get ready => present && readable && firmwareReady && mcuAlive;
 
   static NpuStatus? tryParse(Object? value) {
+    if (value is Map && value['schema'] is int && value['schema'] == 1) {
+      final milli = value['percent_milli'];
+      if (value['available'] != true ||
+          value['unit'] != 'mean_core_busy_percent' ||
+          value['coverage'] != 'complete' ||
+          value['core_count'] is! int ||
+          value['core_count'] != 5 ||
+          milli is! int ||
+          milli < 0 ||
+          milli > 100000) {
+        return null;
+      }
+      return NpuStatus(
+        present: true,
+        readable: true,
+        firmwareReady: false,
+        mcuAlive: false,
+        utilizationPercent: milli / 1000,
+      );
+    }
     if (value is! Map ||
         !const [2, 3].contains(value['schema']) ||
         value['npu'] is! Map) {

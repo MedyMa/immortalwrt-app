@@ -38,6 +38,7 @@ class _NpuApi extends RouterApi {
       readable: true,
       firmwareReady: true,
       mcuAlive: true,
+      utilizationPercent: 12.4,
     ),
     npuError: stale ? 'NPU 状态读取失败' : null,
   );
@@ -65,12 +66,11 @@ void main() {
           ),
         );
         await tester.pump();
-        await tester.scrollUntilVisible(
-          find.text(stale ? '状态已过期' : '已就绪 · 待验证'),
-          250,
-        );
-        expect(find.text('NPU 使用状态'), findsOneWidget);
-        expect(find.text('已就绪 · 待验证'), stale ? findsNothing : findsOneWidget);
+        await tester.scrollUntilVisible(find.text('NPU 使用率'), 250);
+        expect(find.text('NPU 使用率'), findsOneWidget);
+        expect(find.text('12.4%'), stale ? findsNothing : findsOneWidget);
+        expect(find.text('NPU 使用状态'), findsNothing);
+        expect(find.text('已就绪 · 待验证'), findsNothing);
         expect(find.text('收发已验证'), findsNothing);
         expect(find.text('已注册协议'), findsNothing);
         expect(find.text('参数已同步'), findsNothing);
