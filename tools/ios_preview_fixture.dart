@@ -4,6 +4,12 @@ RouterSnapshot previewSnapshot() {
   final now = DateTime(2026, 10, 1, 10, 41);
   return RouterSnapshot(
     fetchedAt: now,
+    npu: const NpuStatus(
+      present: true,
+      readable: true,
+      firmwareReady: true,
+      mcuAlive: true,
+    ),
     hostHints: const [
       HostHint(
         mac: 'aa:bb:cc:00:01:14',

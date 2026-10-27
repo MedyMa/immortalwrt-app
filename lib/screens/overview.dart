@@ -123,6 +123,12 @@ class _Overview extends StatelessWidget {
                     : '${snapshot.memory!.usedPercent.toStringAsFixed(0)}%',
               ),
               const _Hairline(),
+              _InfoRow(
+                icon: Icons.hub_outlined,
+                label: 'NPU 使用状态',
+                value: _npuUsageLabel(snapshot, offline),
+              ),
+              const _Hairline(),
               for (final port in snapshot.sfpPorts) ...[
                 _InfoRow(
                   icon: Icons.settings_ethernet_rounded,
@@ -313,6 +319,18 @@ class _TemperatureStrip extends StatelessWidget {
 
 String _ppePercentLabel(double percent) {
   return '${percent.toStringAsFixed(4)}%';
+}
+
+String _npuUsageLabel(RouterSnapshot snapshot, bool offline) {
+  final status = snapshot.npu;
+  if (offline || snapshot.npuError != null) {
+    return status == null ? '不可用' : '状态已过期';
+  }
+  if (status == null) return '未提供';
+  if (!status.present) return '未加载';
+  if (!status.readable) return '读取失败';
+  if (!status.ready) return '未就绪';
+  return status.packetForwardingVerified ? '收发已验证' : '已就绪 · 待验证';
 }
 
 class _PpeCard extends StatelessWidget {

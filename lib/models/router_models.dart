@@ -1,3 +1,6 @@
+import 'npu_status.dart';
+export 'npu_status.dart';
+
 int _number(Object? value) =>
     value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 
@@ -651,6 +654,10 @@ class RouterSnapshot {
     this.sfpError,
     this.ppeTables = const [],
     this.ppeError,
+    this.npu,
+    this.npuError,
+    this.npuFetchedAt,
+    this.npuAttemptedAt,
     this.temperatures = const [],
   });
   final DateTime fetchedAt;
@@ -684,6 +691,10 @@ class RouterSnapshot {
   final String? sfpError;
   final List<PpeTable> ppeTables;
   final String? ppeError;
+  final NpuStatus? npu;
+  final String? npuError;
+  final DateTime? npuFetchedAt;
+  final DateTime? npuAttemptedAt;
   final List<RouterTemperature> temperatures;
 }
 

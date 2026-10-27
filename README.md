@@ -12,8 +12,11 @@
 | `luci-app-traffic` | 实时速率、流量记录、最近 24 小时曲线与应用图标 | 推荐 1.1.7 或更新版本 |
 | `luci-app-sfp-status` | SFP 链路、速率与模块温度 | 提供 `luci.sfp-status.getStatuses` |
 | turboacc | HNAT / PPE 已绑定流表与占用率 | 提供 `luci.turboacc.getMTKPPEStat` |
+| `mtk-tops-accounting`（可选） | NPU / TOPS 固件与隧道参数状态 | 0.1-r3 或更新版本，配合 `rpcd-mod-router-status` 0.1.3 的 `getNpuStatus` |
 
 以上组件分工独立。Wi-Fi 和 CPU 不通过 Traffic App 读取；缺少某一组件时，相应区域显示不可用，其他数据仍可读取。
+
+NPU 状态同样从独立的 `router.status` 读取，最多每 30 秒更新一次；每秒实时速率刷新不会重复读取 NPU。总览仅显示一行「NPU 使用状态」，不展示协议、隧道列表或参数计数。状态区分未加载、未就绪和就绪待验证；固件就绪不等于硬件正在收发。刷新失败会明确标注旧快照；TOPS 事件不计入流量字节。该页面不会开启加速、创建隧道或修改路由器设置。
 
 **固件选择、软件包格式、安装步骤及接口检查见 [配套固件与安装说明](#配套固件与安装详情)。** 小米 AX9000 是设备列表中的下游设备，不是手机 App 必须搭配的固件，也不接入 MiWiFi 管理接口。
 
