@@ -328,8 +328,9 @@ String _npuUsageLabel(RouterSnapshot snapshot, bool offline) {
       percent == null ||
       !percent.isFinite ||
       percent < 0 ||
-      percent > 100)
+      percent > 100) {
     return '—';
+  }
   return '${percent.toStringAsFixed(1)}%';
 }
 
