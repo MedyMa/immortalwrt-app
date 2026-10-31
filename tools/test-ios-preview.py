@@ -23,6 +23,10 @@ prepare = load("prepare-ios-preview")
 render = load("render-ios-preview")
 
 
+def simctl_action(args):
+    return args[2] if args[:2] == ["xcrun", "simctl"] else None
+
+
 def png(path, pixel, method=0):
     width = height = 128
     rows, previous = [], bytearray(width * 3)
@@ -168,12 +172,17 @@ class RenderTests(unittest.TestCase):
         (container / "Documents").mkdir(parents=True)
         def fake(args, **kwargs):
             calls.append(args)
-            action = args[2]
+            if args[0] == "xcode-select":
+                return subprocess.CompletedProcess(args, 0, b"/Applications/Xcode.app/Contents/Developer\n")
+            if args[0] == "open":
+                return subprocess.CompletedProcess(args, 0)
+            action = simctl_action(args)
             if action == "list":
                 data = {"devices": {"com.apple.CoreSimulator.SimRuntime.iOS-27-0":
-                                    [{"name": "iPhone 17", "udid": "template"}]}}
+                                    [{"name": "iPhone 17", "udid": "template",
+                                      "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17"}]}}
                 return subprocess.CompletedProcess(args, 0, json.dumps(data).encode())
-            if action == "clone":
+            if action == "create":
                 return subprocess.CompletedProcess(args, 0, b"isolated-device\n")
             if action == "boot" and failure == "startup":
                 raise subprocess.TimeoutExpired(args, 60)
@@ -200,12 +209,20 @@ class RenderTests(unittest.TestCase):
             with patch.object(render, "run", side_effect=fake):
                 render.render(out)
             self.assertEqual(len(list(out.glob("ios-*.png"))), 14)
-            self.assertEqual(len([c for c in calls if c[2] == "launch"]), 14)
+            self.assertEqual(len([c for c in calls if simctl_action(c) == "launch"]), 14)
             self.assertTrue((out / "ios-light-5.png").exists())
             self.assertTrue((out / "ios-dark-5.png").exists())
             self.assertTrue((out / "ios-light-6.png").exists())
             self.assertTrue((out / "ios-dark-6.png").exists())
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
+            created = next(c for c in calls if len(c) > 2 and c[2] == "create")
+            self.assertEqual(created[-2:], ["com.apple.CoreSimulator.SimDeviceType.iPhone-17",
+                                          "com.apple.CoreSimulator.SimRuntime.iOS-27-0"])
+            self.assertFalse(any(len(c) > 2 and c[2] == "clone" for c in calls))
+            opened = next(c for c in calls if c[0] == "open")
+            self.assertEqual(opened, ["open", "-a",
+                                     "/Applications/Xcode.app/Contents/Developer/Applications/Simulator.app",
+                                     "--args", "-CurrentDeviceUDID", "isolated-device"])
 
     def test_launch_timeout_never_captures_and_cleans_simulator(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -214,7 +231,7 @@ class RenderTests(unittest.TestCase):
                 with self.assertRaises(subprocess.TimeoutExpired):
                     render.render(Path(directory) / "out")
             ready.assert_not_called()
-            self.assertFalse(any(c[2] == "io" for c in calls))
+            self.assertFalse(any(simctl_action(c) == "io" for c in calls))
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
 
     def test_slow_screenshot_has_budget_but_keeps_page_deadline(self):
@@ -222,7 +239,7 @@ class RenderTests(unittest.TestCase):
             fake, calls = self.simulated(directory)
             screenshots = []
             def slow_capture(args, **kwargs):
-                if args[2] == "io":
+                if simctl_action(args) == "io":
                     screenshots.append(kwargs)
                     if kwargs['timeout'] < 30:
                         raise subprocess.TimeoutExpired(args, kwargs['timeout'])
@@ -231,6 +248,7 @@ class RenderTests(unittest.TestCase):
                 render.render(Path(directory) / "out")
             self.assertEqual(len(screenshots), 14)
             self.assertTrue(all('deadline' in s for s in screenshots))
+            self.assertEqual([s['timeout'] for s in screenshots], [60] + [30] * 13)
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
 
     def test_startup_timeout_stops_before_install_and_cleans_simulator(self):
@@ -239,7 +257,7 @@ class RenderTests(unittest.TestCase):
             with patch.object(render, "run", side_effect=fake):
                 with self.assertRaises(subprocess.TimeoutExpired):
                     render.render(Path(directory) / "out")
-            self.assertFalse(any(c[2] in ("install", "launch", "io") for c in calls))
+            self.assertFalse(any(simctl_action(c) in ("install", "launch", "io") for c in calls))
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
 
     def test_install_timeout_rechecks_readiness_and_retries_once(self):
@@ -247,7 +265,7 @@ class RenderTests(unittest.TestCase):
             fake, calls = self.simulated(directory)
             installs = []
             def slow_install(args, **kwargs):
-                if args[2] == "install":
+                if simctl_action(args) == "install":
                     installs.append(kwargs)
                     if len(installs) == 1:
                         calls.append(args)
@@ -258,7 +276,7 @@ class RenderTests(unittest.TestCase):
                 render.render(out)
             self.assertEqual(len(installs), 2)
             self.assertEqual(installs[0]["timeout"], 120)
-            self.assertEqual(len([c for c in calls if c[2] == "bootstatus"]), 2)
+            self.assertEqual(len([c for c in calls if simctl_action(c) == "bootstatus"]), 2)
             self.assertEqual(len(list(out.glob("ios-*.png"))), 14)
 
     def test_cold_container_lookup_has_startup_budget(self):
@@ -266,7 +284,7 @@ class RenderTests(unittest.TestCase):
             fake, calls = self.simulated(directory)
             timeouts = []
             def cold_container(args, **kwargs):
-                if args[2] == "get_app_container":
+                if simctl_action(args) == "get_app_container":
                     timeouts.append(kwargs.get("timeout", 60))
                     if timeouts[-1] < 90:
                         raise subprocess.TimeoutExpired(args, timeouts[-1])
@@ -280,7 +298,7 @@ class RenderTests(unittest.TestCase):
             fake, calls = self.simulated(directory)
             timeouts = []
             def cold_launch(args, **kwargs):
-                if args[2] == "launch":
+                if simctl_action(args) == "launch":
                     timeouts.append(kwargs["timeout"])
                     if len(timeouts) == 1 and timeouts[-1] < 45:
                         raise subprocess.TimeoutExpired(args, timeouts[-1])
@@ -294,7 +312,7 @@ class RenderTests(unittest.TestCase):
             fake, calls = self.simulated(directory)
             installs = []
             def failing_install(args, **kwargs):
-                if args[2] == "install":
+                if simctl_action(args) == "install":
                     installs.append(kwargs); calls.append(args)
                     raise subprocess.TimeoutExpired(args, kwargs["timeout"])
                 return fake(args, **kwargs)
@@ -303,7 +321,7 @@ class RenderTests(unittest.TestCase):
                     render.render(Path(directory) / "out")
             self.assertEqual(len(installs), 2)
             self.assertEqual(installs[0]["deadline"], installs[1]["deadline"])
-            self.assertFalse(any(c[2] in ("launch", "io") for c in calls))
+            self.assertFalse(any(simctl_action(c) in ("launch", "io") for c in calls))
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
 
     def test_black_capture_not_published(self):
@@ -322,7 +340,7 @@ class RenderTests(unittest.TestCase):
             with patch.object(render, "run", side_effect=fake), patch.object(render, "wait_ready", side_effect=TimeoutError()):
                 with self.assertRaises(TimeoutError):
                     render.render(Path(directory) / "out")
-            self.assertFalse(any(c[2] == "io" for c in calls))
+            self.assertFalse(any(simctl_action(c) == "io" for c in calls))
             self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
 
     def test_no_compatible_simulator_reports_failure(self):
@@ -330,6 +348,40 @@ class RenderTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, patch.object(render, "run", return_value=result):
             with self.assertRaisesRegex(RuntimeError, "No available"):
                 render.render(Path(directory) / "out")
+
+    def test_device_type_falls_back_to_matching_runtime_template_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            def without_type(args, **kwargs):
+                if args[:4] == ["xcrun", "simctl", "list", "devicetypes"]:
+                    calls.append(args)
+                    data = {"devicetypes": [{"name": "iPhone 17",
+                            "identifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17"}]}
+                    return subprocess.CompletedProcess(args, 0, json.dumps(data).encode())
+                result = fake(args, **kwargs)
+                if args[:4] == ["xcrun", "simctl", "list", "devices"]:
+                    data = json.loads(result.stdout)
+                    for devices in data["devices"].values():
+                        for item in devices:
+                            item.pop("deviceTypeIdentifier", None)
+                    result.stdout = json.dumps(data).encode()
+                return result
+            with patch.object(render, "run", side_effect=without_type):
+                out = Path(directory) / "out"
+                render.render(out)
+            created = next(c for c in calls if simctl_action(c) == "create")
+            self.assertEqual(created[-2], "com.apple.CoreSimulator.SimDeviceType.iPhone-17")
+            self.assertEqual(len(list(out.glob("ios-*.png"))), 14)
+
+    def test_missing_device_type_stops_before_creating_simulator(self):
+        devices = {"devices": {"com.apple.CoreSimulator.SimRuntime.iOS-27-0":
+                              [{"name": "iPhone 17", "udid": "template"}]}}
+        results = [subprocess.CompletedProcess([], 0, json.dumps(devices).encode()),
+                   subprocess.CompletedProcess([], 0, b'{"devicetypes": []}')]
+        with tempfile.TemporaryDirectory() as directory, patch.object(render, "run", side_effect=results) as call:
+            with self.assertRaisesRegex(RuntimeError, "device type"):
+                render.render(Path(directory) / "out")
+            self.assertEqual(call.call_count, 2)
 
 
 if __name__ == "__main__":

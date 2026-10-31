@@ -10,7 +10,7 @@ import zlib
 
 BUNDLE = "com.medyma.immortalwrtApp"
 RENDER_SECONDS = 540
-PAGE_SECONDS = 40
+PAGE_SECONDS = 60
 
 
 def run(args, timeout=60, deadline=None, **kwargs):
@@ -145,11 +145,27 @@ def render(out=Path("ios-native-pages")):
         if not candidates:
             raise RuntimeError("No available iOS 27 iPhone simulator")
         runtime, template = candidates[0]
-        # Cloning isolates appearance/status changes from existing runner simulators.
-        device = run(["xcrun", "simctl", "clone", template["udid"], "ImmortalWrt preview " + uuid.uuid4().hex],
+        device_type = template.get("deviceTypeIdentifier")
+        if not device_type:
+            types = json.loads(run(["xcrun", "simctl", "list", "devicetypes", "--json"],
+                                   capture_output=True, deadline=deadline).stdout)["devicetypes"]
+            device_type = next((item["identifier"] for item in types
+                                if item["name"] == template["name"]), None)
+        if not device_type:
+            raise RuntimeError("Cannot resolve the iOS 27 iPhone simulator device type")
+        # A new device keeps the runner template's cached boot/migration state
+        # out of the preview while still isolating appearance and status changes.
+        device = run(["xcrun", "simctl", "create", "ImmortalWrt preview " + uuid.uuid4().hex,
+                      device_type, runtime],
                      capture_output=True, deadline=deadline).stdout.decode().strip()
+        developer = Path(run(["xcode-select", "--print-path"], capture_output=True,
+                             deadline=deadline).stdout.decode().strip())
         run(["xcrun", "simctl", "boot", device], timeout=60, deadline=deadline)
-        run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=120, deadline=deadline)
+        # Attach this device to the matching Xcode's display service before
+        # asking for frames; a booted headless device can still stall screenshot.
+        run(["open", "-a", str(developer / "Applications/Simulator.app"),
+             "--args", "-CurrentDeviceUDID", device], deadline=deadline)
+        run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=180, deadline=deadline)
         install_preview(device, deadline)
         container = run(["xcrun", "simctl", "get_app_container", device, BUNDLE, "data"],
                         timeout=120, capture_output=True, deadline=deadline).stdout.decode().strip()
@@ -165,7 +181,7 @@ def render(out=Path("ios-native-pages")):
                            SIMCTL_CHILD_IOS_PREVIEW_NONCE=expected["nonce"],
                            SIMCTL_CHILD_IOS_PREVIEW_APPEARANCE=appearance)
                 cold_start = appearance == "light" and tab == 0
-                page_deadline = min(deadline, time.monotonic() + (90 if cold_start else PAGE_SECONDS))
+                page_deadline = min(deadline, time.monotonic() + (120 if cold_start else PAGE_SECONDS))
                 # A launch timeout is a failure: it never grants permission to capture.
                 run(["xcrun", "simctl", "launch", "--terminate-running-process", device, BUNDLE],
                     timeout=60 if cold_start else 20, deadline=page_deadline, env=env)
@@ -173,7 +189,7 @@ def render(out=Path("ios-native-pages")):
                 pending = out / f"pending-{appearance}-{tab}.png"
                 try:
                     run(["xcrun", "simctl", "io", device, "screenshot", str(pending)],
-                        timeout=30, deadline=page_deadline)
+                        timeout=60 if cold_start else 30, deadline=page_deadline)
                     validate_screenshot(pending)
                     pending.replace(out / f"ios-{appearance}-{tab}.png")
                 finally:
