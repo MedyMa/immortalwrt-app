@@ -1,4 +1,5 @@
-"""Capture only acknowledged preview pages, within one bounded render deadline."""
+"""Prepare an isolated display and capture only acknowledged preview pages."""
+import argparse
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ import zlib
 BUNDLE = "com.medyma.immortalwrtApp"
 RENDER_SECONDS = 540
 PAGE_SECONDS = 60
+SESSION_NAME = ".ios-preview-device.json"
 
 
 def run(args, timeout=60, deadline=None, **kwargs):
@@ -130,49 +132,116 @@ def install_preview(device, deadline):
                 timeout=60, deadline=install_deadline)
 
 
+def acquire_device(session, deadline):
+    listing = json.loads(run(["xcrun", "simctl", "list", "devices", "available", "--json"],
+                             capture_output=True, deadline=deadline).stdout)["devices"]
+    if session.exists():
+        if session.stat().st_size > 4096:
+            raise RuntimeError("Invalid prepared simulator session")
+        identity = json.loads(session.read_text(encoding="utf-8"))
+        if not isinstance(identity, dict) or identity.get("schema") != 1 or \
+                identity.get("run_id") != os.environ.get("GITHUB_RUN_ID") or \
+                identity.get("attempt") != os.environ.get("GITHUB_RUN_ATTEMPT") or \
+                not isinstance(identity.get("runtime"), str) or \
+                not isinstance(identity.get("device"), str) or \
+                not isinstance(identity.get("name"), str) or \
+                not identity["name"].startswith("ImmortalWrt preview "):
+            raise RuntimeError("Prepared simulator does not belong to this preview run")
+        # Match an actual named device; never accept simctl aliases such as all.
+        runtime = identity.get("runtime", "")
+        found = next((item for item in listing.get(runtime, [])
+                      if item["udid"] == identity.get("device") and
+                      item["name"] == identity.get("name")), None)
+        if "iOS-27" not in runtime or not found or found.get("state") != "Booted":
+            raise RuntimeError("Prepared preview simulator is not available and booted")
+        return identity["device"], identity, False
+    candidates = [(runtime, item) for runtime, devices in listing.items()
+                  if "iOS-27" in runtime for item in devices if "iPhone" in item["name"]]
+    if not candidates:
+        raise RuntimeError("No available iOS 27 iPhone simulator")
+    runtime, template = candidates[0]
+    device_type = template.get("deviceTypeIdentifier")
+    if not device_type:
+        types = json.loads(run(["xcrun", "simctl", "list", "devicetypes", "--json"],
+                               capture_output=True, deadline=deadline).stdout)["devicetypes"]
+        device_type = next((item["identifier"] for item in types
+                            if item["name"] == template["name"]), None)
+    if not device_type:
+        raise RuntimeError("Cannot resolve the iOS 27 iPhone simulator device type")
+    name = "ImmortalWrt preview " + uuid.uuid4().hex
+    device = run(["xcrun", "simctl", "create", name, device_type, runtime],
+                 capture_output=True, deadline=deadline).stdout.decode().strip()
+    identity = dict(schema=1, device=device, name=name, runtime=runtime,
+                    run_id=os.environ.get("GITHUB_RUN_ID"), attempt=os.environ.get("GITHUB_RUN_ATTEMPT"))
+    return device, identity, True
+
+
+def boot_device(device, deadline):
+    developer = Path(run(["xcode-select", "--print-path"], capture_output=True,
+                         deadline=deadline).stdout.decode().strip())
+    run(["xcrun", "simctl", "boot", device], timeout=60, deadline=deadline)
+    simulator = developer / "Applications/Simulator.app"
+    if simulator.is_dir():
+        try:
+            run(["open", "-a", str(simulator), "--args", "-CurrentDeviceUDID", device],
+                timeout=30, deadline=deadline)
+        except (subprocess.SubprocessError, OSError) as error:
+            print(f"Simulator desktop unavailable; using simctl headless display: {error}", flush=True)
+    else:
+        print("Simulator.app is not installed; using simctl headless display", flush=True)
+    run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=180, deadline=deadline)
+
+
+def cleanup_device(device):
+    for action in ("shutdown", "delete"):
+        try:
+            run(["xcrun", "simctl", action, device], timeout=20)
+        except (subprocess.SubprocessError, OSError) as error:
+            print(f"Simulator cleanup {action} failed: {error}", flush=True)
+
+
+def prepare_device(session=Path(SESSION_NAME)):
+    """Warm native display services before the existing Flutter build step.
+
+    The SpringBoard warmup is discarded; it never counts as an app page.
+    Hosted CI disposes of the runner if the subsequent build fails or cancels.
+    The render phase cleans up its specifically recorded device on all exits.
+    """
+    deadline = time.monotonic() + 300
+    device = None
+    prepared = False
+    warmup = session.parent / ".ios-preview-warmup.png"
+    pending = session.with_suffix(".tmp")
+    try:
+        device, identity, created = acquire_device(session, deadline)
+        if created:
+            boot_device(device, deadline)
+        run(["xcrun", "simctl", "io", device, "screenshot", str(warmup)],
+            timeout=120, deadline=deadline)
+        pending.write_text(json.dumps(identity), encoding="utf-8")
+        pending.replace(session)
+        prepared = True
+        print("Isolated simulator and native display prepared before Flutter build", flush=True)
+    finally:
+        warmup.unlink(missing_ok=True)
+        pending.unlink(missing_ok=True)
+        if device and not prepared:
+            cleanup_device(device)
+            session.unlink(missing_ok=True)
+
+
 def render(out=Path("ios-native-pages")):
     deadline = time.monotonic() + RENDER_SECONDS
+    session = out.parent / SESSION_NAME
     device = None
     out.mkdir(exist_ok=True)
     # Prevent artifacts from previous invocations being presented as fresh pages.
     for path in out.glob("ios-*.png"):
         path.unlink()
     try:
-        listing = json.loads(run(["xcrun", "simctl", "list", "devices", "available", "--json"],
-                                 capture_output=True, deadline=deadline).stdout)["devices"]
-        candidates = [(runtime, item) for runtime, devices in listing.items()
-                      if "iOS-27" in runtime for item in devices if "iPhone" in item["name"]]
-        if not candidates:
-            raise RuntimeError("No available iOS 27 iPhone simulator")
-        runtime, template = candidates[0]
-        device_type = template.get("deviceTypeIdentifier")
-        if not device_type:
-            types = json.loads(run(["xcrun", "simctl", "list", "devicetypes", "--json"],
-                                   capture_output=True, deadline=deadline).stdout)["devicetypes"]
-            device_type = next((item["identifier"] for item in types
-                                if item["name"] == template["name"]), None)
-        if not device_type:
-            raise RuntimeError("Cannot resolve the iOS 27 iPhone simulator device type")
-        # A new device keeps the runner template's cached boot/migration state
-        # out of the preview while still isolating appearance and status changes.
-        device = run(["xcrun", "simctl", "create", "ImmortalWrt preview " + uuid.uuid4().hex,
-                      device_type, runtime],
-                     capture_output=True, deadline=deadline).stdout.decode().strip()
-        developer = Path(run(["xcode-select", "--print-path"], capture_output=True,
-                             deadline=deadline).stdout.decode().strip())
-        run(["xcrun", "simctl", "boot", device], timeout=60, deadline=deadline)
-        # Full Xcode can attach a desktop display. CLI-only CI images omit
-        # Simulator.app; simctl still provides native headless screenshots.
-        simulator = developer / "Applications/Simulator.app"
-        if simulator.is_dir():
-            try:
-                run(["open", "-a", str(simulator), "--args", "-CurrentDeviceUDID", device],
-                    timeout=30, deadline=deadline)
-            except (subprocess.SubprocessError, OSError) as error:
-                print(f"Simulator desktop unavailable; using simctl headless display: {error}", flush=True)
-        else:
-            print("Simulator.app is not installed; using simctl headless display", flush=True)
-        run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=180, deadline=deadline)
+        device, identity, created = acquire_device(session, deadline)
+        if created:
+            boot_device(device, deadline)
         install_preview(device, deadline)
         container = run(["xcrun", "simctl", "get_app_container", device, BUNDLE, "data"],
                         timeout=120, capture_output=True, deadline=deadline).stdout.decode().strip()
@@ -203,12 +272,15 @@ def render(out=Path("ios-native-pages")):
                     pending.unlink(missing_ok=True)
     finally:
         if device:
-            for action in ("shutdown", "delete"):
-                try:
-                    run(["xcrun", "simctl", action, device], timeout=20)
-                except (subprocess.SubprocessError, OSError) as error:
-                    print(f"Simulator cleanup {action} failed: {error}", flush=True)
+            cleanup_device(device)
+            session.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
-    render()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--prepare-device", action="store_true")
+    args = parser.parse_args()
+    if args.prepare_device:
+        prepare_device()
+    else:
+        render()

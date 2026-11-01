@@ -14,6 +14,12 @@ def prepare_cocoapods():
                     "https://cdn.cocoapods.org/"], check=True, timeout=120)
 
 
+def prepare_simulator(root):
+    if sys.platform == "darwin":
+        subprocess.run([sys.executable, str(root / "tools/render-ios-preview.py"), "--prepare-device"],
+                       cwd=root, check=True, timeout=350)
+
+
 def replace_once(source, anchor, replacement, label):
     count = source.count(anchor)
     if count != 1:
@@ -141,5 +147,7 @@ def prepare(root):
 
 
 if __name__ == "__main__":
-    prepare(Path(__file__).resolve().parents[1])
+    root = Path(__file__).resolve().parents[1]
+    prepare(root)
     prepare_cocoapods()
+    prepare_simulator(root)

@@ -72,6 +72,13 @@ class PreparationTests(unittest.TestCase):
             with self.assertRaises(subprocess.CalledProcessError):
                 prepare.prepare_cocoapods()
 
+    def test_macos_prewarms_the_device_in_the_existing_prepare_step(self):
+        root = Path("/checkout")
+        with patch.object(prepare.sys, "platform", "darwin"), patch.object(prepare.subprocess, "run") as call:
+            prepare.prepare_simulator(root)
+        call.assert_called_once_with([prepare.sys.executable, "/checkout/tools/render-ios-preview.py",
+                                      "--prepare-device"], cwd=root, check=True, timeout=350)
+
     def fixture(self, directory):
         root = Path(directory)
         for relative in ("lib/main.dart", "ios/Runner/AppDelegate.swift", "tools/ios_preview_fixture.dart"):
@@ -185,6 +192,7 @@ class RenderTests(unittest.TestCase):
     def simulated(self, directory, failure=None):
         calls = []
         state = {}
+        device_state = {}
         container = Path(directory) / "container"
         (container / "Documents").mkdir(parents=True)
         developer = Path(directory) / "Xcode.app/Contents/Developer"
@@ -197,14 +205,20 @@ class RenderTests(unittest.TestCase):
                 return subprocess.CompletedProcess(args, 0)
             action = simctl_action(args)
             if action == "list":
-                data = {"devices": {"com.apple.CoreSimulator.SimRuntime.iOS-27-0":
-                                    [{"name": "iPhone 17", "udid": "template",
-                                      "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17"}]}}
+                items = [{"name": "iPhone 17", "udid": "template",
+                          "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17"}]
+                if "created_name" in device_state:
+                    items.append({"name": device_state["created_name"], "udid": "isolated-device",
+                                  "state": "Booted" if device_state.get("booted") else "Shutdown"})
+                data = {"devices": {"com.apple.CoreSimulator.SimRuntime.iOS-27-0": items}}
                 return subprocess.CompletedProcess(args, 0, json.dumps(data).encode())
             if action == "create":
+                device_state["created_name"] = args[3]
                 return subprocess.CompletedProcess(args, 0, b"isolated-device\n")
             if action == "boot" and failure == "startup":
                 raise subprocess.TimeoutExpired(args, 60)
+            if action == "boot":
+                device_state["booted"] = True
             if action == "get_app_container":
                 return subprocess.CompletedProcess(args, 0, str(container).encode())
             if action == "launch":
@@ -242,6 +256,52 @@ class RenderTests(unittest.TestCase):
             self.assertEqual(opened, ["open", "-a",
                                      str(Path(directory) / "Xcode.app/Contents/Developer/Applications/Simulator.app"),
                                      "--args", "-CurrentDeviceUDID", "isolated-device"])
+
+    def test_prepared_display_is_reused_and_warmup_is_not_an_app_artifact(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            session = Path(directory) / render.SESSION_NAME
+            out = Path(directory) / "out"
+            with patch.object(render, "run", side_effect=fake):
+                render.prepare_device(session)
+                self.assertTrue(session.exists())
+                self.assertFalse((Path(directory) / ".ios-preview-warmup.png").exists())
+                render.render(out)
+            self.assertEqual(len([c for c in calls if simctl_action(c) == "create"]), 1)
+            self.assertEqual(len([c for c in calls if simctl_action(c) == "boot"]), 1)
+            self.assertEqual(len([c for c in calls if simctl_action(c) == "io"]), 15)
+            self.assertEqual(len(list(out.glob("ios-*.png"))), 14)
+            self.assertFalse(session.exists())
+            self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
+
+    def test_display_warmup_timeout_cleans_device_without_a_prepared_session(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            session = Path(directory) / render.SESSION_NAME
+            def no_display(args, **kwargs):
+                if simctl_action(args) == "io":
+                    raise subprocess.TimeoutExpired(args, kwargs["timeout"])
+                return fake(args, **kwargs)
+            with patch.object(render, "run", side_effect=no_display):
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    render.prepare_device(session)
+            self.assertFalse(session.exists())
+            self.assertFalse(any(simctl_action(c) in ("install", "launch") for c in calls))
+            self.assertEqual([c[2] for c in calls[-2:]], ["shutdown", "delete"])
+
+    def test_foreign_session_never_launches_or_deletes_its_device(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            session = Path(directory) / render.SESSION_NAME
+            with patch.object(render, "run", side_effect=fake):
+                render.prepare_device(session)
+                identity = json.loads(session.read_text())
+                identity["run_id"] = "another-preview-run"
+                session.write_text(json.dumps(identity))
+                before = len(calls)
+                with self.assertRaisesRegex(RuntimeError, "belong"):
+                    render.render(Path(directory) / "out")
+            self.assertFalse(any(simctl_action(c) in ("launch", "shutdown", "delete") for c in calls[before:]))
 
     def test_cli_only_xcode_captures_native_headless_pages(self):
         with tempfile.TemporaryDirectory() as directory:
