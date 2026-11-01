@@ -55,6 +55,23 @@ def png(path, pixel, method=0):
 
 
 class PreparationTests(unittest.TestCase):
+    def test_macos_registers_the_official_source_as_cdn(self):
+        with patch.object(prepare.sys, "platform", "darwin"), patch.object(prepare.subprocess, "run") as call:
+            prepare.prepare_cocoapods()
+        call.assert_called_once_with(["pod", "repo", "add-cdn", "immortalwrt-preview",
+                                      "https://cdn.cocoapods.org/"], check=True, timeout=120)
+
+    def test_non_macos_preparation_does_not_run_cocoapods(self):
+        with patch.object(prepare.sys, "platform", "linux"), patch.object(prepare.subprocess, "run") as call:
+            prepare.prepare_cocoapods()
+        call.assert_not_called()
+
+    def test_cdn_setup_failure_is_propagated(self):
+        with patch.object(prepare.sys, "platform", "darwin"), patch.object(
+                prepare.subprocess, "run", side_effect=subprocess.CalledProcessError(1, ["pod"])):
+            with self.assertRaises(subprocess.CalledProcessError):
+                prepare.prepare_cocoapods()
+
     def fixture(self, directory):
         root = Path(directory)
         for relative in ("lib/main.dart", "ios/Runner/AppDelegate.swift", "tools/ios_preview_fixture.dart"):

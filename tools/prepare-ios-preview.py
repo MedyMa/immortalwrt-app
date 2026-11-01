@@ -1,5 +1,17 @@
 """Inject fixtures and a rendered-page handshake in the disposable CI checkout."""
 from pathlib import Path
+import subprocess
+import sys
+
+
+def prepare_cocoapods():
+    if sys.platform != "darwin":
+        return
+    # CocoaPods probes CDN metadata to guess the source type. A transient
+    # probe failure otherwise makes it try to git-clone this HTTP-only CDN.
+    # Use our own named CDN source, leaving the runner's other repos intact.
+    subprocess.run(["pod", "repo", "add-cdn", "immortalwrt-preview",
+                    "https://cdn.cocoapods.org/"], check=True, timeout=120)
 
 
 def replace_once(source, anchor, replacement, label):
@@ -130,3 +142,4 @@ def prepare(root):
 
 if __name__ == "__main__":
     prepare(Path(__file__).resolve().parents[1])
+    prepare_cocoapods()
