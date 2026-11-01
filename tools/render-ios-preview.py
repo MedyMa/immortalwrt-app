@@ -217,7 +217,7 @@ def prepare_device(session=Path(SESSION_NAME)):
         if created:
             boot_device(device, deadline)
         run(["xcrun", "simctl", "io", device, "screenshot", str(warmup)],
-            timeout=120, deadline=deadline)
+            timeout=180, deadline=deadline)
         pending.write_text(json.dumps(identity), encoding="utf-8")
         pending.replace(session)
         prepared = True
