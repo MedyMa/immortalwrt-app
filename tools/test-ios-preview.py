@@ -187,10 +187,12 @@ class RenderTests(unittest.TestCase):
         state = {}
         container = Path(directory) / "container"
         (container / "Documents").mkdir(parents=True)
+        developer = Path(directory) / "Xcode.app/Contents/Developer"
+        (developer / "Applications/Simulator.app").mkdir(parents=True)
         def fake(args, **kwargs):
             calls.append(args)
             if args[0] == "xcode-select":
-                return subprocess.CompletedProcess(args, 0, b"/Applications/Xcode.app/Contents/Developer\n")
+                return subprocess.CompletedProcess(args, 0, str(developer).encode() + b"\n")
             if args[0] == "open":
                 return subprocess.CompletedProcess(args, 0)
             action = simctl_action(args)
@@ -238,8 +240,30 @@ class RenderTests(unittest.TestCase):
             self.assertFalse(any(len(c) > 2 and c[2] == "clone" for c in calls))
             opened = next(c for c in calls if c[0] == "open")
             self.assertEqual(opened, ["open", "-a",
-                                     "/Applications/Xcode.app/Contents/Developer/Applications/Simulator.app",
+                                     str(Path(directory) / "Xcode.app/Contents/Developer/Applications/Simulator.app"),
                                      "--args", "-CurrentDeviceUDID", "isolated-device"])
+
+    def test_cli_only_xcode_captures_native_headless_pages(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            (Path(directory) / "Xcode.app/Contents/Developer/Applications/Simulator.app").rmdir()
+            out = Path(directory) / "out"
+            with patch.object(render, "run", side_effect=fake):
+                render.render(out)
+            self.assertFalse(any(c[0] == "open" for c in calls))
+            self.assertEqual(len(list(out.glob("ios-*.png"))), 14)
+
+    def test_desktop_failure_keeps_native_capture_and_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake, calls = self.simulated(directory)
+            def no_desktop(args, **kwargs):
+                if args[0] == "open":
+                    raise subprocess.CalledProcessError(1, args)
+                return fake(args, **kwargs)
+            out = Path(directory) / "out"
+            with patch.object(render, "run", side_effect=no_desktop):
+                render.render(out)
+            self.assertEqual(len(list(out.glob("ios-*.png"))), 14)
 
     def test_launch_timeout_never_captures_and_cleans_simulator(self):
         with tempfile.TemporaryDirectory() as directory:

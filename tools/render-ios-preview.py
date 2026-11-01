@@ -161,10 +161,17 @@ def render(out=Path("ios-native-pages")):
         developer = Path(run(["xcode-select", "--print-path"], capture_output=True,
                              deadline=deadline).stdout.decode().strip())
         run(["xcrun", "simctl", "boot", device], timeout=60, deadline=deadline)
-        # Attach this device to the matching Xcode's display service before
-        # asking for frames; a booted headless device can still stall screenshot.
-        run(["open", "-a", str(developer / "Applications/Simulator.app"),
-             "--args", "-CurrentDeviceUDID", device], deadline=deadline)
+        # Full Xcode can attach a desktop display. CLI-only CI images omit
+        # Simulator.app; simctl still provides native headless screenshots.
+        simulator = developer / "Applications/Simulator.app"
+        if simulator.is_dir():
+            try:
+                run(["open", "-a", str(simulator), "--args", "-CurrentDeviceUDID", device],
+                    timeout=30, deadline=deadline)
+            except (subprocess.SubprocessError, OSError) as error:
+                print(f"Simulator desktop unavailable; using simctl headless display: {error}", flush=True)
+        else:
+            print("Simulator.app is not installed; using simctl headless display", flush=True)
         run(["xcrun", "simctl", "bootstatus", device, "-b"], timeout=180, deadline=deadline)
         install_preview(device, deadline)
         container = run(["xcrun", "simctl", "get_app_container", device, BUNDLE, "data"],
