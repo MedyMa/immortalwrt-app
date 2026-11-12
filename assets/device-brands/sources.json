@@ -142,5 +142,318 @@
     "upstream": "espressif",
     "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
     "url": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/espressif.svg"
+  },
+  "honor": {
+    "file": "honor.svg",
+    "application": "Honor",
+    "source": "simple-icons",
+    "upstream": "honor",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "oppo": {
+    "file": "oppo.svg",
+    "application": "OPPO",
+    "source": "simple-icons",
+    "upstream": "oppo",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "vivo": {
+    "file": "vivo.svg",
+    "application": "vivo",
+    "source": "simple-icons",
+    "upstream": "vivo",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "oneplus": {
+    "file": "oneplus.svg",
+    "application": "OnePlus",
+    "source": "simple-icons",
+    "upstream": "oneplus",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "motorola": {
+    "file": "motorola.svg",
+    "application": "Motorola",
+    "source": "simple-icons",
+    "upstream": "motorola",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "meizu": {
+    "file": "meizu.svg",
+    "application": "MeiZu",
+    "source": "simple-icons",
+    "upstream": "meizu",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "sony": {
+    "file": "sony.svg",
+    "application": "Sony",
+    "source": "selfhst/icons",
+    "upstream": "sony",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/selfhst/icons/blob/main/LICENSE"
+  },
+  "nokia": {
+    "file": "nokia.svg",
+    "application": "Nokia",
+    "source": "simple-icons",
+    "upstream": "nokia",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "qnap": {
+    "file": "qnap.svg",
+    "application": "Qnap",
+    "source": "dashboard-icons",
+    "upstream": "qnap",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "netgear": {
+    "file": "netgear.svg",
+    "application": "NETGEAR",
+    "source": "simple-icons",
+    "upstream": "netgear",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "ubiquiti": {
+    "file": "ubiquiti.svg",
+    "application": "Ubiquiti",
+    "source": "dashboard-icons",
+    "upstream": "ubiquiti",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "hikvision": {
+    "file": "hikvision.svg",
+    "application": "Hikvision",
+    "source": "dashboard-icons",
+    "upstream": "hikvision",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "dji": {
+    "file": "dji.svg",
+    "application": "Dji",
+    "source": "simple-icons",
+    "upstream": "dji",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md"
+  },
+  "amazon": {
+    "file": "amazon.svg",
+    "application": "Amazon",
+    "source": "dashboard-icons",
+    "upstream": "amazon",
+    "licence": "see upstream LICENSE",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/LICENSE"
+  },
+  "haier": {
+    "file": "haier.svg",
+    "application": "Haier",
+    "source": "svglogo",
+    "upstream": "haier",
+    "licence": "MIT",
+    "url": "https://github.com/HeyHuazi/SVGLOGO"
+  },
+  "canon": {
+    "file": "canon.svg",
+    "application": "Canon",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Canon wordmark.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Canon_wordmark.svg",
+    "modifications": "None; artwork bundled unchanged from the source."
+  },
+  "dahua": {
+    "file": "dahua.svg",
+    "application": "Dahua",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Dahua Technology logo.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Dahua_Technology_logo.svg",
+    "artist": "Unknown authorUnknown author",
+    "modifications": "None; artwork bundled unchanged from the source."
+  },
+  "dyson": {
+    "file": "dyson.svg",
+    "application": "Dyson",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Dyson logo.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Dyson_logo.svg",
+    "artist": "Dyson, Vectorized by Kyle the hacker",
+    "modifications": "SVG line endings and trailing whitespace normalised; artwork unchanged."
+  },
+  "hisense": {
+    "file": "hisense.svg",
+    "application": "Hisense",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Hisense logo.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Hisense_logo.svg",
+    "artist": "Hisense Co., Ltd.",
+    "modifications": "None; artwork bundled unchanged from the source."
+  },
+  "philips": {
+    "file": "philips.svg",
+    "application": "Philips",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Philips logo new.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Philips_logo_new.svg",
+    "artist": "Philips, converted from AI to SVG by Stannered",
+    "modifications": "None; artwork bundled unchanged from the source."
+  },
+  "realme": {
+    "file": "realme.svg",
+    "application": "realme",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Realme logo.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Realme_logo.svg",
+    "artist": "Unknown authorUnknown author",
+    "modifications": "None; artwork bundled unchanged from the source."
+  },
+  "roborock": {
+    "file": "roborock.svg",
+    "application": "Roborock",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Roborock logo.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Roborock_logo.svg",
+    "artist": "Beijing Roborock Technology Co. Ltd.",
+    "modifications": "None; artwork bundled unchanged from the source."
+  },
+  "zte": {
+    "file": "zte.svg",
+    "application": "ZTE",
+    "source": "Wikimedia Commons",
+    "upstream": "File:ZTE-logo.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:ZTE-logo.svg",
+    "artist": "ZTE Corporation",
+    "modifications": "None; artwork bundled unchanged from the source."
+  },
+  "gigabyte": {
+    "file": "gigabyte.svg",
+    "application": "Gigabyte",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Gigabyte Technology logo 20080107.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Gigabyte_Technology_logo_20080107.svg",
+    "artist": "Koman90 at English Wikipedia",
+    "modifications": "SVG line endings and trailing whitespace normalised; artwork unchanged."
+  },
+  "epson": {
+    "file": "epson.svg",
+    "application": "Epson",
+    "source": "simple-icons",
+    "upstream": "epson",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/epson.svg",
+    "upstream_sha": "e400ea5b9bece5c7aeebc254f804445e23c98871"
+  },
+  "asustor": {
+    "file": "asustor.svg",
+    "application": "ASUSTOR",
+    "source": "dashboard-icons",
+    "upstream": "asustor",
+    "licence": "see upstream LICENSE; trademarks of their owners",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/svg/asustor.svg",
+    "upstream_sha": "ddede1ab5e9fe50a9642273be6baa486234eb7ad"
+  },
+  "brother": {
+    "file": "brother.svg",
+    "application": "Brother",
+    "source": "dashboard-icons",
+    "upstream": "brother",
+    "licence": "see upstream LICENSE; trademarks of their owners",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/svg/brother.svg",
+    "upstream_sha": "d0805addb1d6ad5aa5c1f2804920a7ff25d1bc88"
+  },
+  "d-link": {
+    "file": "d-link.svg",
+    "application": "D-Link",
+    "source": "dashboard-icons",
+    "upstream": "d-link",
+    "licence": "see upstream LICENSE; trademarks of their owners",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/svg/d-link.svg",
+    "upstream_sha": "6b8eb93745f2180f86e8689100576a692c94bf5a"
+  },
+  "tenda": {
+    "file": "tenda.svg",
+    "application": "Tenda",
+    "source": "dashboard-icons",
+    "upstream": "tenda",
+    "licence": "see upstream LICENSE; trademarks of their owners",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/svg/tenda.svg",
+    "upstream_sha": "bd6e5629a9a92fc75b1499a91e4e5b4e44bbfb67"
+  },
+  "ugreen": {
+    "file": "ugreen.svg",
+    "application": "UGREEN",
+    "source": "dashboard-icons",
+    "upstream": "ugreen",
+    "licence": "see upstream LICENSE; trademarks of their owners",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/svg/ugreen.svg",
+    "upstream_sha": "70b2e899cf6bcf72eca1fc67e0e498fefab06c5a"
+  },
+  "tuya": {
+    "file": "tuya.svg",
+    "application": "Tuya",
+    "source": "dashboard-icons",
+    "upstream": "tuya-smart-inc",
+    "licence": "see upstream LICENSE; trademarks of their owners",
+    "url": "https://github.com/homarr-labs/dashboard-icons/blob/main/svg/tuya-smart-inc.svg",
+    "upstream_sha": "6b6e00dd26d6406e97661653e7f14b5cf86ad8f9",
+    "modifications": "SVG line endings and trailing whitespace normalised; artwork unchanged."
+  },
+  "tp-link": {
+    "file": "tp-link.svg",
+    "application": "TP-Link",
+    "source": "simple-icons",
+    "upstream": "tplink",
+    "licence": "CC0-1.0 (trademarks: see DISCLAIMER.md)",
+    "url": "https://github.com/simple-icons/simple-icons/blob/develop/icons/tplink.svg",
+    "upstream_sha": "b760ca377109479123a6a949f65e0a023e1af3fc"
+  },
+  "aqara": {
+    "file": "aqara.png",
+    "application": "Aqara",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Aqara.png",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Aqara.png",
+    "artist": "Aqarasmarthouse",
+    "modifications": "None; original 250 x 250 PNG artwork bundled unchanged."
+  },
+  "dreame": {
+    "file": "dreame.svg",
+    "application": "Dreame",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Logo of Dreame.svg",
+    "licence": "CC BY-SA 4.0; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Logo_of_Dreame.svg",
+    "artist": "Dreame Technology",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+    "modifications": "None; artwork bundled unchanged from the source."
+  },
+  "tcl": {
+    "file": "tcl.svg",
+    "application": "TCL",
+    "source": "Wikimedia Commons",
+    "upstream": "File:Logo of the TCL Corporation.svg",
+    "licence": "Public domain; trademarks of their owners",
+    "url": "https://commons.wikimedia.org/wiki/File:Logo_of_the_TCL_Corporation.svg",
+    "artist": "TCL Electronics",
+    "modifications": "None; artwork bundled unchanged from the source."
   }
 }

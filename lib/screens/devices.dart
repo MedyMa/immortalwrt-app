@@ -214,27 +214,51 @@ class _DeviceIcon extends StatelessWidget {
       color: color,
     );
     final slug = identity.slug;
+    final asset = identity.iconAsset;
+    final brandFallback = identity.brand == null
+        ? generic
+        : Text(
+            identity.brand!.characters.take(3).toString().toUpperCase(),
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          );
     return Semantics(
       label: identity.label,
       child: Container(
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: _isDark(context) ? 0.18 : 0.08),
+          // A neutral plate preserves contrast without flattening multicolour
+          // wordmarks (Lenovo's white mask used to become a solid rectangle).
+          color: slug == null
+              ? color.withValues(alpha: _isDark(context) ? 0.18 : 0.08)
+              : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(13),
         ),
         alignment: Alignment.center,
-        child: slug == null
-            ? generic
-            : SvgPicture.asset(
-                'assets/device-brands/$slug.svg',
+        child: asset == null
+            ? brandFallback
+            : asset.endsWith('.png')
+            ? Image.asset(
+                asset,
                 key: ValueKey('device-brand-$slug'),
-                width: 25,
-                height: 25,
-                colorFilter: ColorFilter.mode(_inkOf(context), BlendMode.srcIn),
+                width: 32,
+                height: 28,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => brandFallback,
+              )
+            : SvgPicture.asset(
+                asset,
+                key: ValueKey('device-brand-$slug'),
+                width: 32,
+                height: 28,
+                fit: BoxFit.contain,
                 excludeFromSemantics: true,
-                placeholderBuilder: (_) => generic,
-                errorBuilder: (_, _, _) => generic,
+                placeholderBuilder: (_) => brandFallback,
+                errorBuilder: (_, _, _) => brandFallback,
               ),
       ),
     );

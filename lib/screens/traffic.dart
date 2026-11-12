@@ -183,7 +183,7 @@ class _TrafficState extends State<_Traffic> {
                     if (i > 0) const _Hairline(),
                     _AppTile(
                       app: apps[i],
-                      icon: state.data?.iconUri(apps[i].name),
+                      icons: state.data?.iconUris(apps[i].name) ?? const [],
                     ),
                   ],
                 ],
@@ -196,17 +196,17 @@ class _TrafficState extends State<_Traffic> {
 }
 
 class _AppTile extends StatelessWidget {
-  const _AppTile({required this.app, this.icon});
+  const _AppTile({required this.app, this.icons = const []});
 
   final TrafficApp app;
-  final Uri? icon;
+  final List<Uri> icons;
 
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 10),
     child: Row(
       children: [
-        TrafficIcon(name: app.name, uri: icon),
+        TrafficIcon(name: app.name, alternatives: icons),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
