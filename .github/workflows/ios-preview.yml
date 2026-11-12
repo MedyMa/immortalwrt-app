@@ -30,7 +30,8 @@ jobs:
       - run: flutter pub get
       - name: Prepare isolated preview
         run: python3 tools/prepare-ios-preview.py
-      - run: flutter build ios --simulator --debug
+      - name: Build native preview with Xcode diagnostics
+        run: python3 tools/prepare-ios-preview.py --build
       - name: Render all pages in iOS 27
         # Script has a 540 second render deadline + at most 40 seconds cleanup.
         timeout-minutes: 12
@@ -41,3 +42,10 @@ jobs:
           name: ios-native-pages
           path: ios-native-pages/*.png
           if-no-files-found: error
+      - name: Upload Xcode build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-preview-build-logs
+          path: ios-preview-diagnostics/*.log
+          if-no-files-found: warn

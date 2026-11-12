@@ -4,6 +4,37 @@ import subprocess
 import sys
 
 
+def build_preview(root):
+    """Keep Xcode discovery failures observable and retry that phase once.
+
+    Flutter's build-settings query has a one-minute timeout with one internal
+    retry. A cold preview runner can exhaust both while the prepared simulator
+    and Swift package discovery are starting. Compilation/signing failures are
+    not retried, and a failed second build remains a failed CI step.
+    """
+    logs = root / "ios-preview-diagnostics"
+    logs.mkdir(exist_ok=True)
+    command = ["flutter", "build", "ios", "--simulator", "--debug", "--verbose"]
+    for attempt in (1, 2):
+        output = logs / f"flutter-build-{attempt}.log"
+        print(f"Building iOS preview, attempt {attempt}; log: {output}", flush=True)
+        with output.open("w", encoding="utf-8") as stream:
+            try:
+                result = subprocess.run(command, cwd=root, stdout=stream,
+                                        stderr=subprocess.STDOUT, timeout=1200)
+            except subprocess.TimeoutExpired:
+                print("iOS preview build exceeded 20 minutes", flush=True)
+                raise
+        text = output.read_text(encoding="utf-8", errors="replace")
+        print("\n".join(text.splitlines()[-100:]), flush=True)
+        if result.returncode == 0:
+            return
+        if attempt == 1 and "No Xcode build settings have been found" in text:
+            print("Xcode discovery returned no build settings; retrying once with warm caches", flush=True)
+            continue
+        raise subprocess.CalledProcessError(result.returncode, command)
+
+
 def prepare_cocoapods():
     if sys.platform != "darwin":
         return
@@ -148,6 +179,9 @@ def prepare(root):
 
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
-    prepare(root)
-    prepare_cocoapods()
-    prepare_simulator(root)
+    if sys.argv[1:] == ["--build"]:
+        build_preview(root)
+    else:
+        prepare(root)
+        prepare_cocoapods()
+        prepare_simulator(root)
