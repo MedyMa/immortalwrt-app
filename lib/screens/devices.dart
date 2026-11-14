@@ -4,13 +4,14 @@ part of '../main.dart';
 // 设备
 // ---------------------------------------------------------------------------
 
-typedef _DeviceRow = DeviceRecord;
+typedef _DeviceRow = DeviceGroup;
 
 class _DeviceIndex {
   const _DeviceIndex({required this.rows});
-  final List<DeviceRecord> rows;
-  factory _DeviceIndex.of(RouterSnapshot snapshot) =>
-      _DeviceIndex(rows: DeviceRecord.fromSnapshot(snapshot));
+  final List<DeviceGroup> rows;
+  factory _DeviceIndex.of(RouterSnapshot snapshot) => _DeviceIndex(
+    rows: DeviceGroup.fromRecords(DeviceRecord.fromSnapshot(snapshot)),
+  );
 }
 
 class _Devices extends StatelessWidget {
@@ -205,7 +206,10 @@ class _DeviceIcon extends StatelessWidget {
       DeviceKind.printer => ('printer', Icons.print_rounded),
       DeviceKind.camera => ('camera', Icons.videocam_rounded),
       DeviceKind.router => ('wifi.router', Icons.router_rounded),
-      DeviceKind.unknown => ('square.stack.3d.up', Icons.devices_other_rounded),
+      DeviceKind.unknown => (
+        'laptopcomputer.and.iphone',
+        Icons.devices_rounded,
+      ),
     };
     final generic = _AppleSymbol(
       symbol,

@@ -321,6 +321,7 @@ class _AppleSymbol extends StatelessWidget {
       'house' => CupertinoIcons.house,
       'ipad' => CupertinoIcons.device_phone_landscape,
       'laptopcomputer' => CupertinoIcons.device_laptop,
+      'laptopcomputer.and.iphone' => fallback,
       'tv' => CupertinoIcons.tv,
       'externaldrive' => CupertinoIcons.archivebox,
       'gamecontroller' => CupertinoIcons.game_controller,

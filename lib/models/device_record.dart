@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'router_models.dart';
 
 String? _addressKey(String value) {
@@ -148,4 +149,58 @@ class _RecordBuilder {
     hasTraffic: hasTraffic,
     hasHint: hasHint,
   );
+}
+
+/// Display groups preserve the address/MAC records without treating a shared
+/// hostname as proof that they have the same hardware identity.
+class DeviceGroup {
+  DeviceGroup._(Iterable<DeviceRecord> records)
+    : _records = List.unmodifiable(records);
+
+  final List<DeviceRecord> _records;
+  String get name => _records.first.name.trim();
+  List<String> get addresses {
+    final values = <String, String>{};
+    for (final record in _records) {
+      for (final address in record.addresses) {
+        values.putIfAbsent(_addressKey(address)!, () => address);
+      }
+    }
+    return values.values.toList();
+  }
+
+  String get ip => ipv4.isNotEmpty ? ipv4.first : addresses.first;
+  List<String> get ipv4 => addresses.where((a) => !a.contains(':')).toList();
+  List<String> get ipv6 => addresses.where((a) => a.contains(':')).toList();
+  List<String> get macAddresses =>
+      _records.map((r) => r.mac).where((m) => m.isNotEmpty).toSet().toList();
+  // fromSnapshot already counts each canonical IP once across all records.
+  int? get bytes => _records.every((r) => r.bytes == null)
+      ? null
+      : _records.fold<int>(0, (total, r) => total + (r.bytes ?? 0));
+  bool get hasLease => _records.any((r) => r.hasLease);
+  bool get hasTraffic => _records.any((r) => r.hasTraffic);
+  bool get hasHint => _records.any((r) => r.hasHint);
+
+  static List<DeviceGroup> fromRecords(Iterable<DeviceRecord> records) {
+    final groups = <String, List<DeviceRecord>>{};
+    var unnamed = 0;
+    for (final record in records) {
+      final name = record.name.trim().toLowerCase();
+      final hasName =
+          name.isNotEmpty &&
+          !const {
+            '*',
+            'unknown',
+            'unnamed',
+            'unknown device',
+            'unnamed device',
+            '未命名设备',
+          }.contains(name) &&
+          _addressKey(name) == null;
+      final key = hasName ? 'name:$name' : 'unnamed:${unnamed++}';
+      (groups[key] ??= []).add(record);
+    }
+    return groups.values.map(DeviceGroup._).toList();
+  }
 }

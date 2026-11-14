@@ -148,7 +148,12 @@ class _DeviceDetailSheetState extends State<_DeviceDetailSheet> {
                   const _Hairline(),
                 ],
                 for (final entry in <(String, String)>[
-                  ('MAC 地址', row.mac.isEmpty ? '未提供' : row.mac),
+                  (
+                    'MAC 地址',
+                    row.macAddresses.isEmpty
+                        ? '未提供'
+                        : row.macAddresses.join('\n'),
+                  ),
                   (
                     '记录来源',
                     [

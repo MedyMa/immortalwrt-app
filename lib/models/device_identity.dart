@@ -69,7 +69,16 @@ class DeviceIdentity {
       : '$brand${model == null ? '' : ' $model'} · $typeLabel';
 
   factory DeviceIdentity.fromName(String name) {
-    if (name.trim().toLowerCase() == 'xiaoqiang') {
+    final value = name.trim().toLowerCase();
+    if (value == 'aney') {
+      return const DeviceIdentity(
+        DeviceKind.laptop,
+        'Lenovo',
+        'lenovo',
+        confirmedAlias: true,
+      );
+    }
+    if (value == 'xiaoqiang') {
       return const DeviceIdentity(
         DeviceKind.router,
         '小米',
@@ -78,7 +87,6 @@ class DeviceIdentity {
         model: 'AX9000',
       );
     }
-    final value = name.trim().toLowerCase();
     final separated = name
         .replaceAllMapped(
           RegExp(r'([a-z0-9])([A-Z])'),
