@@ -20,6 +20,23 @@ String? _macKey(String value) {
   return mac;
 }
 
+String? _deviceName(String value) {
+  final name = value.trim();
+  if (name.isEmpty ||
+      const {
+        '*',
+        'unknown',
+        'unnamed',
+        'unknown device',
+        'unnamed device',
+        '未命名设备',
+      }.contains(name.toLowerCase()) ||
+      _addressKey(name) != null) {
+    return null;
+  }
+  return name;
+}
+
 class DeviceRecord {
   const DeviceRecord({
     required this.name,
@@ -93,7 +110,17 @@ class DeviceRecord {
       final key = _addressKey(client.ip);
       if (key == null || local.contains(key)) continue;
       final old = clients[key];
-      if (old == null || client.bytes > old.bytes) clients[key] = client;
+      final selected = old == null || client.bytes > old.bytes ? client : old;
+      // Keep a useful name even when it only occurs on a smaller sample.
+      clients[key] = TrafficClient(
+        ip: selected.ip,
+        name:
+            _deviceName(selected.name) ??
+            _deviceName(client.name) ??
+            _deviceName(old?.name ?? '') ??
+            '',
+        bytes: selected.bytes,
+      );
     }
     for (final client in clients.values) {
       final builder = record(client.ip);
@@ -132,12 +159,8 @@ class _RecordBuilder {
   }
 
   void setName(String value) {
-    if (name.isEmpty &&
-        value.isNotEmpty &&
-        value != '*' &&
-        _addressKey(value) == null) {
-      name = value;
-    }
+    final candidate = _deviceName(value);
+    if (name.isEmpty && candidate != null) name = candidate;
   }
 
   DeviceRecord build() => DeviceRecord(
@@ -158,7 +181,7 @@ class DeviceGroup {
     : _records = List.unmodifiable(records);
 
   final List<DeviceRecord> _records;
-  String get name => _records.first.name.trim();
+  String get name => _deviceName(_records.first.name) ?? '';
   List<String> get addresses {
     final values = <String, String>{};
     for (final record in _records) {
@@ -186,19 +209,8 @@ class DeviceGroup {
     final groups = <String, List<DeviceRecord>>{};
     var unnamed = 0;
     for (final record in records) {
-      final name = record.name.trim().toLowerCase();
-      final hasName =
-          name.isNotEmpty &&
-          !const {
-            '*',
-            'unknown',
-            'unnamed',
-            'unknown device',
-            'unnamed device',
-            '未命名设备',
-          }.contains(name) &&
-          _addressKey(name) == null;
-      final key = hasName ? 'name:$name' : 'unnamed:${unnamed++}';
+      final name = _deviceName(record.name)?.toLowerCase();
+      final key = name == null ? 'unnamed:${unnamed++}' : 'name:$name';
       (groups[key] ??= []).add(record);
     }
     return groups.values.map(DeviceGroup._).toList();

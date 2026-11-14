@@ -85,7 +85,7 @@ class _Devices extends StatelessWidget {
           ),
         if (snapshot.hostHintsError != null) ...[
           const SizedBox(height: 10),
-          _Notice('地址归属信息暂不可用，未确认的地址单独显示。', Icons.info_outline_rounded),
+          _Notice('地址归属信息暂不可用，设备详情可能不完整。', Icons.info_outline_rounded),
         ],
         if (snapshot.localAddressesError != null) ...[
           const SizedBox(height: 10),
